@@ -1,0 +1,20 @@
+---
+docId: "api.versioning"
+title: "Versions and compatibility"
+description: "The documented routes use no URL version prefix."
+kind: "reference"
+status: "ready"
+sources: ["api", "frontend"]
+---
+
+## The current contract
+
+The documented routes use no URL version prefix. This documentation is tied to recorded source commits and a documentation release. Neither the application's package version nor a captured Git SHA is a promise that a particular deployment is running that revision.
+
+The checked-in API reference is generated from the recorded API revision. Live `/openapi.json` and `GET /endpoints` describe the running service and can differ during rollout. Investigate differences before changing a production integration.
+
+## Client behavior
+
+Parse the fields you use, tolerate additional response fields and handle documented nulls. Preserve decimal strings and branch on error codes rather than messages. Review changed field meanings as well as changed names.
+
+No fixed support lifetime, deprecation window or backward-compatibility guarantee is established here. Test your integration when adopting a new documentation or API revision.

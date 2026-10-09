@@ -1,0 +1,22 @@
+---
+docId: "guides.query-prices"
+title: "Запрос одного предмета"
+description: "Передайте market_hash_name в GET /prices."
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+translationOf: "guides.query-prices"
+sourceDigest: "sha256:a5c6e981a57cf8c3838196bc88f4fe0056e735f3b2180738682ce8f5f699bc94"
+---
+
+## Выберите фильтры
+
+Передайте `market_hash_name` в `GET /prices`. Для игры, отличной от `730`, задайте `app_id`. Необязательный `markets` — коды в верхнем регистре через запятую, например `BUFF,UUYP`. `side` принимает `ask`, `bid`, `mid`, `all`; по умолчанию — `all`.
+
+Кодируйте имя для URL и передавайте ключ в заголовке Authorization. [Первый запрос](/docs/get-started/first-request) содержит пример, [справочник](/docs/api/reference/prices/get-price) — все ограничения.
+
+## Пустой результат
+
+`404` означает отсутствие любых ценовых строк предмета в игре. Если строки существуют, но все исключены фильтрами, ответ будет `200` с пустым `markets`. Такой успешный запрос оплачивается по обычным правилам. Уберите фильтры, чтобы различить случаи.
+
+Для нескольких предметов используйте [пакетный запрос](/docs/guides/batch-prices).

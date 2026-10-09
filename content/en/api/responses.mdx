@@ -1,0 +1,30 @@
+---
+docId: "api.responses"
+title: "Response formats"
+description: "The following shapes illustrate the envelope, not a particular endpoint's payload:"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## JSON envelopes
+
+The following shapes illustrate the envelope, not a particular endpoint's payload:
+
+```json
+{"data": {}, "meta": {"request_id": "req_example"}}
+```
+
+```json
+{"error": {"code": "validation_error", "message": "Invalid request."}, "meta": {"request_id": "req_example"}}
+```
+
+Use `error.code` for program logic; messages can change. The server-generated `X-Request-ID` matches `meta.request_id`. Keep it for troubleshooting.
+
+Money and rates are decimal strings; credits are integers. Optional null values have field-specific meanings and must not all be converted to zero.
+
+## Billing and exceptions
+
+`meta.billable` states whether the request uses credit billing. A charged response can include `meta.credit.cost` and `remaining`; the remaining amount is a concurrent-use estimate. `GET /me` instead returns account totals in `data.credit`.
+
+The export body is the document itself; use `X-Billable`, `X-Credit-Cost` and `X-Credit-Remaining`. A `304` has no body. Health and other explicitly documented exceptions follow their operation schema.

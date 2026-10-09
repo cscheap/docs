@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "groups": [
+    {
+      "title": {
+        "en": "Get started",
+        "zh-CN": "开始使用",
+        "ru": "Начало работы"
+      },
+      "pages": [
+        "get-started/introduction",
+        "get-started/first-request",
+        "get-started/read-price-data"
+      ]
+    },
+    {
+      "title": {
+        "en": "Concepts",
+        "zh-CN": "核心概念",
+        "ru": "Понятия"
+      },
+      "pages": [
+        "concepts/items",
+        "concepts/markets-and-sources",
+        "concepts/prices",
+        "concepts/freshness",
+        "concepts/valuation",
+        "concepts/normalization",
+        "concepts/currencies",
+        "concepts/marketplace-fees",
+        "concepts/cost-calculation",
+        "concepts/glossary"
+      ]
+    },
+    {
+      "title": {
+        "en": "Guides",
+        "zh-CN": "操作指南",
+        "ru": "Руководства"
+      },
+      "pages": [
+        "guides/query-prices",
+        "guides/batch-prices",
+        "guides/export-prices",
+        "guides/polling-and-retries"
+      ]
+    },
+    {
+      "title": {
+        "en": "API",
+        "zh-CN": "API",
+        "ru": "API"
+      },
+      "pages": [
+        "api/overview",
+        "api/authentication",
+        "api/responses",
+        "api/errors",
+        "api/rate-limits",
+        "api/versioning",
+        "api/reference/account/get-account",
+        "api/reference/currencies/get-currency",
+        "api/reference/currencies/list-currencies",
+        "api/reference/markets/get-fees",
+        "api/reference/markets/get-market",
+        "api/reference/markets/list-markets",
+        "api/reference/platform/get-config",
+        "api/reference/platform/get-health",
+        "api/reference/platform/get-status",
+        "api/reference/platform/list-endpoints",
+        "api/reference/prices/batch-prices",
+        "api/reference/prices/export-prices",
+        "api/reference/prices/get-price"
+      ]
+    },
+    {
+      "title": {
+        "en": "Billing",
+        "zh-CN": "计费",
+        "ru": "Оплата"
+      },
+      "pages": [
+        "billing/credits",
+        "billing/request-costs",
+        "billing/plans",
+        "billing/balance-and-usage"
+      ]
+    },
+    {
+      "title": {
+        "en": "Dashboard",
+        "zh-CN": "控制台",
+        "ru": "Кабинет"
+      },
+      "pages": [
+        "dashboard/account",
+        "dashboard/api-keys",
+        "dashboard/billing",
+        "dashboard/settings"
+      ]
+    },
+    {
+      "title": {
+        "en": "Support",
+        "zh-CN": "支持",
+        "ru": "Поддержка"
+      },
+      "pages": [
+        "support/authentication",
+        "support/missing-or-stale-data",
+        "support/billing",
+        "support/service-status",
+        "support/contact"
+      ]
+    }
+  ]
+}

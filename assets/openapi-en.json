@@ -1,0 +1,2618 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "cs.cheap public user API",
+    "version": "dda4f783d436e2988c023313b3affa961e9fabf7"
+  },
+  "servers": [
+    {
+      "url": "https://api.cs.cheap"
+    }
+  ],
+  "paths": {
+    "/prices": {
+      "get": {
+        "tags": [
+          "Price"
+        ],
+        "summary": "Get prices for one item",
+        "description": "Returns the current quotes for one item across marketplaces, identified by its Steam market hash name.\n\n- The result has at most one quote per market and side, sorted by `market_code` and then `side`. When several sources report the same market, a quote that is still listed takes precedence over a delisted one, then data taken directly from that marketplace over aggregators, then the most recently confirmed quote (`fresh_at`) wins.\n- A market is reported as delisted (`delisted_at` set, `quantity` `0`, last known price kept) only when every source for it has delisted the item.\n- Items with enough market data also get one `CSCP` quote with `side` `mid`: the cs.cheap valuation, a weighted consensus of the marketplaces' sell listings and buy orders in CNY, refreshed once a day. Its `valuation` object carries the confidence (`credibility`, `uncertainty`) and the two consensus prices; on every other quote `valuation` is `null`. It is an estimate, not a tradable offer.\n- Narrow the result with `markets` (comma-separated market codes; `CSCP` selects the valuation) and `side` (`ask`, `bid`, `mid` or `all`).\n- `market_hash_name` must match exactly, including case.\n- Prices are decimal strings in each marketplace's own currency (`market_currency_code`); nothing is converted.\n- `404` means the item has no quotes at all for this `app_id`. An item whose quotes are all excluded by `markets` or `side` returns `200` with an empty `markets` list.\n\n> [!note]\n> This endpoint is billed per request. Failed requests, including `404`, are never charged; `meta.credit` reports the cost and your estimated remaining balance.\n",
+        "operationId": "get_item_prices_prices_get",
+        "parameters": [
+          {
+            "name": "market_hash_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "description": "Steam market hash name of the item, exactly as it appears on the Steam Community Market (exact, case-sensitive match).",
+              "title": "Market Hash Name"
+            },
+            "description": "Steam market hash name of the item, exactly as it appears on the Steam Community Market (exact, case-sensitive match)."
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 16,
+              "description": "Steam app ID of the game. Defaults to `730` (Counter-Strike 2).",
+              "default": "730",
+              "title": "App Id"
+            },
+            "description": "Steam app ID of the game. Defaults to `730` (Counter-Strike 2)."
+          },
+          {
+            "name": "markets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated market codes to include, for example `BUFF,UUYP`. Spaces around codes are ignored; each code must consist of uppercase letters, digits or underscores. Omit to include every market.",
+              "title": "Markets"
+            },
+            "description": "Comma-separated market codes to include, for example `BUFF,UUYP`. Spaces around codes are ignored; each code must consist of uppercase letters, digits or underscores. Omit to include every market."
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ask",
+                "bid",
+                "mid",
+                "all"
+              ],
+              "type": "string",
+              "description": "Which side of the market to return: `ask` for sell listings, `bid` for buy orders, `mid` for the CSCP valuation, `all` for everything. Defaults to `all`.",
+              "default": "all",
+              "title": "Side"
+            },
+            "description": "Which side of the market to return: `ask` for sell listings, `bid` for buy orders, `mid` for the CSCP valuation, `all` for everything. Defaults to `all`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ItemPricesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Not enough credits for this request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential is valid but not allowed to call this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter or the request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests to this endpoint; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/prices/batch": {
+      "post": {
+        "tags": [
+          "Price"
+        ],
+        "summary": "Get prices for many items",
+        "description": "Returns the current quotes for a list of items in one call. Each item's quotes follow the same rules as `GET /prices`: at most one per market and side, listed quotes preferred over delisted ones, then marketplace-sourced data over aggregators, then the freshest, plus the item's `CSCP` valuation (`side` `mid`) when it has one.\n\n- `items` has one entry per requested name, in request order.\n- Unknown names are not an error: they come back with an empty `markets` list. This endpoint never returns `404`.\n- Duplicate names are kept, and each occurrence gets its own entry.\n- `markets` and `side` filter every item the same way.\n- Unknown fields in the request body are rejected with `422`.\n\n> [!note]\n> Billed per started block of item names, counted over the full `market_hash_names` list including duplicates. The cost is checked before the lookup (`402` if your balance is too low) and charged only when the request succeeds.\n",
+        "operationId": "batch_item_prices_prices_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchPricesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BatchPricesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Not enough credits for this request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential is valid but not allowed to call this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter or the request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests to this endpoint; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/prices/export": {
+      "get": {
+        "tags": [
+          "Price"
+        ],
+        "summary": "Export all item prices",
+        "description": "Downloads the quotes of every priced item of one game as one file, for bulk synchronization. `side` defaults to `ask`; `side=mid` exports only the `CSCP` valuation of every valued item, a much smaller file.\n\n- The body is the export document itself (`app_id`, `side`, `generated_at`, `items`), gzip-compressed (`Content-Encoding: gzip`) — not the usual envelope. The request id and the billing fields are response headers instead: `X-Request-ID`, `X-Billable`, and on a billed response `X-Credit-Cost` and `X-Credit-Remaining`.\n- `items` lists every item with at least one quote on the requested side, ordered by market hash name; each item's quotes follow the same rules as `GET /prices`.\n- The file is a snapshot rebuilt on the server every few minutes; `generated_at` (also the `X-Export-Generated-At` header) says when. Requests in between receive the same file.\n- Send the `ETag` you received back as `If-None-Match`: while the snapshot is unchanged the answer is `304 Not Modified` with no body, and a `304` is never billed.\n- `Range` requests are not supported; the whole file is always sent. There is no pagination or market filter.\n- `503 dependency_unavailable` means the first snapshot has not been built yet; retry after a minute.\n\n> [!warning]\n> Every `200` is billed, even when the file has not changed. Poll with `If-None-Match` and you only pay when there is something new.\n",
+        "operationId": "export_prices_prices_export_get",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 16,
+              "description": "Steam app ID of the game. Defaults to `730` (Counter-Strike 2).",
+              "default": "730",
+              "title": "App Id"
+            },
+            "description": "Steam app ID of the game. Defaults to `730` (Counter-Strike 2)."
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ask",
+                "bid",
+                "mid",
+                "all"
+              ],
+              "type": "string",
+              "description": "Which side of the market to return: `ask` for sell listings, `bid` for buy orders, `mid` for the CSCP valuation, `all` for everything. Defaults to `ask`.",
+              "default": "ask",
+              "title": "Side"
+            },
+            "description": "Which side of the market to return: `ask` for sell listings, `bid` for buy orders, `mid` for the CSCP valuation, `all` for everything. Defaults to `ask`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportOut"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Validator of this snapshot: send it back in `If-None-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Last-Modified": {
+                "description": "When this snapshot was built, as an HTTP date.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Encoding": {
+                "description": "Always `gzip`: the file is stored compressed.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Export-Generated-At": {
+                "description": "When this snapshot was built, in RFC 3339 UTC.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Billable": {
+                "description": "`true` when this response was billed, else `false`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Credit-Cost": {
+                "description": "Credits charged for this response (billed responses only).",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Credit-Remaining": {
+                "description": "Credits left after this charge (billed responses only).",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "The snapshot named by `If-None-Match` is still current; not billed"
+          },
+          "401": {
+            "description": "Authentication is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Not enough credits for this request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential is valid but not allowed to call this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter or the request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests to this endpoint; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/websites": {
+      "get": {
+        "tags": [
+          "Website"
+        ],
+        "summary": "List marketplaces",
+        "operationId": "list_websites_websites_get",
+        "parameters": [
+          {
+            "name": "include_deprecated",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Also return marketplaces that are no longer supported (`is_deprecated: true`).",
+              "default": false,
+              "title": "Include Deprecated"
+            },
+            "description": "Also return marketplaces that are no longer supported (`is_deprecated: true`)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_WebsiteOut__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter or the request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the catalogue of marketplaces the API covers, such as the Steam Community Market and third-party skin markets. Each entry's `code` is the identifier used by the other endpoints that take a marketplace.\n\n- Results are ordered by `code`.\n- Marketplaces that are no longer supported are hidden unless `include_deprecated=true`; they then appear with `is_deprecated: true`.\n\n> [!note]\n> The catalogue is maintained by the platform and is read-only through the API.\n"
+      }
+    },
+    "/websites/{code}": {
+      "get": {
+        "tags": [
+          "Website"
+        ],
+        "summary": "Get a marketplace",
+        "operationId": "get_website_websites__code__get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Marketplace code, as listed by `GET /websites`.",
+              "title": "Code"
+            },
+            "description": "Marketplace code, as listed by `GET /websites`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_WebsiteOut_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter or the request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns one marketplace by its `code`, including marketplaces that are no longer supported (check `is_deprecated`).\n\nA `404` means no marketplace has this code.\n"
+      }
+    },
+    "/websites/{code}/fee-schedule": {
+      "get": {
+        "tags": [
+          "Website"
+        ],
+        "summary": "Get a marketplace's official fee schedule",
+        "description": "Returns the fees the platform currently publishes for one marketplace, one slot per purpose: `deposit`, `sale` and `withdraw`.\n\n- Each published slot carries the fully expanded official calculation chain: every fee operator, convert operator and convert operator group with its values and currencies, so one request is enough to reproduce the platform's calculation.\n- A slot whose chain has `id` `0` is explicitly free: the platform charges nothing for that purpose, and the chain has no steps.\n- A slot is `null` when the platform has no official calculation chain published for that purpose: the fee is unknown, or the marketplace does not offer it. `null` never means free.\n- Each chain states its `start_currency`: the currency a price must be in for the chain to apply (`null`: any currency).\n- Ownership and management fields are not included.\n\nA `404` means no marketplace has this code.\n",
+        "operationId": "get_website_fee_schedule_websites__code__fee_schedule_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Marketplace code, as listed by `GET /websites`.",
+              "title": "Code"
+            },
+            "description": "Marketplace code, as listed by `GET /websites`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_FeeScheduleOut_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter or the request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/currencies": {
+      "get": {
+        "tags": [
+          "Currency"
+        ],
+        "summary": "List official currencies",
+        "operationId": "list_public_currencies_currencies_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Case-insensitive substring match on the currency code. Omit to list every currency.",
+              "title": "Search"
+            },
+            "description": "Case-insensitive substring match on the currency code. Omit to list every currency."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_CurrencyOut__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter or the request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the official currencies maintained by the platform, with their current USD exchange rates. These are the currencies the official fee schedules convert between.\n\n- Results are ordered by `code`.\n- `search` narrows the list to codes containing the given text (case-insensitive).\n- `usd_rate` is the value of one unit in US dollars, as a decimal string (for example `0.125` for a currency worth 1/8 USD).\n- Only official currencies are listed.\n"
+      }
+    },
+    "/currencies/{currency_id}": {
+      "get": {
+        "tags": [
+          "Currency"
+        ],
+        "summary": "Get an official currency",
+        "operationId": "get_public_currency_currencies__currency_id__get",
+        "parameters": [
+          {
+            "name": "currency_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "Numeric id of the currency (the `id` field).",
+              "title": "Currency Id"
+            },
+            "description": "Numeric id of the currency (the `id` field)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CurrencyOut_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A parameter or the request body is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns one official currency by its numeric `id`.\n\nA `404` means no official currency has this id: the id does not exist, was deleted, or is not an official currency.\n"
+      }
+    },
+    "/me": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Get your account",
+        "operationId": "read_me_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SyncUserView_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is missing or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The credential is valid but not allowed to call this operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The requested resource does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Returns what the API currently knows about your own account: profile fields including `base_currency` (the currency your calculations convert into; `null` means USD), the subscription active at the moment of the request (`null` when none), and your credit counters.\n\n- `credit.total` is every credit granted to the account, `credit.used` what has been consumed, and `credit.remaining` the difference, never below `0`.\n- These are the figures billing is applied against. They follow changes made in the dashboard within about a minute.\n\nA `404` means your account has not reached the API yet; retry shortly.\n"
+      }
+    },
+    "/config": {
+      "get": {
+        "tags": [
+          "Meta"
+        ],
+        "summary": "Get public service configuration",
+        "operationId": "read_config_config_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ConfigOut_"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns public, non-sensitive service configuration. Currently this is only `home_currency`, the platform currency that official calculation chains convert their results back into.\n\n- Your own base currency is an account setting and is not returned here.\n- Responses are sent with `Cache-Control: no-store`.\n"
+      }
+    },
+    "/endpoints": {
+      "get": {
+        "tags": [
+          "Meta"
+        ],
+        "summary": "List endpoint metadata",
+        "description": "Returns machine-readable metadata for every documented operation of this API, so a client can plan its usage without parsing the OpenAPI document.\n\n- One entry per method and path, sorted by path and then method.\n- Each entry gives the credit cost (`credit_cost`, plus `unit_pricing` for operations billed by item count), whether it is `premium`, the suggested polling interval (`recommended_interval_seconds`), the `rate_limit`, and who may call it (`roles`: `user`, `admin`, `machine`; empty means no authentication is required).\n- The same data appears in the OpenAPI document as the `x-cscheap` extension of each operation.\n",
+        "operationId": "read_endpoints_endpoints_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_EndpointInfoOut__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "Check service liveness",
+        "description": "Lightweight liveness probe: returns `{\"status\": \"ok\"}` whenever the API process is up and serving requests.\n\n- It checks no databases or other dependencies, so a `200` here does not guarantee that data endpoints are available. Use `GET /status` for service health history.\n- The body is returned as-is, without the usual `data` / `meta` envelope.\n",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "Get service status",
+        "description": "Returns the service health and data-collection activity shown on the public status page: hourly health scores for the last 24 completed hours, per-component availability, price collection counts, and the geographic footprint of the collection network.\n\n- Unlike `GET /health`, this reads recorded monitoring data; it is a history view, not a live probe of each dependency.\n- Timestamps are UTC. Components or buckets with no data are empty or absent rather than zero.\n- `503` means the monitoring data could not be read; partial results are never returned.\n",
+        "operationId": "status_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StatusOut_"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The service is temporarily unavailable; retry later",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BatchItemOut": {
+        "properties": {
+          "market_hash_name": {
+            "type": "string",
+            "title": "Market Hash Name",
+            "description": "Market hash name of the item, exactly as requested."
+          },
+          "markets": {
+            "items": {
+              "$ref": "#/components/schemas/MarketQuoteOut"
+            },
+            "type": "array",
+            "title": "Markets",
+            "description": "The item's quotes, at most one per market and side, sorted by market code and then side. Empty when the item is unknown or the filters exclude every quote."
+          }
+        },
+        "type": "object",
+        "required": [
+          "market_hash_name",
+          "markets"
+        ],
+        "title": "BatchItemOut",
+        "description": "One requested item and its market quotes."
+      },
+      "BatchPricesIn": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "maxLength": 16,
+            "minLength": 1,
+            "title": "App Id",
+            "description": "Steam app ID of the game. Defaults to `730` (Counter-Strike 2).",
+            "default": "730"
+          },
+          "market_hash_names": {
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Market Hash Names",
+            "description": "Steam market hash names to look up (exact, case-sensitive). Duplicates are allowed: each occurrence gets its own result entry and counts toward the billed item count."
+          },
+          "markets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Z0-9_]{1,32}$"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markets",
+            "description": "Market codes to include, for example `[\"BUFF\", \"UUYP\"]`. Each code must consist of uppercase letters, digits or underscores. Omit to include every market."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid",
+              "all"
+            ],
+            "title": "Side",
+            "description": "Which side of the market to return: `ask` for sell listings, `bid` for buy orders, `mid` for the CSCP valuation, `all` for everything. Defaults to `all`.",
+            "default": "all"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "market_hash_names"
+        ],
+        "title": "BatchPricesIn",
+        "description": "Request body of a batch price lookup."
+      },
+      "BatchPricesOut": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "Steam app ID, echoed from the request."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid",
+              "all"
+            ],
+            "title": "Side",
+            "description": "Side filter applied, echoed from the request."
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BatchItemOut"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "One entry per requested name, in request order, duplicates included."
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "side",
+          "items"
+        ],
+        "title": "BatchPricesOut",
+        "description": "Market quotes for each requested item, in request order."
+      },
+      "ConfigOut": {
+        "properties": {
+          "home_currency": {
+            "type": "string",
+            "title": "Home Currency",
+            "description": "Platform home currency (ISO 4217 code) that official calculation chains convert their results back into. Currently always `USD`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "home_currency"
+        ],
+        "title": "ConfigOut",
+        "description": "Public service configuration."
+      },
+      "CreditMeta": {
+        "properties": {
+          "cost": {
+            "type": "integer",
+            "title": "Cost",
+            "description": "Credits this request costs."
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining",
+            "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+          }
+        },
+        "type": "object",
+        "required": [
+          "cost",
+          "remaining"
+        ],
+        "title": "CreditMeta",
+        "description": "Credit accounting for a billable request."
+      },
+      "CurrencyOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Unique ID of the currency."
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Currency code, e.g. `USD`."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name."
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "Currency kind, e.g. `fiat`."
+          },
+          "usd_rate": {
+            "type": "string",
+            "title": "Usd Rate",
+            "description": "Value of one unit of this currency in US dollars, as a decimal string. Used by `auto` conversions."
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id",
+            "description": "ID of the owning user; `null` for platform currencies, which include every official currency."
+          },
+          "is_official": {
+            "type": "boolean",
+            "title": "Is Official",
+            "description": "Whether the currency belongs to the official catalog maintained by the platform."
+          },
+          "ref_count": {
+            "type": "integer",
+            "title": "Ref Count",
+            "description": "Number of convert operators that use this currency."
+          },
+          "is_deleted": {
+            "type": "boolean",
+            "title": "Is Deleted",
+            "description": "Whether the currency is deleted. Deleted currencies are never listed, so this is `true` only in a delete response."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "usd_rate",
+          "owner_user_id",
+          "is_official",
+          "ref_count",
+          "is_deleted"
+        ],
+        "title": "CurrencyOut",
+        "description": "A currency and its US dollar value."
+      },
+      "EndpointInfoOut": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "description": "HTTP method."
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Path template of the operation."
+          },
+          "premium": {
+            "type": "boolean",
+            "title": "Premium",
+            "description": "Premium request: still costs credits while a subscription is active."
+          },
+          "credit_cost": {
+            "type": "integer",
+            "title": "Credit Cost",
+            "description": "Credits charged per request; with `unit_pricing`, the cost of one block. `0` means free."
+          },
+          "recommended_interval_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Interval Seconds",
+            "description": "Suggested polling interval in seconds; `null` if on demand."
+          },
+          "rate_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RateLimitSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Rate limit per account, shared by all of its API keys; `null` if none is declared."
+          },
+          "unit_pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnitPricingSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Volume pricing; `null` for a flat per-request cost."
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles",
+            "description": "Who may call it: `user` (an API key), `admin` (an administrator credential) or `machine` (a service token). Only `user` requests are rate limited and charged. Empty means public."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "method",
+          "path",
+          "premium",
+          "credit_cost",
+          "recommended_interval_seconds",
+          "rate_limit",
+          "unit_pricing",
+          "roles"
+        ],
+        "title": "EndpointInfoOut",
+        "description": "Access rules, cost and limits of one API operation."
+      },
+      "Envelope_BatchPricesOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BatchPricesOut",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[BatchPricesOut]"
+      },
+      "Envelope_ConfigOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ConfigOut",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ConfigOut]"
+      },
+      "Envelope_CurrencyOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CurrencyOut",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[CurrencyOut]"
+      },
+      "Envelope_FeeScheduleOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FeeScheduleOut",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[FeeScheduleOut]"
+      },
+      "Envelope_ItemPricesOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ItemPricesOut",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ItemPricesOut]"
+      },
+      "Envelope_StatusOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StatusOut",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[StatusOut]"
+      },
+      "Envelope_SyncUserView_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SyncUserView",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[SyncUserView]"
+      },
+      "Envelope_WebsiteOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteOut",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[WebsiteOut]"
+      },
+      "Envelope_list_CurrencyOut__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CurrencyOut"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[CurrencyOut]]"
+      },
+      "Envelope_list_EndpointInfoOut__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EndpointInfoOut"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[EndpointInfoOut]]"
+      },
+      "Envelope_list_WebsiteOut__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/WebsiteOut"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "The endpoint payload."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[WebsiteOut]]"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Stable machine-readable error code. Branch on this value, not on `message`."
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable explanation. The wording may change."
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details",
+            "description": "Optional structured context, such as the list of validation errors or, for `credit_insufficient`, the required and remaining credits."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "description": "Details of a failed request."
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody",
+            "description": "What went wrong."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Request metadata."
+          }
+        },
+        "type": "object",
+        "required": [
+          "error",
+          "meta"
+        ],
+        "title": "ErrorEnvelope",
+        "description": "Error response: the error in `error` plus request metadata in `meta`."
+      },
+      "ExportOut": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "Steam app ID, echoed from the request."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid",
+              "all"
+            ],
+            "title": "Side",
+            "description": "Side filter applied, echoed from the request."
+          },
+          "generated_at": {
+            "type": "string",
+            "title": "Generated At",
+            "description": "When this export snapshot was built, in RFC 3339 UTC — the same value as the `X-Export-Generated-At` response header. Snapshots are rebuilt every few minutes; requests in between receive the same file."
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BatchItemOut"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Every item with at least one quote on the requested side, sorted by market hash name."
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "side",
+          "generated_at",
+          "items"
+        ],
+        "title": "ExportOut",
+        "description": "Every priced item of one game, for one side of the market."
+      },
+      "FeeScheduleOut": {
+        "properties": {
+          "website_code": {
+            "type": "string",
+            "title": "Website Code",
+            "description": "Marketplace code."
+          },
+          "slots": {
+            "$ref": "#/components/schemas/FeeScheduleSlotsOut",
+            "description": "The published official chain for each purpose."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "website_code",
+          "slots"
+        ],
+        "title": "FeeScheduleOut",
+        "description": "The official fees the platform currently publishes for one marketplace,\nper purpose. A purpose is `null` when no official chain is published for\nit."
+      },
+      "FeeScheduleSlotOut": {
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "deposit",
+              "sale",
+              "withdraw"
+            ],
+            "title": "Purpose",
+            "description": "Purpose: `deposit`, `sale` or `withdraw`."
+          },
+          "calculation_chain": {
+            "$ref": "#/components/schemas/PublicCalculationChainOut",
+            "description": "The official calculation chain for this purpose."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "purpose",
+          "calculation_chain"
+        ],
+        "title": "FeeScheduleSlotOut",
+        "description": "The official chain published for one purpose."
+      },
+      "FeeScheduleSlotsOut": {
+        "properties": {
+          "deposit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeScheduleSlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Fees on deposits; `null` if none is published."
+          },
+          "sale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeScheduleSlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Fees on sales; `null` if none is published."
+          },
+          "withdraw": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeScheduleSlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Fees on withdrawals; `null` if none is published."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "deposit",
+          "sale",
+          "withdraw"
+        ],
+        "title": "FeeScheduleSlotsOut",
+        "description": "The published official chains of one marketplace, by purpose."
+      },
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Always `ok` while the service is running."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthOut",
+        "description": "Liveness result. Returned as a bare object, without the response envelope."
+      },
+      "ItemPricesOut": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "Steam app ID, echoed from the request."
+          },
+          "market_hash_name": {
+            "type": "string",
+            "title": "Market Hash Name",
+            "description": "Market hash name of the item, echoed from the request."
+          },
+          "markets": {
+            "items": {
+              "$ref": "#/components/schemas/MarketQuoteOut"
+            },
+            "type": "array",
+            "title": "Markets",
+            "description": "The item's quotes, at most one per market and side, sorted by market code and then side. Empty when the `markets` or `side` filters exclude every quote."
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "market_hash_name",
+          "markets"
+        ],
+        "title": "ItemPricesOut",
+        "description": "One item and all of its market quotes."
+      },
+      "MarketQuoteOut": {
+        "properties": {
+          "market_code": {
+            "type": "string",
+            "title": "Market Code",
+            "description": "Code of the marketplace this quote is for, for example `BUFF`. `CSCP` marks the cs.cheap valuation of the item: a weighted consensus across marketplaces in CNY, refreshed daily, with no quantity, its computation time in `changed_at` and `fresh_at`, and its details in `valuation`. It is an estimate, not an offer anyone can trade on."
+          },
+          "provider_code": {
+            "type": "string",
+            "title": "Provider Code",
+            "description": "Code of the source the quote was collected from. Equals `market_code` when the data comes from the marketplace itself; otherwise it names an aggregator reporting that marketplace's prices."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid"
+            ],
+            "title": "Side",
+            "description": "`ask` for a sell-listing quote, `bid` for a buy-order quote, `mid` for the `CSCP` valuation (the midpoint of the sell and buy consensus)."
+          },
+          "market_currency_code": {
+            "type": "string",
+            "title": "Market Currency Code",
+            "description": "Currency of `market_price_amount`, for example `CNY`. Prices are returned in the marketplace's own currency, without conversion."
+          },
+          "market_price_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Price Amount",
+            "description": "Price in `market_currency_code` as a decimal string (plain notation, trailing zeros trimmed, never scientific notation), or `null` when the source reports no price. A delisted quote keeps its last known price."
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity",
+            "description": "Quantity on this side of the market as reported by the source, or `null` when not reported. `0` once the item has been delisted."
+          },
+          "is_quantity_minimum": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Quantity Minimum",
+            "description": "`true` when `quantity` is a lower bound (the source only reports \"at least\" this many), or `null` when unknown."
+          },
+          "is_all_items_same_price": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is All Items Same Price",
+            "description": "`true` when every unit on offer is at `market_price_amount`; `false` when the source reports only the best price or the prices differ; `null` when unknown."
+          },
+          "changed_at": {
+            "type": "string",
+            "title": "Changed At",
+            "description": "When the price or quantity of this quote last changed at the source, in RFC 3339 UTC (for example `2026-09-24T03:12:08Z`)."
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At",
+            "description": "When this quote was last seen individually at the source, in RFC 3339 UTC, or `null` when not recorded."
+          },
+          "delisted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delisted At",
+            "description": "When the item was found to be no longer listed on this side of the market, in RFC 3339 UTC, or `null` while it is listed. A delisted quote keeps its last price, with `quantity` `0`."
+          },
+          "fresh_at": {
+            "type": "string",
+            "title": "Fresh At",
+            "description": "When this quote was last confirmed current by the source, in RFC 3339 UTC: the latest of `changed_at`, `observed_at` and the completion of the last full scan of this market."
+          },
+          "valuation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValuationOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Valuation details, present only on the `CSCP` quote; `null` on every marketplace quote."
+          }
+        },
+        "type": "object",
+        "required": [
+          "market_code",
+          "provider_code",
+          "side",
+          "market_currency_code",
+          "market_price_amount",
+          "quantity",
+          "is_quantity_minimum",
+          "is_all_items_same_price",
+          "changed_at",
+          "observed_at",
+          "delisted_at",
+          "fresh_at",
+          "valuation"
+        ],
+        "title": "MarketQuoteOut",
+        "description": "One market's quote for an item, on one side of the market."
+      },
+      "Meta": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+          },
+          "billable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billable",
+            "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+          },
+          "credit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CreditMeta"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id"
+        ],
+        "title": "Meta",
+        "description": "Request metadata included in every enveloped response."
+      },
+      "PublicCalculationChainOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Unique ID of the calculation chain. `0` is the built-in no-fee chain: the platform charges nothing for this purpose."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name, if set."
+          },
+          "start_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Currency",
+            "description": "Currency the chain expects the price in; `null` when it applies to any currency. A price in another currency is not covered by it."
+          },
+          "steps": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/PublicFeeOperatorOut"
+                },
+                {
+                  "$ref": "#/components/schemas/PublicConvertOperatorOut"
+                },
+                {
+                  "$ref": "#/components/schemas/PublicConvertOperatorGroupOut"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "convert": "#/components/schemas/PublicConvertOperatorOut",
+                  "convert_operator_group": "#/components/schemas/PublicConvertOperatorGroupOut",
+                  "fee": "#/components/schemas/PublicFeeOperatorOut"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Steps",
+            "description": "Steps in execution order, discriminated by `kind`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "start_currency",
+          "steps"
+        ],
+        "title": "PublicCalculationChainOut",
+        "description": "An official calculation chain as published in a fee schedule."
+      },
+      "PublicConvertOperatorGroupOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "convert_operator_group",
+            "title": "Kind",
+            "description": "Step type: always `convert_operator_group`."
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Unique ID of the group."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Display name."
+          },
+          "rule": {
+            "type": "string",
+            "enum": [
+              "min",
+              "max",
+              "avg"
+            ],
+            "title": "Rule",
+            "description": "How the result is picked from the members that convert successfully: `min`, `max` or `avg`."
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/PublicConvertOperatorOut"
+            },
+            "type": "array",
+            "title": "Members",
+            "description": "The member conversions, in order."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "rule",
+          "members"
+        ],
+        "title": "PublicConvertOperatorGroupOut",
+        "description": "A group of alternative conversions in a published fee schedule."
+      },
+      "PublicConvertOperatorOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "convert",
+            "title": "Kind",
+            "description": "Step type: always `convert`."
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Unique ID of the convert operator."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Display name."
+          },
+          "from": {
+            "$ref": "#/components/schemas/PublicCurrencyOut",
+            "description": "Source currency."
+          },
+          "to": {
+            "$ref": "#/components/schemas/PublicCurrencyOut",
+            "description": "Target currency."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fixed"
+            ],
+            "title": "Mode",
+            "description": "`auto` converts through both currencies' `usd_rate`; `fixed` multiplies by `rate`."
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate",
+            "description": "Units of the target currency per one unit of the source currency, as a decimal string; used in `fixed` mode."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "from",
+          "to",
+          "mode",
+          "rate"
+        ],
+        "title": "PublicConvertOperatorOut",
+        "description": "A currency conversion step of a published fee schedule."
+      },
+      "PublicCurrencyOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Unique ID of the currency."
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Currency code, e.g. `USD`."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name."
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "Currency kind, e.g. `fiat`."
+          },
+          "usd_rate": {
+            "type": "string",
+            "title": "Usd Rate",
+            "description": "Value of one unit in US dollars, as a decimal string."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "usd_rate"
+        ],
+        "title": "PublicCurrencyOut",
+        "description": "A currency as used by a published fee schedule."
+      },
+      "PublicFeeOperatorOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "fee",
+            "title": "Kind",
+            "description": "Step type: always `fee`."
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Unique ID of the fee operator."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Display name."
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "add",
+              "sub",
+              "mul",
+              "div"
+            ],
+            "title": "Operator",
+            "description": "Arithmetic applied to the running amount: `add`, `sub`, `mul` or `div`."
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "Operand of the arithmetic, as a decimal string."
+          },
+          "currency_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency Code",
+            "description": "Currency of the amount for `add` and `sub`; `null` for `mul` and `div`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "operator",
+          "value",
+          "currency_code"
+        ],
+        "title": "PublicFeeOperatorOut",
+        "description": "A fee step of a published fee schedule."
+      },
+      "RateLimitSpec": {
+        "properties": {
+          "max_requests": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Max Requests",
+            "description": "Requests allowed per window, per account (shared by all of its API keys)."
+          },
+          "window_seconds": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Window Seconds",
+            "description": "Window length in seconds."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "max_requests",
+          "window_seconds"
+        ],
+        "title": "RateLimitSpec",
+        "description": "A rate limit: at most `max_requests` requests per `window_seconds`."
+      },
+      "StatusOut": {
+        "properties": {
+          "summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Summary",
+            "description": "Hourly health scores for the last 24 completed UTC hours, keyed by area (`service`, `infrastructure`, `datasource`) and then by hour start (for example `2026-06-27T11:00:00Z`). Scores are strings from `0.00` to `100.00`."
+          },
+          "service": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Service",
+            "description": "Availability of each public service component (`web`, `api`, `api_cn`, `monitor`) in 15-minute buckets over the last 24 hours, keyed by bucket timestamp. Missing buckets have no data."
+          },
+          "datasource": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Datasource",
+            "description": "Price data collection activity: `realtime` counts prices collected per market over the last few minutes, `result` per marketplace over the last 24 hours. Counts are keyed by Unix timestamp in seconds."
+          },
+          "infrastructure": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Infrastructure",
+            "description": "Health checks of each backing component in 5-minute buckets over the last 24 hours, keyed by bucket timestamp. A missing bucket means the check failed or did not run."
+          },
+          "distribution": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Distribution",
+            "description": "Current geographic footprint, keyed by `\"<latitude>,<longitude>\"`, with `node_count` (proxy nodes) and `datacenter_count` at each location."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "summary",
+          "service",
+          "datasource",
+          "infrastructure",
+          "distribution"
+        ],
+        "title": "StatusOut",
+        "description": "Service health and data-feed activity over roughly the last 24 hours."
+      },
+      "SyncCredit": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Credits granted to the account so far."
+          },
+          "used": {
+            "type": "integer",
+            "title": "Used",
+            "description": "Credits consumed so far."
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining",
+            "description": "Credits left: `total` minus `used`, never below `0`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "total",
+          "used",
+          "remaining"
+        ],
+        "title": "SyncCredit",
+        "description": "Credit counters of the account: granted, consumed and remaining."
+      },
+      "SyncSubscription": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Subscription category."
+          },
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id",
+            "description": "Subscribed plan."
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At",
+            "description": "When the subscription ends (RFC 3339, UTC)."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "category",
+          "plan_id",
+          "expires_at"
+        ],
+        "title": "SyncSubscription",
+        "description": "The subscription active at the moment of the request.\n\nWhen several overlap, the one that expires last is returned."
+      },
+      "SyncUser": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Account id."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name."
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "description": "E-mail address."
+          },
+          "email_verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Verified",
+            "description": "Whether the e-mail address is verified; `null` if unknown."
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image",
+            "description": "Avatar image URL."
+          },
+          "steam_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steam Id",
+            "description": "Linked Steam account id (SteamID64)."
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "When the account was created (RFC 3339, UTC)."
+          },
+          "base_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Currency",
+            "description": "Currency the account's calculations convert into (ISO 4217 code); `null` means USD."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "SyncUser",
+        "description": "Profile fields of a cs.cheap account as the API currently knows them.\n\nA missing value is `null`; a `null` `base_currency` means the user never\nchose one and USD applies."
+      },
+      "SyncUserView": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SyncUser",
+            "description": "Profile of the account."
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SyncSubscription"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The subscription active right now; `null` when there is none."
+          },
+          "credit": {
+            "$ref": "#/components/schemas/SyncCredit",
+            "description": "Credit counters of the account."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user",
+          "subscription",
+          "credit"
+        ],
+        "title": "SyncUserView",
+        "description": "One account's profile, active subscription and credit balance."
+      },
+      "UnitPricingSpec": {
+        "properties": {
+          "unit_size": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Unit Size",
+            "description": "Items per billed block."
+          },
+          "units_body_field": {
+            "type": "string",
+            "title": "Units Body Field",
+            "description": "The request-body list whose length is counted."
+          },
+          "max_units": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Max Units",
+            "description": "Maximum number of items accepted per request."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "unit_size",
+          "units_body_field",
+          "max_units"
+        ],
+        "title": "UnitPricingSpec",
+        "description": "Volume pricing: the request costs `credit_cost` per started block of\n`unit_size` items of the request-body list `units_body_field`."
+      },
+      "ValuationOut": {
+        "properties": {
+          "valuation_date": {
+            "type": "string",
+            "title": "Valuation Date",
+            "description": "UTC date of the valuation (`YYYY-MM-DD`). It is computed once a day from the daily closing quotes of the seven days before this date."
+          },
+          "credibility": {
+            "type": "number",
+            "title": "Credibility",
+            "description": "Confidence score between 0 and 1, equal to `e^(-uncertainty)`; the closer to 1, the more the sources agree. Set your own threshold before relying on the value."
+          },
+          "uncertainty": {
+            "type": "number",
+            "title": "Uncertainty",
+            "description": "Standard uncertainty of the value on a logarithmic scale (0 or more). Roughly 68% of plausible values lie between price × `e^(-uncertainty)` and price × `e^(uncertainty)`."
+          },
+          "is_two_sided": {
+            "type": "boolean",
+            "title": "Is Two Sided",
+            "description": "`true` when both sell listings and buy orders contributed. When `false`, only sell listings were available and the value is the sell-side consensus less a typical half-spread of comparable items."
+          },
+          "ask_amount": {
+            "type": "string",
+            "title": "Ask Amount",
+            "description": "Weighted consensus of sell listings across marketplaces, as the cash cost of buying in CNY (fees included), as a decimal string."
+          },
+          "bid_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bid Amount",
+            "description": "Weighted consensus of buy orders across marketplaces, as the cash received in CNY after fees, as a decimal string; buy orders priced above the market's sell listings are excluded. `null` when `is_two_sided` is `false`."
+          },
+          "ask_quote_count": {
+            "type": "integer",
+            "title": "Ask Quote Count",
+            "description": "Number of sell-listing sources in `ask_amount`."
+          },
+          "bid_quote_count": {
+            "type": "integer",
+            "title": "Bid Quote Count",
+            "description": "Number of buy-order sources in `bid_amount`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "valuation_date",
+          "credibility",
+          "uncertainty",
+          "is_two_sided",
+          "ask_amount",
+          "bid_amount",
+          "ask_quote_count",
+          "bid_quote_count"
+        ],
+        "title": "ValuationOut",
+        "description": "CSCP fair-value details of an item, from the latest daily valuation."
+      },
+      "WebsiteOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Unique marketplace code used across the API, e.g. `steam`."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Display name."
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Marketplace homepage, if known."
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Marketplace category, e.g. `market`."
+          },
+          "subCategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcategory",
+            "description": "Finer category, if any."
+          },
+          "is_deprecated": {
+            "type": "boolean",
+            "title": "Is Deprecated",
+            "description": "Whether the marketplace is no longer supported."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "url",
+          "category",
+          "subCategory",
+          "is_deprecated"
+        ],
+        "title": "WebsiteOut",
+        "description": "A marketplace in the platform catalog."
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "cs.cheap API key"
+      }
+    }
+  }
+}

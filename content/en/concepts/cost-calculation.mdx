@@ -1,0 +1,20 @@
+---
+docId: "concepts.cost-calculation"
+title: "Cost calculation"
+description: "The processing pipeline distinguishes the cash cost of buying, sale proceeds in a marketplace balance, and cash received after withdrawal."
+kind: "explanation"
+status: "ready"
+sources: ["refinery", "api"]
+---
+
+## Three different amounts
+
+The processing pipeline distinguishes the cash cost of buying, sale proceeds in a marketplace balance, and cash received after withdrawal. Buying applies the deposit chain; sale applies the sale chain; payout applies sale followed by withdrawal. Currency conversion produces comparable CNY amounts.
+
+Calculations use decimal arithmetic with eight-place rounding at each step. Missing required rates, undefined slots or incompatible steps can make a result unavailable. An unavailable result must not be interpreted as a zero fee or a profitable trade.
+
+## What the API exposes
+
+Ordinary `/prices` quotes expose market amounts, not these three computed tiers. CSCP valuation uses fee-adjusted evidence, as described in [valuation](/docs/concepts/valuation). The current public documentation does not offer a profit-screening endpoint or a user fee editor.
+
+If you calculate comparisons yourself, state your assumptions about fees, currency conversion, available quantity and quote age. A price difference alone is not realized profit.

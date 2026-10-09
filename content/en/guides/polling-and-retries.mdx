@@ -1,0 +1,20 @@
+---
+docId: "guides.polling-and-retries"
+title: "Polling and retries"
+description: "Read recommended_interval_seconds from GET /endpoints."
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+---
+
+## Poll deliberately
+
+Read `recommended_interval_seconds` from `GET /endpoints`. It is polling guidance, not a freshness guarantee or a replacement for the request limit. Reuse results among your application's users rather than issuing identical requests for each view.
+
+For exports, use `ETag` and `If-None-Match`. Polling faster than snapshot generation does not create newer data.
+
+## Handle failures
+
+On `429`, honor `Retry-After`. On transient transport errors or `503`, use bounded exponential backoff with jitter and a maximum attempt count. Do not automatically retry invalid parameters, invalid credentials or insufficient credits without fixing their cause.
+
+Price routes read data, but successful requests can consume credits. If a response is lost, you may not know whether the server completed and charged it; retrying can incur another charge. Batch requests reduce overhead without removing this uncertainty. Log request IDs when available and avoid logging keys.

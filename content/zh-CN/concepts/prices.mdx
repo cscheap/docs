@@ -1,0 +1,22 @@
+---
+docId: "concepts.prices"
+title: "价格含义"
+description: "ask 表示在售报价，bid 表示求购报价。"
+kind: "explanation"
+status: "ready"
+sources: ["spider", "refinery", "api"]
+translationOf: "concepts.prices"
+sourceDigest: "sha256:5b31aa4578578e41c8eb29d0521835e55e4f196bc3b8f909345323b23d2f2a59"
+---
+
+## 金额、方向与数量
+
+`ask` 表示在售报价，`bid` 表示求购报价。普通报价使用市场币种，不包含另行计算的 CNY 费用档位。金额采用十进制字符串以保留精度。
+
+`quantity=null` 表示未知，`quantity=0` 表示该行没有可用数量。`is_quantity_minimum=true` 表示数量是下限。`is_all_items_same_price=false` 表示并非每件物品都按该报价出售，`null` 则表示未知。
+
+## 缺失价格与下架
+
+来源没有提供金额时，`market_price_amount=null`。下架时可保留最后金额，但 `quantity=0` 且 `delisted_at` 有值。两种情况都不能当成零元购买机会。
+
+饰品还可能有 `side=mid`、数量为空的 [CSCP 估值](/docs/concepts/valuation)。使用数据前，请自行检查新鲜度与可用性。

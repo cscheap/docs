@@ -1,0 +1,32 @@
+---
+docId: "api.responses"
+title: "响应格式"
+description: "下列示例仅展示信封结构，不代表某个接口的实际业务载荷："
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.responses"
+sourceDigest: "sha256:8f10abba003b5b121311bd3df45e1ce33930f85b98207c057a285e5d9ee1c0c8"
+---
+
+## JSON 信封
+
+下列示例仅展示信封结构，不代表某个接口的实际业务载荷：
+
+```json
+{"data": {}, "meta": {"request_id": "req_example"}}
+```
+
+```json
+{"error": {"code": "validation_error", "message": "Invalid request."}, "meta": {"request_id": "req_example"}}
+```
+
+程序判断使用 `error.code`，错误文字可能变化。服务端生成的 `X-Request-ID` 与 `meta.request_id` 一致，请保留用于排查。
+
+金额与汇率为十进制字符串，点数为整数。null 的含义由字段决定，不能统一转换为零。
+
+## 计费与例外
+
+`meta.billable` 表示请求是否走点数计费。扣费响应可包含 `meta.credit.cost` 和 `remaining`；剩余值在并发使用时只是提示。`GET /me` 的账号总量位于 `data.credit`。
+
+导出响应体就是文件，计费读取 `X-Billable`、`X-Credit-Cost` 与 `X-Credit-Remaining`。`304` 没有响应体。健康检查等明确例外以各操作 schema 为准。

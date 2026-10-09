@@ -1,0 +1,20 @@
+---
+docId: "api.authentication"
+title: "Authentication"
+description: "Send Authorization: Bearer YOUR_API_KEY on authenticated requests."
+kind: "how-to"
+status: "ready"
+sources: ["api", "frontend"]
+---
+
+## Bearer API key
+
+Send `Authorization: Bearer YOUR_API_KEY` on authenticated requests. Obtain your key in [Settings](/docs/dashboard/api-keys) after verifying a real email. A website session cookie is not a substitute for the API key.
+
+Keep credentials in server-side configuration. Do not put keys in URLs, screenshots, shared examples or public browser bundles. Catalogue routes marked public do not require a key.
+
+## Key changes
+
+Regeneration replaces the existing active key and has a five-minute cooldown. Update clients after regeneration. Account and key changes propagate to the API asynchronously; a newly created key may not work immediately.
+
+Missing or invalid credentials produce `401`; valid credentials with insufficient permissions produce `403`. A credit shortage is `402`, a different problem. See [authentication troubleshooting](/docs/support/authentication).

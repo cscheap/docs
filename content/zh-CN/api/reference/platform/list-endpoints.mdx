@@ -1,0 +1,283 @@
+---
+docId: "api.reference.platform.list-endpoints"
+title: "列出端点元数据"
+description: "GET /endpoints — 列出端点元数据"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.platform.list-endpoints"
+sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47c4422c"
+---
+
+## 操作
+
+`GET /endpoints`
+
+## 行为
+
+返回本 API 每个已文档化操作的机器可读元数据，客户端无需解析 OpenAPI 文档即可规划用量。
+
+- 每个方法和路径对应一条记录，先按路径、再按方法排序。
+- 每条记录给出点数费用（`credit_cost`，按饰品数量计费的操作另有 `unit_pricing`）、是否为 `premium`、建议轮询间隔（`recommended_interval_seconds`）、`rate_limit`，以及谁可以调用（`roles`：`user`、`admin`、`machine`；为空表示无需认证）。
+- 同样的数据也以每个操作的 `x-cscheap` 扩展字段出现在 OpenAPI 文档中。
+
+
+## 用量
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 3600,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_list_EndpointInfoOut__"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "本次请求花费的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "计费请求的点数结算信息。"
+  },
+  "EndpointInfoOut": {
+    "properties": {
+      "method": {
+        "type": "string",
+        "title": "Method",
+        "description": "HTTP 方法。"
+      },
+      "path": {
+        "type": "string",
+        "title": "Path",
+        "description": "操作的路径模板。"
+      },
+      "premium": {
+        "type": "boolean",
+        "title": "Premium",
+        "description": "高级请求：即使订阅有效也仍需消耗点数。"
+      },
+      "credit_cost": {
+        "type": "integer",
+        "title": "Credit Cost",
+        "description": "每次请求收取的点数；带有 `unit_pricing` 时为每一块的费用。`0` 表示免费。"
+      },
+      "recommended_interval_seconds": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Recommended Interval Seconds",
+        "description": "建议的轮询间隔（秒）；按需调用时为 `null`。"
+      },
+      "rate_limit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/RateLimitSpec"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "按账户计算的速率限制，同一账户的所有 API 密钥共享；未声明时为 `null`。"
+      },
+      "unit_pricing": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/UnitPricingSpec"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "按量计价；按次固定计费时为 `null`。"
+      },
+      "roles": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "title": "Roles",
+        "description": "谁可以调用：`user`（API 密钥）、`admin`（管理员凭证）或 `machine`（服务令牌）。只有 `user` 请求会被限流和扣费。为空表示公开。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "method",
+      "path",
+      "premium",
+      "credit_cost",
+      "recommended_interval_seconds",
+      "rate_limit",
+      "unit_pricing",
+      "roles"
+    ],
+    "title": "EndpointInfoOut",
+    "description": "单个 API 操作的访问规则、费用和限制。"
+  },
+  "Envelope_list_EndpointInfoOut__": {
+    "properties": {
+      "data": {
+        "items": {
+          "$ref": "#/components/schemas/EndpointInfoOut"
+        },
+        "type": "array",
+        "title": "Data",
+        "description": "端点返回的数据。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[list[EndpointInfoOut]]"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "RateLimitSpec": {
+    "properties": {
+      "max_requests": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Max Requests",
+        "description": "每个账户在每个时间窗口内允许的请求数（该账户的所有 API 密钥共享）。"
+      },
+      "window_seconds": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Window Seconds",
+        "description": "时间窗口长度（秒）。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "max_requests",
+      "window_seconds"
+    ],
+    "title": "RateLimitSpec",
+    "description": "速率限制：每 `window_seconds` 秒内最多 `max_requests` 次请求。"
+  },
+  "UnitPricingSpec": {
+    "properties": {
+      "unit_size": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Unit Size",
+        "description": "每个计费块包含的条目数。"
+      },
+      "units_body_field": {
+        "type": "string",
+        "title": "Units Body Field",
+        "description": "用于计数（统计其长度）的请求体列表字段。"
+      },
+      "max_units": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Max Units",
+        "description": "每次请求最多接受的条目数。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "unit_size",
+      "units_body_field",
+      "max_units"
+    ],
+    "title": "UnitPricingSpec",
+    "description": "按量计价：请求体列表 `units_body_field` 中每 `unit_size` 项为一块，不足一块按一块计，每块花费 `credit_cost` 点数。"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

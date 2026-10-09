@@ -1,0 +1,659 @@
+---
+docId: "api.reference.markets.get-fees"
+title: "Get a marketplace's official fee schedule"
+description: "GET /websites/{code}/fee-schedule — Get a marketplace's official fee schedule"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`GET /websites/{code}/fee-schedule`
+
+## Behavior
+
+Returns the fees the platform currently publishes for one marketplace, one slot per purpose: `deposit`, `sale` and `withdraw`.
+
+- Each published slot carries the fully expanded official calculation chain: every fee operator, convert operator and convert operator group with its values and currencies, so one request is enough to reproduce the platform's calculation.
+- A slot whose chain has `id` `0` is explicitly free: the platform charges nothing for that purpose, and the chain has no steps.
+- A slot is `null` when the platform has no official calculation chain published for that purpose: the fee is unknown, or the marketplace does not offer it. `null` never means free.
+- Each chain states its `start_currency`: the currency a price must be in for the chain to apply (`null`: any currency).
+- Ownership and management fields are not included.
+
+A `404` means no marketplace has this code.
+
+
+## Usage
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 300,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{
+  "parameters": [
+    {
+      "name": "code",
+      "in": "path",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "description": "Marketplace code, as listed by `GET /websites`.",
+        "title": "Code"
+      },
+      "description": "Marketplace code, as listed by `GET /websites`."
+    }
+  ]
+}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_FeeScheduleOut_"
+        }
+      }
+    }
+  },
+  "404": {
+    "description": "The requested resource does not exist",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "A parameter or the request body is invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "The service is temporarily unavailable; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Credits this request costs."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Credit accounting for a billable request."
+  },
+  "Envelope_FeeScheduleOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/FeeScheduleOut",
+        "description": "The endpoint payload."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[FeeScheduleOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Stable machine-readable error code. Branch on this value, not on `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Human-readable explanation. The wording may change."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Optional structured context, such as the list of validation errors or, for `credit_insufficient`, the required and remaining credits."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Details of a failed request."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "What went wrong."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Error response: the error in `error` plus request metadata in `meta`."
+  },
+  "FeeScheduleOut": {
+    "properties": {
+      "website_code": {
+        "type": "string",
+        "title": "Website Code",
+        "description": "Marketplace code."
+      },
+      "slots": {
+        "$ref": "#/components/schemas/FeeScheduleSlotsOut",
+        "description": "The published official chain for each purpose."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "website_code",
+      "slots"
+    ],
+    "title": "FeeScheduleOut",
+    "description": "The official fees the platform currently publishes for one marketplace,\nper purpose. A purpose is `null` when no official chain is published for\nit."
+  },
+  "FeeScheduleSlotOut": {
+    "properties": {
+      "purpose": {
+        "type": "string",
+        "enum": [
+          "deposit",
+          "sale",
+          "withdraw"
+        ],
+        "title": "Purpose",
+        "description": "Purpose: `deposit`, `sale` or `withdraw`."
+      },
+      "calculation_chain": {
+        "$ref": "#/components/schemas/PublicCalculationChainOut",
+        "description": "The official calculation chain for this purpose."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "purpose",
+      "calculation_chain"
+    ],
+    "title": "FeeScheduleSlotOut",
+    "description": "The official chain published for one purpose."
+  },
+  "FeeScheduleSlotsOut": {
+    "properties": {
+      "deposit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/FeeScheduleSlotOut"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Fees on deposits; `null` if none is published."
+      },
+      "sale": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/FeeScheduleSlotOut"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Fees on sales; `null` if none is published."
+      },
+      "withdraw": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/FeeScheduleSlotOut"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Fees on withdrawals; `null` if none is published."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "deposit",
+      "sale",
+      "withdraw"
+    ],
+    "title": "FeeScheduleSlotsOut",
+    "description": "The published official chains of one marketplace, by purpose."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Request metadata included in every enveloped response."
+  },
+  "PublicCalculationChainOut": {
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Unique ID of the calculation chain. `0` is the built-in no-fee chain: the platform charges nothing for this purpose."
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "Display name, if set."
+      },
+      "start_currency": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Start Currency",
+        "description": "Currency the chain expects the price in; `null` when it applies to any currency. A price in another currency is not covered by it."
+      },
+      "steps": {
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/PublicFeeOperatorOut"
+            },
+            {
+              "$ref": "#/components/schemas/PublicConvertOperatorOut"
+            },
+            {
+              "$ref": "#/components/schemas/PublicConvertOperatorGroupOut"
+            }
+          ],
+          "discriminator": {
+            "propertyName": "kind",
+            "mapping": {
+              "convert": "#/components/schemas/PublicConvertOperatorOut",
+              "convert_operator_group": "#/components/schemas/PublicConvertOperatorGroupOut",
+              "fee": "#/components/schemas/PublicFeeOperatorOut"
+            }
+          }
+        },
+        "type": "array",
+        "title": "Steps",
+        "description": "Steps in execution order, discriminated by `kind`."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "id",
+      "name",
+      "start_currency",
+      "steps"
+    ],
+    "title": "PublicCalculationChainOut",
+    "description": "An official calculation chain as published in a fee schedule."
+  },
+  "PublicConvertOperatorGroupOut": {
+    "properties": {
+      "kind": {
+        "type": "string",
+        "const": "convert_operator_group",
+        "title": "Kind",
+        "description": "Step type: always `convert_operator_group`."
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Unique ID of the group."
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "Display name."
+      },
+      "rule": {
+        "type": "string",
+        "enum": [
+          "min",
+          "max",
+          "avg"
+        ],
+        "title": "Rule",
+        "description": "How the result is picked from the members that convert successfully: `min`, `max` or `avg`."
+      },
+      "members": {
+        "items": {
+          "$ref": "#/components/schemas/PublicConvertOperatorOut"
+        },
+        "type": "array",
+        "title": "Members",
+        "description": "The member conversions, in order."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "kind",
+      "id",
+      "name",
+      "rule",
+      "members"
+    ],
+    "title": "PublicConvertOperatorGroupOut",
+    "description": "A group of alternative conversions in a published fee schedule."
+  },
+  "PublicConvertOperatorOut": {
+    "properties": {
+      "kind": {
+        "type": "string",
+        "const": "convert",
+        "title": "Kind",
+        "description": "Step type: always `convert`."
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Unique ID of the convert operator."
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "Display name."
+      },
+      "from": {
+        "$ref": "#/components/schemas/PublicCurrencyOut",
+        "description": "Source currency."
+      },
+      "to": {
+        "$ref": "#/components/schemas/PublicCurrencyOut",
+        "description": "Target currency."
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "fixed"
+        ],
+        "title": "Mode",
+        "description": "`auto` converts through both currencies' `usd_rate`; `fixed` multiplies by `rate`."
+      },
+      "rate": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Rate",
+        "description": "Units of the target currency per one unit of the source currency, as a decimal string; used in `fixed` mode."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "kind",
+      "id",
+      "name",
+      "from",
+      "to",
+      "mode",
+      "rate"
+    ],
+    "title": "PublicConvertOperatorOut",
+    "description": "A currency conversion step of a published fee schedule."
+  },
+  "PublicCurrencyOut": {
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Unique ID of the currency."
+      },
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Currency code, e.g. `USD`."
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "Display name."
+      },
+      "kind": {
+        "type": "string",
+        "title": "Kind",
+        "description": "Currency kind, e.g. `fiat`."
+      },
+      "usd_rate": {
+        "type": "string",
+        "title": "Usd Rate",
+        "description": "Value of one unit in US dollars, as a decimal string."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "id",
+      "code",
+      "name",
+      "kind",
+      "usd_rate"
+    ],
+    "title": "PublicCurrencyOut",
+    "description": "A currency as used by a published fee schedule."
+  },
+  "PublicFeeOperatorOut": {
+    "properties": {
+      "kind": {
+        "type": "string",
+        "const": "fee",
+        "title": "Kind",
+        "description": "Step type: always `fee`."
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Unique ID of the fee operator."
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "Display name."
+      },
+      "operator": {
+        "type": "string",
+        "enum": [
+          "add",
+          "sub",
+          "mul",
+          "div"
+        ],
+        "title": "Operator",
+        "description": "Arithmetic applied to the running amount: `add`, `sub`, `mul` or `div`."
+      },
+      "value": {
+        "type": "string",
+        "title": "Value",
+        "description": "Operand of the arithmetic, as a decimal string."
+      },
+      "currency_code": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Currency Code",
+        "description": "Currency of the amount for `add` and `sub`; `null` for `mul` and `div`."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "kind",
+      "id",
+      "name",
+      "operator",
+      "value",
+      "currency_code"
+    ],
+    "title": "PublicFeeOperatorOut",
+    "description": "A fee step of a published fee schedule."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

@@ -1,0 +1,325 @@
+---
+docId: "api.reference.currencies.get-currency"
+title: "Получить официальную валюту"
+description: "GET /currencies/{currency_id} — Получить официальную валюту"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.currencies.get-currency"
+sourceDigest: "sha256:9a5b7f2e2f3045dcbb6a677a08c6a87948b0a45e85e7aa83697c153b9f52e943"
+---
+
+## Операция
+
+`GET /currencies/{currency_id}`
+
+## Поведение
+
+Возвращает одну официальную валюту по её числовому `id`.
+
+`404` означает, что официальной валюты с таким ID нет: ID не существует, валюта удалена или не является официальной.
+
+
+## Использование
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 300,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Запрос
+
+```json
+{
+  "parameters": [
+    {
+      "name": "currency_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+        "type": "integer",
+        "description": "Числовой ID валюты (поле `id`).",
+        "title": "Currency Id"
+      },
+      "description": "Числовой ID валюты (поле `id`)."
+    }
+  ]
+}
+```
+
+## Ответы
+
+```json
+{
+  "200": {
+    "description": "Успешный ответ",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_CurrencyOut_"
+        }
+      }
+    }
+  },
+  "404": {
+    "description": "Запрошенный ресурс не существует",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "Параметр или тело запроса некорректны",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "Сервис временно недоступен; повторите позже",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Модели
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Сколько кредитов стоит этот запрос."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Расчётный остаток кредитов после этого запроса. Это ориентир, а не данные учёта: из-за параллельных запросов значение может немного отличаться."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Учёт кредитов для платного запроса."
+  },
+  "CurrencyOut": {
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Уникальный ID валюты."
+      },
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Код валюты, например `USD`."
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "Отображаемое название."
+      },
+      "kind": {
+        "type": "string",
+        "title": "Kind",
+        "description": "Вид валюты, например `fiat`."
+      },
+      "usd_rate": {
+        "type": "string",
+        "title": "Usd Rate",
+        "description": "Стоимость одной единицы этой валюты в долларах США в виде десятичной строки. Используется конвертациями `auto`."
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "ID пользователя-владельца; `null` для валют платформы — к ним относятся все официальные валюты."
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "Входит ли валюта в официальный каталог, который ведёт платформа."
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "Количество операторов конвертации, использующих эту валюту."
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "Удалена ли валюта. Удалённые валюты никогда не выводятся в списках, поэтому `true` бывает только в ответе на удаление."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "id",
+      "code",
+      "name",
+      "kind",
+      "usd_rate",
+      "owner_user_id",
+      "is_official",
+      "ref_count",
+      "is_deleted"
+    ],
+    "title": "CurrencyOut",
+    "description": "Валюта и её стоимость в долларах США."
+  },
+  "Envelope_CurrencyOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/CurrencyOut",
+        "description": "Полезные данные эндпоинта."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[CurrencyOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Стабильный машиночитаемый код ошибки. Ориентируйтесь на это значение, а не на `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Пояснение для человека. Формулировка может меняться."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Необязательный структурированный контекст, например список ошибок валидации или, для `credit_insufficient`, требуемое и оставшееся количество кредитов."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Подробности неудачного запроса."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "Что пошло не так."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Ответ с ошибкой: ошибка в `error` и метаданные запроса в `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Уникальный идентификатор этого запроса, совпадает с заголовком ответа `X-Request-ID`. Указывайте его при обращении в поддержку."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Оплачивается ли запрос кредитами. Присутствует только у тарифицируемых эндпоинтов; `false` означает, что запрос бесплатен — например, потому что он ничего не стоит или его покрывает ваша подписка."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  }
+}
+```
+
+[Скачать публичную схему OpenAPI](/assets/openapi-ru.json)

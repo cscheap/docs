@@ -1,0 +1,20 @@
+---
+docId: "guides.query-prices"
+title: "Query one item"
+description: "Call GET /prices with market_hash_name."
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+---
+
+## Choose filters
+
+Call `GET /prices` with `market_hash_name`. Set `app_id` when querying a game other than the default `730`. Optional `markets` is a comma-separated list of uppercase codes such as `BUFF,UUYP`. Optional `side` is `ask`, `bid`, `mid` or `all`; the default is `all`.
+
+Use URL encoding for the item name. Authenticate with your API key in the Authorization header. See the [first request](/docs/get-started/first-request) for a runnable example and the [reference](/docs/api/reference/prices/get-price) for all constraints.
+
+## Interpret empty results
+
+`404` means the item has no price rows for the requested app. If the item exists but your filters exclude all its rows, the result is `200` with an empty `markets` list. That successful filtered request follows the normal billing rule. Remove filters to distinguish the two cases.
+
+For several items, use [batch queries](/docs/guides/batch-prices).

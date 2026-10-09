@@ -1,0 +1,253 @@
+---
+docId: "api.reference.platform.get-status"
+title: "获取服务状态"
+description: "GET /status — 获取服务状态"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.platform.get-status"
+sourceDigest: "sha256:d43615f6f2942b12671d365a7077d70fc2b06dd9a0ee4d7af225149719a2044b"
+---
+
+## 操作
+
+`GET /status`
+
+## 行为
+
+返回公开状态页上展示的服务健康状况和数据采集活动：最近 24 个完整小时的每小时健康评分、各组件可用性、价格采集数量，以及采集网络的地理分布。
+
+- 与 `GET /health` 不同，它读取的是已记录的监控数据；这是历史视图，而不是对各项依赖的实时探测。
+- 时间戳均为 UTC。没有数据的组件或时间桶为空或缺失，而不是零。
+- `503` 表示无法读取监控数据；不会返回部分结果。
+
+
+## 用量
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 60,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_StatusOut_"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "服务暂时不可用；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "本次请求花费的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "计费请求的点数结算信息。"
+  },
+  "Envelope_StatusOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/StatusOut",
+        "description": "端点返回的数据。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[StatusOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "稳定的机器可读错误代码。请根据此值进行分支处理，而不是 `message`。"
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "面向人类阅读的说明。措辞可能变化。"
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "可选的结构化上下文，例如校验错误列表；对于 `credit_insufficient`，则为所需点数和剩余点数。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "失败请求的详细信息。"
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "出了什么问题。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "错误响应：`error` 中为错误信息，`meta` 中为请求元数据。"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "StatusOut": {
+    "properties": {
+      "summary": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Summary",
+        "description": "最近 24 个完整 UTC 小时的每小时健康评分，先按领域（`service`、`infrastructure`、`datasource`）、再按小时起始时间（例如 `2026-06-27T11:00:00Z`）作为键。评分为 `0.00` 到 `100.00` 之间的字符串。"
+      },
+      "service": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Service",
+        "description": "各公开服务组件（`web`、`api`、`api_cn`、`monitor`）在最近 24 小时内按 15 分钟时间桶统计的可用性，以时间桶时间戳作为键。缺失的时间桶表示没有数据。"
+      },
+      "datasource": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Datasource",
+        "description": "价格数据采集活动：`realtime` 统计最近几分钟内每个市场采集到的价格数，`result` 统计最近 24 小时内每个市场的数量。计数以 Unix 时间戳（秒）作为键。"
+      },
+      "infrastructure": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Infrastructure",
+        "description": "各后端组件在最近 24 小时内按 5 分钟时间桶进行的健康检查，以时间桶时间戳作为键。缺失的时间桶表示检查失败或未运行。"
+      },
+      "distribution": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Distribution",
+        "description": "当前的地理分布，以 `\"<latitude>,<longitude>\"` 作为键，给出每个位置的 `node_count`（代理节点数）和 `datacenter_count`。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "summary",
+      "service",
+      "datasource",
+      "infrastructure",
+      "distribution"
+    ],
+    "title": "StatusOut",
+    "description": "大约最近 24 小时内的服务健康状况和数据采集活动。"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

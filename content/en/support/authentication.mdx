@@ -1,0 +1,20 @@
+---
+docId: "support.authentication"
+title: "Authentication troubleshooting"
+description: "If dashboard sections send you back to Settings, check that your account has a real, verified email."
+kind: "how-to"
+status: "ready"
+sources: ["frontend", "api"]
+---
+
+## Website access
+
+If dashboard sections send you back to Settings, check that your account has a real, verified email. Steam linking alone does not satisfy this requirement. Check the address and spam folder before requesting another verification message.
+
+For a linked-provider conflict, sign in to the account that already owns the identity. The site does not automatically merge separate accounts. Password problems use the password reset flow; provider sign-in can depend on its availability.
+
+## API access
+
+For `401`, send the active key with the exact Bearer header, remove accidental whitespace and check whether it was recently regenerated. A new key can need synchronization time. Never send the actual key to public support.
+
+For `403`, check the operation's allowed audience; a user key does not grant administrative or synchronization access. `402` is a billing issue, and `429` is a rate limit. Record the status, error code, request ID and UTC time if the issue persists.

@@ -1,0 +1,22 @@
+---
+docId: "dashboard.api-keys"
+title: "管理 API 密钥"
+description: "验证真实邮箱后打开设置。"
+kind: "how-to"
+status: "ready"
+sources: ["frontend", "api"]
+translationOf: "dashboard.api-keys"
+sourceDigest: "sha256:235679dac2b4abaf3fd5832956abfa16812cc9b26adba1302ab087b5a7198df1"
+---
+
+## 查看与复制
+
+验证真实邮箱后打开设置。符合条件且没有有效密钥的账号会自动获得首把密钥。API 密钥区域允许再次显示与复制完整密钥，不是仅显示一次。
+
+每个账号只有一把有效密钥。它是认证凭证，应放在自己的后端，避免写入公开客户端代码或共享截图。
+
+## 重新生成
+
+使用重新生成功能替换当前密钥：旧密钥撤销，新密钥发放，生成操作有五分钟冷却。更新所有使用旧密钥的客户端。变更异步传播到 API，不能假设立即生效或立即撤销。
+
+重新生成不会重置点数、用量或限速。密钥泄露时应重新生成，并清理日志与配置中的泄露副本。详见 [API 认证](/docs/api/authentication)。

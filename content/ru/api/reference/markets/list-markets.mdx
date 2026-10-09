@@ -1,0 +1,299 @@
+---
+docId: "api.reference.markets.list-markets"
+title: "Получить список площадок"
+description: "GET /websites — Получить список площадок"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.markets.list-markets"
+sourceDigest: "sha256:7920ecd38942a2829891bb64bc210b8488c0d9ebf4bde786c04d0ee7c9471f71"
+---
+
+## Операция
+
+`GET /websites`
+
+## Поведение
+
+Возвращает каталог площадок, которые охватывает API, например Steam Community Market и сторонние площадки скинов. `code` каждой записи — это идентификатор, который используют другие эндпоинты, принимающие площадку.
+
+- Результаты упорядочены по `code`.
+- Площадки, которые больше не поддерживаются, скрыты, если не указано `include_deprecated=true`; тогда они выводятся с `is_deprecated: true`.
+
+> [!note]
+> Каталог ведёт платформа; через API он доступен только для чтения.
+
+
+## Использование
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 300,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Запрос
+
+```json
+{
+  "parameters": [
+    {
+      "name": "include_deprecated",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "type": "boolean",
+        "description": "Также вернуть площадки, которые больше не поддерживаются (`is_deprecated: true`).",
+        "default": false,
+        "title": "Include Deprecated"
+      },
+      "description": "Также вернуть площадки, которые больше не поддерживаются (`is_deprecated: true`)."
+    }
+  ]
+}
+```
+
+## Ответы
+
+```json
+{
+  "200": {
+    "description": "Успешный ответ",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_list_WebsiteOut__"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "Параметр или тело запроса некорректны",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "Сервис временно недоступен; повторите позже",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Модели
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Сколько кредитов стоит этот запрос."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Расчётный остаток кредитов после этого запроса. Это ориентир, а не данные учёта: из-за параллельных запросов значение может немного отличаться."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Учёт кредитов для платного запроса."
+  },
+  "Envelope_list_WebsiteOut__": {
+    "properties": {
+      "data": {
+        "items": {
+          "$ref": "#/components/schemas/WebsiteOut"
+        },
+        "type": "array",
+        "title": "Data",
+        "description": "Полезные данные эндпоинта."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[list[WebsiteOut]]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Стабильный машиночитаемый код ошибки. Ориентируйтесь на это значение, а не на `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Пояснение для человека. Формулировка может меняться."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Необязательный структурированный контекст, например список ошибок валидации или, для `credit_insufficient`, требуемое и оставшееся количество кредитов."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Подробности неудачного запроса."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "Что пошло не так."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Ответ с ошибкой: ошибка в `error` и метаданные запроса в `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Уникальный идентификатор этого запроса, совпадает с заголовком ответа `X-Request-ID`. Указывайте его при обращении в поддержку."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Оплачивается ли запрос кредитами. Присутствует только у тарифицируемых эндпоинтов; `false` означает, что запрос бесплатен — например, потому что он ничего не стоит или его покрывает ваша подписка."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "WebsiteOut": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Уникальный код площадки, используемый во всём API, например `steam`."
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "Отображаемое название."
+      },
+      "url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Url",
+        "description": "Главная страница площадки, если известна."
+      },
+      "category": {
+        "type": "string",
+        "title": "Category",
+        "description": "Категория площадки, например `market`."
+      },
+      "subCategory": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Subcategory",
+        "description": "Более точная категория, если есть."
+      },
+      "is_deprecated": {
+        "type": "boolean",
+        "title": "Is Deprecated",
+        "description": "Прекращена ли поддержка площадки."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "code",
+      "name",
+      "url",
+      "category",
+      "subCategory",
+      "is_deprecated"
+    ],
+    "title": "WebsiteOut",
+    "description": "Площадка в каталоге платформы."
+  }
+}
+```
+
+[Скачать публичную схему OpenAPI](/assets/openapi-ru.json)

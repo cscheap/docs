@@ -1,0 +1,27 @@
+---
+docId: "guides.batch-prices"
+title: "Пакетный запрос цен"
+description: "Передайте 1–1000 имён в market_hash_names."
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+translationOf: "guides.batch-prices"
+sourceDigest: "sha256:3f8ad2bad55ec404491b8a4afd7ba8a267b9a4e8bff3f7eade305651b18510ac"
+---
+
+## Отправка пакета
+
+Передайте 1–1000 имён в `market_hash_names`. У пакета один `app_id` и одна выбранная сторона. В отличие от CSV-параметра одиночного запроса, `markets` здесь является JSON-массивом кодов.
+
+```bash
+curl 'https://api.cs.cheap/prices/batch' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{"app_id":"730","market_hash_names":["AK-47 | Redline (Field-Tested)"],"side":"all"}'
+```
+
+## Соответствие результатов
+
+`data.items` сохраняет порядок запроса. Неизвестное имя даёт запись с пустым `markets`, а не ошибку всего пакета. Повторы сохраняются и учитываются при оплате.
+
+Без действующей подписки каждый начатый блок из 100 имён стоит один кредит: 100 имён — один, 101 — два. Удалите ненужные дубликаты до отправки. Большие списки разбивайте на пакеты и соблюдайте [ограничения частоты](/docs/api/rate-limits).

@@ -1,0 +1,18 @@
+---
+docId: "api.rate-limits"
+title: "Rate limits"
+description: "The recorded API revision applies 60-second fixed windows: single-item prices allow 120 requests, batches 20, exports 2."
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Limits are per user and operation
+
+The recorded API revision applies 60-second fixed windows: single-item prices allow 120 requests, batches 20, exports 2. Limits are shared by the user's clients and still apply during a subscription. Read the current declarations in `GET /endpoints` before choosing polling behavior.
+
+## When the limit is reached
+
+A `429 rate_limited` response provides `Retry-After`, `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`. Reset and retry values are seconds to wait, not Unix timestamps. Slow down all workers using that account; retrying immediately consumes more request attempts.
+
+Batch size affects credits independently of request count. A subscription removes applicable credit charges, not throttling. See [request costs](/docs/billing/request-costs) and [polling](/docs/guides/polling-and-retries).

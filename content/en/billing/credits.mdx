@@ -1,0 +1,20 @@
+---
+docId: "billing.credits"
+title: "Credits"
+description: "Credits are integer units for API usage."
+kind: "explanation"
+status: "ready"
+sources: ["api", "frontend"]
+---
+
+## Credits and money are separate
+
+Credits are integer units for API usage. Wallet balance is money in USD used to buy products. Topping up the wallet does not by itself grant a credit pack: the product order must be fulfilled.
+
+Credits can come from purchased products, valid redemption codes and unlocked daily check-in rewards. The API records consumption against the account, so replacing a key does not reset usage.
+
+## Subscription effect
+
+While a subscription is active, non-premium price requests are credit-free. Rate limits still apply. When the window ends, requests return to credit billing if enough credits remain. A future queued subscription is not active early.
+
+Use [request costs](/docs/billing/request-costs) to estimate consumption and [balance and usage](/docs/billing/balance-and-usage) to read account counters. Credits are not a wallet withdrawal or transfer mechanism.

@@ -1,0 +1,281 @@
+---
+docId: "api.reference.platform.list-endpoints"
+title: "List endpoint metadata"
+description: "GET /endpoints — List endpoint metadata"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`GET /endpoints`
+
+## Behavior
+
+Returns machine-readable metadata for every documented operation of this API, so a client can plan its usage without parsing the OpenAPI document.
+
+- One entry per method and path, sorted by path and then method.
+- Each entry gives the credit cost (`credit_cost`, plus `unit_pricing` for operations billed by item count), whether it is `premium`, the suggested polling interval (`recommended_interval_seconds`), the `rate_limit`, and who may call it (`roles`: `user`, `admin`, `machine`; empty means no authentication is required).
+- The same data appears in the OpenAPI document as the `x-cscheap` extension of each operation.
+
+
+## Usage
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 3600,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_list_EndpointInfoOut__"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Credits this request costs."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Credit accounting for a billable request."
+  },
+  "EndpointInfoOut": {
+    "properties": {
+      "method": {
+        "type": "string",
+        "title": "Method",
+        "description": "HTTP method."
+      },
+      "path": {
+        "type": "string",
+        "title": "Path",
+        "description": "Path template of the operation."
+      },
+      "premium": {
+        "type": "boolean",
+        "title": "Premium",
+        "description": "Premium request: still costs credits while a subscription is active."
+      },
+      "credit_cost": {
+        "type": "integer",
+        "title": "Credit Cost",
+        "description": "Credits charged per request; with `unit_pricing`, the cost of one block. `0` means free."
+      },
+      "recommended_interval_seconds": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Recommended Interval Seconds",
+        "description": "Suggested polling interval in seconds; `null` if on demand."
+      },
+      "rate_limit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/RateLimitSpec"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Rate limit per account, shared by all of its API keys; `null` if none is declared."
+      },
+      "unit_pricing": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/UnitPricingSpec"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Volume pricing; `null` for a flat per-request cost."
+      },
+      "roles": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "title": "Roles",
+        "description": "Who may call it: `user` (an API key), `admin` (an administrator credential) or `machine` (a service token). Only `user` requests are rate limited and charged. Empty means public."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "method",
+      "path",
+      "premium",
+      "credit_cost",
+      "recommended_interval_seconds",
+      "rate_limit",
+      "unit_pricing",
+      "roles"
+    ],
+    "title": "EndpointInfoOut",
+    "description": "Access rules, cost and limits of one API operation."
+  },
+  "Envelope_list_EndpointInfoOut__": {
+    "properties": {
+      "data": {
+        "items": {
+          "$ref": "#/components/schemas/EndpointInfoOut"
+        },
+        "type": "array",
+        "title": "Data",
+        "description": "The endpoint payload."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[list[EndpointInfoOut]]"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Request metadata included in every enveloped response."
+  },
+  "RateLimitSpec": {
+    "properties": {
+      "max_requests": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Max Requests",
+        "description": "Requests allowed per window, per account (shared by all of its API keys)."
+      },
+      "window_seconds": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Window Seconds",
+        "description": "Window length in seconds."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "max_requests",
+      "window_seconds"
+    ],
+    "title": "RateLimitSpec",
+    "description": "A rate limit: at most `max_requests` requests per `window_seconds`."
+  },
+  "UnitPricingSpec": {
+    "properties": {
+      "unit_size": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Unit Size",
+        "description": "Items per billed block."
+      },
+      "units_body_field": {
+        "type": "string",
+        "title": "Units Body Field",
+        "description": "The request-body list whose length is counted."
+      },
+      "max_units": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Max Units",
+        "description": "Maximum number of items accepted per request."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "unit_size",
+      "units_body_field",
+      "max_units"
+    ],
+    "title": "UnitPricingSpec",
+    "description": "Volume pricing: the request costs `credit_cost` per started block of\n`unit_size` items of the request-body list `units_body_field`."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

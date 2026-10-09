@@ -1,0 +1,22 @@
+---
+docId: "guides.polling-and-retries"
+title: "轮询与重试"
+description: "从 GET /endpoints 读取 recommended_interval_seconds。"
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+translationOf: "guides.polling-and-retries"
+sourceDigest: "sha256:26a23563c32c54354f7d1cc44e7c9abb82837b4718c45305437e4f922f3e0ebe"
+---
+
+## 合理轮询
+
+从 `GET /endpoints` 读取 `recommended_interval_seconds`。它是轮询建议，不是新鲜度保证，也不能替代请求限额。应用内部应复用查询结果，避免每次页面展示都发送相同请求。
+
+导出使用 `ETag` 与 `If-None-Match`。超过快照生成频率的轮询不会创造更新的数据。
+
+## 处理失败
+
+`429` 按 `Retry-After` 等待。临时网络错误或 `503` 使用有上限、带随机抖动的指数退避，并限制重试次数。参数、凭证或点数问题应先修复原因，不能盲目自动重试。
+
+价格接口虽然只读数据，成功请求仍可能消耗点数。响应丢失时，无法确定服务端是否已完成并扣费，再次请求可能再次扣费。批量查询可以减少开销，但不能消除这种不确定性。记录可用的请求 ID，不要记录密钥。

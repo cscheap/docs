@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "project": "spider",
+  "repository": "https://github.com/senjianlu/steammarket-spider",
+  "ref": "refs/heads/master",
+  "commit": "bb36401c192d1476eaf2b4e722245dd4b18253d3",
+  "capturedOn": "2026-10-09",
+  "verification": "remote-ref-matches-local-head",
+  "documentationReview": "reviewed"
+}

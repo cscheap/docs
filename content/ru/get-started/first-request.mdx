@@ -1,0 +1,32 @@
+---
+docId: "get-started.first-request"
+title: "Первый запрос"
+description: "Базовый адрес API — https://api.cs.cheap, без префикса /v1."
+kind: "tutorial"
+status: "ready"
+sources: ["api", "frontend"]
+translationOf: "get-started.first-request"
+sourceDigest: "sha256:94d784239ea691788c92e37c255d0fb3fc56e88f9621da6ce0baf49882ad4b03"
+---
+
+## Подготовьте учётную запись
+
+1. Войдите и подтвердите настоящий адрес электронной почты в настройках.
+2. Скопируйте активный API-ключ. При первом открытии настроек подходящей учётной записью ключ создаётся автоматически.
+3. Проверьте кредиты или действующую подписку в разделе оплаты. Без действующей подписки этот запрос цены обычно стоит один кредит.
+
+## Запросите цену
+
+```bash
+export CSCHEAP_API_KEY='replace-with-your-key'
+curl --get 'https://api.cs.cheap/prices' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'app_id=730' \
+  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)'
+```
+
+Базовый адрес API — `https://api.cs.cheap`, без префикса `/v1`. Выполните пример на своём сервере или в локальном терминале. В развёрнутом приложении храните ключ в менеджере секретов.
+
+## Проверьте ответ
+
+Успешный JSON содержит `data` и `meta.request_id`; котировки находятся в `data.markets`. При `401` проверьте ключ, при `402` — кредиты, при `429` дождитесь времени из `Retry-After`. См. [ошибки](/docs/api/errors).

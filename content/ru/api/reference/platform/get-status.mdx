@@ -1,0 +1,253 @@
+---
+docId: "api.reference.platform.get-status"
+title: "Получить статус сервиса"
+description: "GET /status — Получить статус сервиса"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.platform.get-status"
+sourceDigest: "sha256:d43615f6f2942b12671d365a7077d70fc2b06dd9a0ee4d7af225149719a2044b"
+---
+
+## Операция
+
+`GET /status`
+
+## Поведение
+
+Возвращает состояние сервиса и активность сбора данных, которые показаны на публичной странице статуса: почасовые оценки состояния за последние 24 завершённых часа, доступность по компонентам, количество собранных цен и географию сети сбора.
+
+- В отличие от `GET /health`, этот эндпоинт читает сохранённые данные мониторинга: это история, а не живая проверка каждой зависимости.
+- Время указано в UTC. Компоненты или интервалы без данных пусты или отсутствуют, а не равны нулю.
+- `503` означает, что данные мониторинга не удалось прочитать; частичные результаты никогда не возвращаются.
+
+
+## Использование
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 60,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Запрос
+
+```json
+{}
+```
+
+## Ответы
+
+```json
+{
+  "200": {
+    "description": "Успешный ответ",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_StatusOut_"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "Сервис временно недоступен; повторите позже",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Модели
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Сколько кредитов стоит этот запрос."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Расчётный остаток кредитов после этого запроса. Это ориентир, а не данные учёта: из-за параллельных запросов значение может немного отличаться."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Учёт кредитов для платного запроса."
+  },
+  "Envelope_StatusOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/StatusOut",
+        "description": "Полезные данные эндпоинта."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[StatusOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Стабильный машиночитаемый код ошибки. Ориентируйтесь на это значение, а не на `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Пояснение для человека. Формулировка может меняться."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Необязательный структурированный контекст, например список ошибок валидации или, для `credit_insufficient`, требуемое и оставшееся количество кредитов."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Подробности неудачного запроса."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "Что пошло не так."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Ответ с ошибкой: ошибка в `error` и метаданные запроса в `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Уникальный идентификатор этого запроса, совпадает с заголовком ответа `X-Request-ID`. Указывайте его при обращении в поддержку."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Оплачивается ли запрос кредитами. Присутствует только у тарифицируемых эндпоинтов; `false` означает, что запрос бесплатен — например, потому что он ничего не стоит или его покрывает ваша подписка."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "StatusOut": {
+    "properties": {
+      "summary": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Summary",
+        "description": "Почасовые оценки состояния за последние 24 завершённых часа по UTC, сгруппированные по области (`service`, `infrastructure`, `datasource`), затем по началу часа (например, `2026-06-27T11:00:00Z`). Оценки — строки от `0.00` до `100.00`."
+      },
+      "service": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Service",
+        "description": "Доступность каждого публичного компонента сервиса (`web`, `api`, `api_cn`, `monitor`) по 15-минутным интервалам за последние 24 часа, с ключом по метке времени интервала. Отсутствующие интервалы не содержат данных."
+      },
+      "datasource": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Datasource",
+        "description": "Активность сбора ценовых данных: `realtime` — количество цен, собранных по каждой площадке за последние несколько минут, `result` — по каждой площадке за последние 24 часа. Ключи счётчиков — метки времени Unix в секундах."
+      },
+      "infrastructure": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Infrastructure",
+        "description": "Проверки состояния каждого вспомогательного компонента по 5-минутным интервалам за последние 24 часа, с ключом по метке времени интервала. Отсутствующий интервал означает, что проверка не прошла или не выполнялась."
+      },
+      "distribution": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Distribution",
+        "description": "Текущая география с ключом `\"<latitude>,<longitude>\"`: для каждой точки указаны `node_count` (прокси-узлы) и `datacenter_count`."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "summary",
+      "service",
+      "datasource",
+      "infrastructure",
+      "distribution"
+    ],
+    "title": "StatusOut",
+    "description": "Состояние сервиса и активность потоков данных примерно за последние 24 часа."
+  }
+}
+```
+
+[Скачать публичную схему OpenAPI](/assets/openapi-ru.json)

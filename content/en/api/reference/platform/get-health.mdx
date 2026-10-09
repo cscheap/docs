@@ -1,0 +1,81 @@
+---
+docId: "api.reference.platform.get-health"
+title: "Check service liveness"
+description: "GET /health — Check service liveness"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`GET /health`
+
+## Behavior
+
+Lightweight liveness probe: returns `{"status": "ok"}` whenever the API process is up and serving requests.
+
+- It checks no databases or other dependencies, so a `200` here does not guarantee that data endpoints are available. Use `GET /status` for service health history.
+- The body is returned as-is, without the usual `data` / `meta` envelope.
+
+
+## Usage
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 30,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HealthOut"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "HealthOut": {
+    "properties": {
+      "status": {
+        "type": "string",
+        "title": "Status",
+        "description": "Always `ok` while the service is running."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "status"
+    ],
+    "title": "HealthOut",
+    "description": "Liveness result. Returned as a bare object, without the response envelope."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

@@ -1,0 +1,20 @@
+---
+docId: "support.service-status"
+title: "Service status"
+description: "Open the site's status page or call GET /status for the aggregate status data."
+kind: "how-to"
+status: "ready"
+sources: ["frontend", "api"]
+---
+
+## Where to look
+
+Open the site's status page or call [GET /status](/docs/api/reference/platform/get-status) for the aggregate status data. [GET /health](/docs/api/reference/platform/get-health) is a lighter health check. These reads do not require a user key.
+
+Status and collection data are snapshots. A healthy API does not guarantee every marketplace or item is fresh. Check the relevant source and each quote's `fresh_at` before concluding that a particular price is current.
+
+## During an incident
+
+Keep useful cached data only if its age is acceptable for your application and label it accordingly. Use bounded retries for temporary service failures, reduce polling during rate limiting and record request IDs for persistent problems.
+
+Displayed availability percentages summarize the periods with data; they are not a service-level commitment. Missing status information should not be interpreted as a guaranteed healthy state.

@@ -1,0 +1,20 @@
+---
+docId: "concepts.prices"
+title: "Price semantics"
+description: "An ask is a sell-listing quote; a bid is a buy-order quote."
+kind: "explanation"
+status: "ready"
+sources: ["spider", "refinery", "api"]
+---
+
+## Amount, side and quantity
+
+An `ask` is a sell-listing quote; a `bid` is a buy-order quote. Ordinary quotes use the market's currency and do not include the separately computed CNY fee tiers. Amounts are decimal strings to preserve precision.
+
+`quantity=null` means unknown; `quantity=0` means no available quantity in that row. `is_quantity_minimum=true` marks a lower bound. `is_all_items_same_price=false` means the quote does not describe the price of every unit; `null` means unknown.
+
+## Missing and delisted prices
+
+A source can report no amount, yielding `market_price_amount=null`. Delisting retains the last known amount but sets `quantity=0` and `delisted_at`. Do not turn either state into a zero-priced opportunity.
+
+An item may also have a [CSCP estimate](/docs/concepts/valuation) with `side=mid` and no quantity. Apply your own freshness and availability checks before acting on data.

@@ -1,0 +1,22 @@
+---
+docId: "get-started.read-price-data"
+title: "读取价格数据"
+description: "market_code 表示市场，provider_code 表示数据来源。"
+kind: "tutorial"
+status: "ready"
+sources: ["api", "spider", "refinery"]
+translationOf: "get-started.read-price-data"
+sourceDigest: "sha256:1b3aba41e06a2795b23817ce93318c6bfa97728a5f841f21606f3146b7c34fd7"
+---
+
+## 结合上下文读取报价
+
+`market_code` 表示市场，`provider_code` 表示数据来源。`side=ask` 是在售报价，`bid` 是求购报价，`mid` 是 CSCP 估值。
+
+`market_price_amount` 是以 `market_currency_code` 计价的十进制字符串。不同币种不能直接比较数值。`null` 表示未报告金额，不等于零。下架报价可能保留最后价格，因此还要检查 `delisted_at` 与 `quantity`。
+
+## 判断数据是否适用
+
+根据业务允许的最大数据年龄检查 `fresh_at`。`changed_at` 是最后变化时间，不是最后成功观测时间。数量可能未知，也可能只是下限。除非 `is_all_items_same_price` 为 true，否则不能认为所有物品都按该价格出售。
+
+对于 `CSCP`，还要检查 `valuation.valuation_date` 与置信度字段。详见[价格](/docs/concepts/prices)、[新鲜度](/docs/concepts/freshness)和[估值](/docs/concepts/valuation)。

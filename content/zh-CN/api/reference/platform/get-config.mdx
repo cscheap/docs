@@ -1,0 +1,160 @@
+---
+docId: "api.reference.platform.get-config"
+title: "获取公开服务配置"
+description: "GET /config — 获取公开服务配置"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.platform.get-config"
+sourceDigest: "sha256:cc119451b3e646d810037e815150a8312abe9348608e26f1fee27f4a7239fd0f"
+---
+
+## 操作
+
+`GET /config`
+
+## 行为
+
+返回公开的非敏感服务配置。目前只有 `home_currency`，即官方计算链最终换算回的平台本位币。
+
+- 你自己的基准货币属于账户设置，不在此返回。
+- 响应带有 `Cache-Control: no-store`。
+
+
+## 用量
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 3600,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_ConfigOut_"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "ConfigOut": {
+    "properties": {
+      "home_currency": {
+        "type": "string",
+        "title": "Home Currency",
+        "description": "平台本位币（ISO 4217 代码），官方计算链会将结果换算回该货币。目前始终为 `USD`。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "home_currency"
+    ],
+    "title": "ConfigOut",
+    "description": "公开服务配置。"
+  },
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "本次请求花费的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "计费请求的点数结算信息。"
+  },
+  "Envelope_ConfigOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/ConfigOut",
+        "description": "端点返回的数据。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[ConfigOut]"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "每个带信封的响应中都包含的请求元数据。"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

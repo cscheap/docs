@@ -1,0 +1,28 @@
+---
+docId: "api.overview"
+title: "API 概览"
+description: "使用 https://api.cs.cheap，本参考中的路由没有版本前缀。"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.overview"
+sourceDigest: "sha256:38b5da25324405b15b32421c1f5203dbb647cacabfb70e2d97a03ceff34fdf99"
+---
+
+## 基础地址与格式
+
+使用 `https://api.cs.cheap`，本参考中的路由没有版本前缀。JSON 使用 UTF-8。多数成功响应包含 `data` 和 `meta`，[导出](/docs/api/reference/prices/export-prices)则返回文件。
+
+## 选择操作
+
+| 任务 | 操作 |
+| --- | --- |
+| 单个饰品 | `GET /prices` |
+| 最多 1000 个名称 | `POST /prices/batch` |
+| 游戏全量快照 | `GET /prices/export` |
+| 自己的点数与订阅 | `GET /me` |
+| 市场与费率目录 | `GET /websites` 及其读取路由 |
+| 币种目录 | `GET /currencies` 及其读取路由 |
+| 元数据与健康度 | `GET /config`、`/endpoints`、`/health`、`/status` |
+
+价格与账号路由需要用户 API 密钥，目录、元数据和状态读取公开可用。本参考只包含匿名或普通用户可调用的操作。服务自身的端点目录可能还列出其他角色使用的操作；列出不代表授予调用权限。

@@ -1,0 +1,29 @@
+---
+docId: "guides.export-prices"
+title: "导出价格"
+description: "GET /prices/export 返回预先生成、gzip 压缩的 JSON 文档，没有 data 信封，计费信息位于响应头。"
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+translationOf: "guides.export-prices"
+sourceDigest: "sha256:90f9c8282555f4da3df2fa81d9f443cf69a77e04497303fc3ca6ec6aa516a747"
+---
+
+## 下载快照
+
+`GET /prices/export` 返回预先生成、gzip 压缩的 JSON 文档，没有 `data` 信封，计费信息位于响应头。默认方向为 `ask`；指定 `all` 才会包含其他方向及可用估值。
+
+```bash
+curl --compressed --get 'https://api.cs.cheap/prices/export' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'app_id=730' --data-urlencode 'side=all' \
+  --dump-header export.headers --output prices.json
+```
+
+`--compressed` 会解压响应。将 `prices.json` 当作成功导出处理前，先检查 HTTP 状态。检查 `generated_at` 与 `X-Export-Generated-At`：快照通常每五分钟生成，不是在下载时生成。
+
+## 避免重复下载
+
+保存响应头中的 `ETag`，下次将原值放入 `If-None-Match`。匹配时返回 `304`，无响应体且不扣点数，但仍计入限速。收到 `304` 时保留旧文件，不要用空输出覆盖。
+
+每次 `200` 都遵循正常导出计费，即使文件未变化。`Range` 被忽略。未知游戏返回 `404`，快照不可用返回 `503`。

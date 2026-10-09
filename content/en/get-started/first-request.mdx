@@ -1,0 +1,30 @@
+---
+docId: "get-started.first-request"
+title: "Your first request"
+description: "The API base URL is https://api.cs.cheap; the current route has no /v1 prefix."
+kind: "tutorial"
+status: "ready"
+sources: ["api", "frontend"]
+---
+
+## Prepare your account
+
+1. Sign in, then add and verify a real email in Settings.
+2. Open the API key section and copy your active key. The first key is issued automatically when an eligible account opens Settings.
+3. Check your credits or active subscription in Billing. This price request normally costs one credit without an active subscription.
+
+## Request a price
+
+```bash
+export CSCHEAP_API_KEY='replace-with-your-key'
+curl --get 'https://api.cs.cheap/prices' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'app_id=730' \
+  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)'
+```
+
+The API base URL is `https://api.cs.cheap`; the current route has no `/v1` prefix. Run the example on your server or local terminal. Store the key in a secret manager for deployed applications.
+
+## Check the result
+
+A successful JSON response has `data` and `meta.request_id`. Quotes are in `data.markets`. For `401`, check the key; for `402`, check credits; for `429`, wait for `Retry-After`. See [errors](/docs/api/errors).

@@ -1,0 +1,22 @@
+---
+docId: "guides.query-prices"
+title: "查询单个饰品"
+description: "调用 GET /prices，提供 market_hash_name。"
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+translationOf: "guides.query-prices"
+sourceDigest: "sha256:a5c6e981a57cf8c3838196bc88f4fe0056e735f3b2180738682ce8f5f699bc94"
+---
+
+## 选择筛选参数
+
+调用 `GET /prices`，提供 `market_hash_name`。查询默认 `730` 以外的游戏时指定 `app_id`。可选 `markets` 是逗号分隔的大写市场代码，例如 `BUFF,UUYP`。可选 `side` 为 `ask`、`bid`、`mid` 或 `all`，默认 `all`。
+
+饰品名称需要 URL 编码，API 密钥放在 Authorization 请求头中。[首次请求](/docs/get-started/first-request)提供可运行示例，[接口参考](/docs/api/reference/prices/get-price)列出完整约束。
+
+## 理解空结果
+
+`404` 表示该游戏中此饰品完全没有价格行。若饰品存在，但筛选条件排除了全部行，则返回 `200` 与空 `markets` 列表。成功的空结果请求仍遵循正常计费规则。去掉筛选条件可区分两种情况。
+
+多个饰品请使用[批量查询](/docs/guides/batch-prices)。

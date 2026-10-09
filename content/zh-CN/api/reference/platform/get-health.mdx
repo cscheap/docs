@@ -1,0 +1,83 @@
+---
+docId: "api.reference.platform.get-health"
+title: "检查服务存活状态"
+description: "GET /health — 检查服务存活状态"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.platform.get-health"
+sourceDigest: "sha256:9d39ee8b89205c4ec70ec089a0f1197f72916b2478996c4b5ae65b6e451cefe0"
+---
+
+## 操作
+
+`GET /health`
+
+## 行为
+
+轻量级存活探针：只要 API 进程正在运行并处理请求，就返回 `{"status": "ok"}`。
+
+- 它不检查数据库或其他依赖，因此这里返回 `200` 并不保证数据端点可用。如需服务健康历史，请使用 `GET /status`。
+- 响应体按原样返回，不带常规的 `data` / `meta` 信封。
+
+
+## 用量
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 30,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HealthOut"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "HealthOut": {
+    "properties": {
+      "status": {
+        "type": "string",
+        "title": "Status",
+        "description": "服务运行期间始终为 `ok`。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "status"
+    ],
+    "title": "HealthOut",
+    "description": "存活检查结果。以裸对象返回，不带响应信封。"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

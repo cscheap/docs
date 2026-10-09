@@ -1,0 +1,22 @@
+---
+docId: "concepts.freshness"
+title: "新鲜度与时间戳"
+description: "changed_at 记录价格或数量最后变化，observed_at 记录可用的单条观测时间，delisted_at 标记下架。"
+kind: "explanation"
+status: "ready"
+sources: ["spider", "refinery", "api"]
+translationOf: "concepts.freshness"
+sourceDigest: "sha256:0e3bc6dfd31ae126b8ae07b950bdeb4c5a58c9e843aabe3792c87dade86b339d"
+---
+
+## 使用哪个时间戳
+
+`changed_at` 记录价格或数量最后变化，`observed_at` 记录可用的单条观测时间，`delisted_at` 标记下架。API 时间戳采用 RFC 3339 UTC。
+
+`fresh_at` 综合变化时间、单条观测与已完成采集轮次。即使金额没有变化，它也可能更新。判断数据年龄应使用它，不能仅因 `changed_at` 较旧就认为采集已经停止。
+
+## 制定新鲜度策略
+
+根据业务确定最大数据年龄。不同来源采集周期不同，故障可能导致延迟，API 不会自动删除所有旧报价。CSCP 的 `fresh_at` 是计算时间，`valuation_date` 是估值日期，不能因此把每日输入视为实时价格。
+
+导出还包含快照本身的延迟：除每条报价的 `fresh_at` 外，还要检查 `generated_at`。详见[导出价格](/docs/guides/export-prices)。

@@ -1,0 +1,20 @@
+---
+docId: "concepts.marketplace-fees"
+title: "Marketplace fees"
+description: "Use get fees for a marketplace's published fee schedule."
+kind: "explanation"
+status: "ready"
+sources: ["api", "refinery"]
+---
+
+## Read the official schedule
+
+Use [get fees](/docs/api/reference/markets/get-fees) for a marketplace's published fee schedule. Deposit, sale and withdrawal slots describe different steps in the money flow. A slot bound to chain `0` explicitly means no fee; a null slot means unspecified or unsupported, not zero cost.
+
+A calculation chain can contain proportional fees, fixed additions or deductions and currency conversion. The order and currency of the steps matter: adding percentages is not a general substitute for applying the chain.
+
+## Apply the right scope
+
+These definitions support data processing and estimates. The marketplace's actual checkout, account tier or payment method may affect your transaction. Inspect the current schedule instead of hardcoding a fee from this guide.
+
+The public catalogue is readable without credentials. Administrative fee editing and private calculation-chain operations are outside this documentation. See [cost calculation](/docs/concepts/cost-calculation).

@@ -1,0 +1,22 @@
+---
+docId: "concepts.markets-and-sources"
+title: "Markets and sources"
+description: "market_code identifies the market being quoted."
+kind: "explanation"
+status: "ready"
+sources: ["spider", "api", "frontend"]
+---
+
+## Two different codes
+
+`market_code` identifies the market being quoted. `provider_code` identifies where the quote was collected. Matching codes mean first-party data; different codes mean another provider reports that market's prices. Several providers can report the same market.
+
+The API returns at most one row per market and side. A listed quote outranks a delisted quote; among those, first-party data outranks aggregators; freshness breaks the next tie. Consequently, the selected quote need not be the newest quote across all providers.
+
+## Discover coverage
+
+Use [list markets](/docs/api/reference/markets/list-markets) for the current catalogue and [service status](/docs/support/service-status) for collection health. A catalogue entry does not promise a quote for every item, app or side. `CSCP` is a synthetic valuation code, not a trading venue.
+
+## Website directory
+
+The site's [Directory](https://cs.cheap/en/directory) groups marketplace and tool links by category. It is a browsing directory, separate from the API's data-source catalogue. A listed external tool is not necessarily a price source. Follow a card's visit link to open that service; its account and transaction rules are managed by that service.

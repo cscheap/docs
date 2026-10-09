@@ -1,0 +1,158 @@
+---
+docId: "api.reference.platform.get-config"
+title: "Get public service configuration"
+description: "GET /config — Get public service configuration"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`GET /config`
+
+## Behavior
+
+Returns public, non-sensitive service configuration. Currently this is only `home_currency`, the platform currency that official calculation chains convert their results back into.
+
+- Your own base currency is an account setting and is not returned here.
+- Responses are sent with `Cache-Control: no-store`.
+
+
+## Usage
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 3600,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_ConfigOut_"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "ConfigOut": {
+    "properties": {
+      "home_currency": {
+        "type": "string",
+        "title": "Home Currency",
+        "description": "Platform home currency (ISO 4217 code) that official calculation chains convert their results back into. Currently always `USD`."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "home_currency"
+    ],
+    "title": "ConfigOut",
+    "description": "Public service configuration."
+  },
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Credits this request costs."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Credit accounting for a billable request."
+  },
+  "Envelope_ConfigOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/ConfigOut",
+        "description": "The endpoint payload."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[ConfigOut]"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Request metadata included in every enveloped response."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

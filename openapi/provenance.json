@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/senjianlu/cscheap-api",
+  "commit": "dda4f783d436e2988c023313b3affa961e9fabf7",
+  "method": "git-archive/create_app/localized_openapi/no-lifespan/no-network",
+  "files": {
+    "en": "15ade038d6fd8cb13d2bc7ca5e7f865bd3334b74a301994d5d6de23812b1c87b",
+    "zh-CN": "cc0f14f0ebf99dc4ae07f396a0cb9bdd9b39b976517a09da0b378e016bc0ff02",
+    "ru": "acd07f493b5803d1ad138aadd4290233aa04cc2dcdbc37e9a52f6d332a1e35b7"
+  }
+}

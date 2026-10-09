@@ -1,0 +1,20 @@
+---
+docId: "billing.balance-and-usage"
+title: "Balance and usage"
+description: "Call GET /me using your active key."
+kind: "how-to"
+status: "ready"
+sources: ["api", "frontend"]
+---
+
+## Read the API account view
+
+Call [GET /me](/docs/api/reference/account/get-account) using your active key. `data.credit.total` is granted credits, `used` is consumed credits and `remaining` is `max(0, total - used)`. `data.subscription` describes the currently active period, or null when none is active.
+
+This is the API's current account snapshot. Newly purchased credits, key changes and profile changes propagate asynchronously. Dashboard wallet balance, credit grants and API usage represent different records and need not update at exactly the same moment.
+
+## Diagnose a discrepancy
+
+Compare the same account, check order fulfillment and active dates, then refresh after synchronization. Do not add wallet dollars to credit counts. Concurrent requests can make individual response hints differ from a later account read.
+
+Request-by-request historical API access logs are not currently provided. For a persistent issue, keep the request ID, UTC time and order reference; see [billing support](/docs/support/billing).

@@ -1,0 +1,25 @@
+---
+docId: "guides.batch-prices"
+title: "Batch price queries"
+description: "Send 1–1000 names in market_hash_names."
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+---
+
+## Submit a batch
+
+Send 1–1000 names in `market_hash_names`. One batch has one `app_id` and one side selection. Unlike the single query's CSV parameter, batch `markets` is a JSON array of market codes.
+
+```bash
+curl 'https://api.cs.cheap/prices/batch' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{"app_id":"730","market_hash_names":["AK-47 | Redline (Field-Tested)"],"side":"all"}'
+```
+
+## Match responses to input
+
+`data.items` preserves request order. Unknown names return an entry with an empty `markets` array instead of failing the whole batch. Repeated names remain repeated in the output and count toward billing.
+
+Without an active subscription, cost is one credit per started block of 100 submitted names: 100 names cost one, 101 cost two. Deduplicate in your application before sending if repeated entries are unnecessary. Split larger collections into batches and respect [rate limits](/docs/api/rate-limits).

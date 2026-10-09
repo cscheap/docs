@@ -1,0 +1,22 @@
+---
+docId: "get-started.read-price-data"
+title: "Как читать ценовые данные"
+description: "market_code обозначает площадку, provider_code — источник."
+kind: "tutorial"
+status: "ready"
+sources: ["api", "spider", "refinery"]
+translationOf: "get-started.read-price-data"
+sourceDigest: "sha256:1b3aba41e06a2795b23817ce93318c6bfa97728a5f841f21606f3146b7c34fd7"
+---
+
+## Учитывайте контекст котировки
+
+`market_code` обозначает площадку, `provider_code` — источник. `side=ask` означает лоты на продажу, `bid` — заявки на покупку, `mid` — оценку CSCP.
+
+`market_price_amount` — десятичная строка в валюте `market_currency_code`. Не сравнивайте числа в разных валютах напрямую. `null` означает отсутствие сообщённой цены, а не ноль. Снятая котировка может сохранять последнюю цену: проверяйте `delisted_at` и `quantity`.
+
+## Решите, подходят ли данные
+
+Сопоставьте `fresh_at` с допустимым для вас возрастом данных. `changed_at` означает последнее изменение, а не последнее наблюдение. Количество может быть неизвестным или нижней границей. Только `is_all_items_same_price=true` указывает, что все единицы имеют эту цену.
+
+Для `CSCP` проверяйте `valuation.valuation_date` и показатели уверенности. См. [цены](/docs/concepts/prices), [свежесть](/docs/concepts/freshness) и [оценку](/docs/concepts/valuation).

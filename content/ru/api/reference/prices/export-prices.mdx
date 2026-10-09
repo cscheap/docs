@@ -1,0 +1,611 @@
+---
+docId: "api.reference.prices.export-prices"
+title: "Выгрузить цены всех предметов"
+description: "GET /prices/export — Выгрузить цены всех предметов"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.prices.export-prices"
+sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82fc31a76"
+---
+
+## Операция
+
+`GET /prices/export`
+
+## Поведение
+
+Скачивает котировки всех предметов одной игры, у которых есть цены, одним файлом — для массовой синхронизации. По умолчанию `side` равен `ask`; `side=mid` выгружает только оценку `CSCP` каждого оценённого предмета — гораздо меньший файл.
+
+- Тело ответа — сам документ выгрузки (`app_id`, `side`, `generated_at`, `items`), сжатый gzip (`Content-Encoding: gzip`), а не обычный конверт. Идентификатор запроса и поля биллинга передаются в заголовках: `X-Request-ID`, `X-Billable`, а для оплаченного ответа ещё `X-Credit-Cost` и `X-Credit-Remaining`.
+- `items` перечисляет все предметы, у которых есть хотя бы одна котировка на запрошенной стороне рынка, в порядке market hash name; котировки каждого предмета подчиняются тем же правилам, что и в `GET /prices`.
+- Файл — снимок, который сервер пересобирает раз в несколько минут; `generated_at` (он же заголовок `X-Export-Generated-At`) показывает когда. Запросы между пересборками получают один и тот же файл.
+- Отправляйте полученный `ETag` обратно в `If-None-Match`: пока снимок не изменился, ответом будет `304 Not Modified` без тела, и `304` никогда не оплачивается.
+- Запросы `Range` не поддерживаются; файл всегда отдаётся целиком. Пагинации и фильтра по площадкам нет.
+- `503 dependency_unavailable` означает, что первый снимок ещё не собран; повторите через минуту.
+
+> [!warning]
+> Каждый `200` оплачивается, даже если файл не изменился. Опрашивайте с `If-None-Match` — и платите только когда есть что-то новое.
+
+
+## Использование
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 10,
+  "premium": false,
+  "recommended_interval_seconds": 300,
+  "rate_limit": {
+    "max_requests": 2,
+    "window_seconds": 60
+  },
+  "unit_pricing": null
+}
+```
+
+## Запрос
+
+```json
+{
+  "parameters": [
+    {
+      "name": "app_id",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 16,
+        "description": "Steam app ID игры. По умолчанию `730` (Counter-Strike 2).",
+        "default": "730",
+        "title": "App Id"
+      },
+      "description": "Steam app ID игры. По умолчанию `730` (Counter-Strike 2)."
+    },
+    {
+      "name": "side",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "enum": [
+          "ask",
+          "bid",
+          "mid",
+          "all"
+        ],
+        "type": "string",
+        "description": "Какую сторону рынка вернуть: `ask` — лоты на продажу, `bid` — заявки на покупку, `mid` — оценка CSCP, `all` — всё. По умолчанию `ask`.",
+        "default": "ask",
+        "title": "Side"
+      },
+      "description": "Какую сторону рынка вернуть: `ask` — лоты на продажу, `bid` — заявки на покупку, `mid` — оценка CSCP, `all` — всё. По умолчанию `ask`."
+    }
+  ]
+}
+```
+
+## Ответы
+
+```json
+{
+  "200": {
+    "description": "Успешный ответ",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ExportOut"
+        }
+      }
+    },
+    "headers": {
+      "ETag": {
+        "description": "Валидатор этого снимка: отправьте его обратно в `If-None-Match`.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Last-Modified": {
+        "description": "Когда был собран этот снимок, в формате HTTP-даты.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Content-Encoding": {
+        "description": "Всегда `gzip`: файл хранится в сжатом виде.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "X-Export-Generated-At": {
+        "description": "Когда был собран этот снимок, в формате RFC 3339 UTC.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "X-Billable": {
+        "description": "`true`, если этот ответ был оплачен, иначе `false`.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "X-Credit-Cost": {
+        "description": "Сколько кредитов списано за этот ответ (только для оплаченных ответов).",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "X-Credit-Remaining": {
+        "description": "Сколько кредитов осталось после этого списания (только для оплаченных ответов).",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  "304": {
+    "description": "Снимок, указанный в `If-None-Match`, всё ещё актуален; не оплачивается"
+  },
+  "401": {
+    "description": "Аутентификационные данные отсутствуют или недействительны",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "402": {
+    "description": "Недостаточно кредитов для этого запроса",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "Учётные данные действительны, но не дают права вызывать эту операцию",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "404": {
+    "description": "Запрошенный ресурс не существует",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "Параметр или тело запроса некорректны",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "429": {
+    "description": "Слишком много запросов к этому эндпоинту; повторите позже",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "Сервис временно недоступен; повторите позже",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Модели
+
+```json
+{
+  "BatchItemOut": {
+    "properties": {
+      "market_hash_name": {
+        "type": "string",
+        "title": "Market Hash Name",
+        "description": "Market hash name предмета точно в том виде, в каком он был запрошен."
+      },
+      "markets": {
+        "items": {
+          "$ref": "#/components/schemas/MarketQuoteOut"
+        },
+        "type": "array",
+        "title": "Markets",
+        "description": "Котировки предмета: не больше одной на каждую пару площадки и стороны рынка, отсортированы по коду площадки, затем по стороне. Пусто, если предмет неизвестен или фильтры исключают все котировки."
+      }
+    },
+    "type": "object",
+    "required": [
+      "market_hash_name",
+      "markets"
+    ],
+    "title": "BatchItemOut",
+    "description": "Один запрошенный предмет и его котировки на площадках."
+  },
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Сколько кредитов стоит этот запрос."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Расчётный остаток кредитов после этого запроса. Это ориентир, а не данные учёта: из-за параллельных запросов значение может немного отличаться."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Учёт кредитов для платного запроса."
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Стабильный машиночитаемый код ошибки. Ориентируйтесь на это значение, а не на `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Пояснение для человека. Формулировка может меняться."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Необязательный структурированный контекст, например список ошибок валидации или, для `credit_insufficient`, требуемое и оставшееся количество кредитов."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Подробности неудачного запроса."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "Что пошло не так."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Ответ с ошибкой: ошибка в `error` и метаданные запроса в `meta`."
+  },
+  "ExportOut": {
+    "properties": {
+      "app_id": {
+        "type": "string",
+        "title": "App Id",
+        "description": "Steam app ID, повторённый из запроса."
+      },
+      "side": {
+        "type": "string",
+        "enum": [
+          "ask",
+          "bid",
+          "mid",
+          "all"
+        ],
+        "title": "Side",
+        "description": "Применённый фильтр стороны рынка, повторённый из запроса."
+      },
+      "generated_at": {
+        "type": "string",
+        "title": "Generated At",
+        "description": "Когда был собран этот снимок выгрузки, в формате RFC 3339 UTC — то же значение, что и в заголовке ответа `X-Export-Generated-At`. Снимки пересобираются раз в несколько минут; запросы между пересборками получают один и тот же файл."
+      },
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/BatchItemOut"
+        },
+        "type": "array",
+        "title": "Items",
+        "description": "Все предметы, у которых есть хотя бы одна котировка на запрошенной стороне рынка, отсортированные по market hash name."
+      }
+    },
+    "type": "object",
+    "required": [
+      "app_id",
+      "side",
+      "generated_at",
+      "items"
+    ],
+    "title": "ExportOut",
+    "description": "Все предметы одной игры, у которых есть цены, для одной стороны рынка."
+  },
+  "MarketQuoteOut": {
+    "properties": {
+      "market_code": {
+        "type": "string",
+        "title": "Market Code",
+        "description": "Код площадки, к которой относится котировка, например `BUFF`. `CSCP` обозначает оценку предмета cs.cheap: взвешенный консенсус площадок в CNY, обновляемый ежедневно, без количества; время расчёта — в `changed_at` и `fresh_at`, подробности — в `valuation`. Это оценка, а не предложение, по которому можно совершить сделку."
+      },
+      "provider_code": {
+        "type": "string",
+        "title": "Provider Code",
+        "description": "Код источника, из которого получена котировка. Совпадает с `market_code`, если данные получены с самой площадки; иначе указывает агрегатор, сообщающий цены этой площадки."
+      },
+      "side": {
+        "type": "string",
+        "enum": [
+          "ask",
+          "bid",
+          "mid"
+        ],
+        "title": "Side",
+        "description": "`ask` — котировка лота на продажу, `bid` — котировка заявки на покупку, `mid` — оценка `CSCP` (середина между консенсусами продажи и покупки)."
+      },
+      "market_currency_code": {
+        "type": "string",
+        "title": "Market Currency Code",
+        "description": "Валюта `market_price_amount`, например `CNY`. Цены возвращаются в собственной валюте площадки, без конвертации."
+      },
+      "market_price_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Market Price Amount",
+        "description": "Цена в `market_currency_code` в виде десятичной строки (обычная запись, без конечных нулей, никогда не в экспоненциальной форме) или `null`, если источник не сообщает цену. Снятая с продажи котировка сохраняет последнюю известную цену."
+      },
+      "quantity": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Quantity",
+        "description": "Количество на этой стороне рынка по данным источника или `null`, если оно не сообщается. `0`, как только предмет снят с продажи."
+      },
+      "is_quantity_minimum": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Is Quantity Minimum",
+        "description": "`true`, если `quantity` — нижняя граница (источник сообщает лишь, что их «не меньше» этого числа), или `null`, если неизвестно."
+      },
+      "is_all_items_same_price": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Is All Items Same Price",
+        "description": "`true`, если все предлагаемые единицы стоят `market_price_amount`; `false`, если источник сообщает только лучшую цену или цены различаются; `null`, если неизвестно."
+      },
+      "changed_at": {
+        "type": "string",
+        "title": "Changed At",
+        "description": "Когда цена или количество этой котировки последний раз изменились у источника, в формате RFC 3339 UTC (например, `2026-09-24T03:12:08Z`)."
+      },
+      "observed_at": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Observed At",
+        "description": "Когда эта котировка последний раз была отдельно замечена у источника, в формате RFC 3339 UTC, или `null`, если это не записано."
+      },
+      "delisted_at": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Delisted At",
+        "description": "Когда обнаружилось, что предмет больше не выставлен на этой стороне рынка, в формате RFC 3339 UTC, или `null`, пока он выставлен. Снятая котировка сохраняет последнюю цену, а `quantity` равно `0`."
+      },
+      "fresh_at": {
+        "type": "string",
+        "title": "Fresh At",
+        "description": "Когда источник последний раз подтвердил актуальность этой котировки, в формате RFC 3339 UTC: самое позднее из `changed_at`, `observed_at` и времени завершения последнего полного сканирования этой площадки."
+      },
+      "valuation": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/ValuationOut"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Подробности оценки; есть только у котировки `CSCP`, у котировок площадок равно `null`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "market_code",
+      "provider_code",
+      "side",
+      "market_currency_code",
+      "market_price_amount",
+      "quantity",
+      "is_quantity_minimum",
+      "is_all_items_same_price",
+      "changed_at",
+      "observed_at",
+      "delisted_at",
+      "fresh_at",
+      "valuation"
+    ],
+    "title": "MarketQuoteOut",
+    "description": "Котировка одной площадки для предмета на одной стороне рынка."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Уникальный идентификатор этого запроса, совпадает с заголовком ответа `X-Request-ID`. Указывайте его при обращении в поддержку."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Оплачивается ли запрос кредитами. Присутствует только у тарифицируемых эндпоинтов; `false` означает, что запрос бесплатен — например, потому что он ничего не стоит или его покрывает ваша подписка."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "ValuationOut": {
+    "properties": {
+      "valuation_date": {
+        "type": "string",
+        "title": "Valuation Date",
+        "description": "Дата оценки по UTC (`YYYY-MM-DD`). Рассчитывается раз в день по дневным ценам закрытия за семь дней до этой даты."
+      },
+      "credibility": {
+        "type": "number",
+        "title": "Credibility",
+        "description": "Показатель уверенности от 0 до 1, равный `e^(-uncertainty)`; чем ближе к 1, тем лучше согласуются источники. Задайте собственный порог, прежде чем полагаться на оценку."
+      },
+      "uncertainty": {
+        "type": "number",
+        "title": "Uncertainty",
+        "description": "Стандартная неопределённость оценки в логарифмической шкале (0 или больше). Примерно 68% правдоподобных значений лежат между цена × `e^(-uncertainty)` и цена × `e^(uncertainty)`."
+      },
+      "is_two_sided": {
+        "type": "boolean",
+        "title": "Is Two Sided",
+        "description": "`true`, если в расчёте участвовали и лоты на продажу, и заявки на покупку. При `false` были доступны только лоты на продажу, и оценка равна консенсусу продажи за вычетом типичного полуспреда сопоставимых предметов."
+      },
+      "ask_amount": {
+        "type": "string",
+        "title": "Ask Amount",
+        "description": "Взвешенный консенсус лотов на продажу по площадкам — денежная стоимость покупки в CNY с учётом комиссий, десятичной строкой."
+      },
+      "bid_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Bid Amount",
+        "description": "Взвешенный консенсус заявок на покупку по площадкам — деньги, получаемые в CNY после комиссий, десятичной строкой; заявки дороже лотов на продажу той же площадки исключены. `null`, если `is_two_sided` равно `false`."
+      },
+      "ask_quote_count": {
+        "type": "integer",
+        "title": "Ask Quote Count",
+        "description": "Количество источников лотов на продажу в `ask_amount`."
+      },
+      "bid_quote_count": {
+        "type": "integer",
+        "title": "Bid Quote Count",
+        "description": "Количество источников заявок на покупку в `bid_amount`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "valuation_date",
+      "credibility",
+      "uncertainty",
+      "is_two_sided",
+      "ask_amount",
+      "bid_amount",
+      "ask_quote_count",
+      "bid_quote_count"
+    ],
+    "title": "ValuationOut",
+    "description": "Подробности справедливой оценки CSCP для предмета по последнему дневному расчёту."
+  }
+}
+```
+
+[Скачать публичную схему OpenAPI](/assets/openapi-ru.json)

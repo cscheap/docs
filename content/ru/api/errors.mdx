@@ -1,0 +1,28 @@
+---
+docId: "api.errors"
+title: "Ошибки"
+description: "error.details.errors может содержать записи loc, msg, type."
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.errors"
+sourceDigest: "sha256:28b1e71aae0fe1574dd4f61f7f75a65bf95d0f0decb82a980e2dc67aac1a965c"
+---
+
+## Учитывайте статус и код
+
+| Статус | Значение и действие |
+| --- | --- |
+| 401 | Нет действительной аутентификации; проверьте ключ. |
+| 402 | `credit_insufficient`; пополните кредиты или проверьте подписку. |
+| 403 | `forbidden`; у ключа нет права на операцию. |
+| 404 | `resource_not_found`; проверьте путь, идентификатор и покрытие. |
+| 405 | `method_not_allowed`; проверьте метод и заголовок `Allow`. |
+| 422 | `validation_error`; исправьте поля. |
+| 429 | `rate_limited`; дождитесь `Retry-After`. |
+| 500 | `internal_error`; сохраните ID и сообщите о повторяющемся сбое. |
+| 503 | `dependency_unavailable`; повторите позже с задержкой. |
+
+`error.details.errors` может содержать записи `loc`, `msg`, `type`. Исходный ввод не обязательно возвращается. Не стройте логику на английском тексте сообщения.
+
+Неуспешные ценовые запросы не списывают кредиты. Потеря успешного ответа — другой случай: см. [повторы](/docs/guides/polling-and-retries).

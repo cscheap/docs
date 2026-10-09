@@ -1,0 +1,22 @@
+---
+docId: "support.service-status"
+title: "服务状态"
+description: "打开网站状态页，或调用 GET /status读取汇总状态。"
+kind: "how-to"
+status: "ready"
+sources: ["frontend", "api"]
+translationOf: "support.service-status"
+sourceDigest: "sha256:cb5468bdbca4364cbb00dcc60cfa532166bfb57d867695ac2a445d4698784feb"
+---
+
+## 查看入口
+
+打开网站状态页，或调用 [GET /status](/docs/api/reference/platform/get-status)读取汇总状态。[GET /health](/docs/api/reference/platform/get-health)是更轻量的健康检查。两者都不需要用户密钥。
+
+状态与采集信息是快照。API 健康不代表每个市场、每个饰品都足够新鲜，应检查对应来源以及报价的 `fresh_at`。
+
+## 故障期间
+
+仅在数据年龄满足业务要求时继续使用缓存，并标明其时间。临时故障采用有限重试，限速时降低轮询，持续问题保留请求 ID。
+
+页面可用率只统计有数据的时段，不是服务等级承诺。状态信息缺失不能解释为保证健康。

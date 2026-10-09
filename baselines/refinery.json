@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "project": "refinery",
+  "repository": "https://github.com/senjianlu/steammarket-refinery",
+  "ref": "refs/heads/master",
+  "commit": "5237c1229f23d6684e4fc2e46a6b67d642a06ea4",
+  "capturedOn": "2026-10-09",
+  "verification": "remote-ref-matches-local-head",
+  "documentationReview": "reviewed"
+}

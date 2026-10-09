@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "project": "api",
+  "repository": "https://github.com/senjianlu/cscheap-api",
+  "ref": "refs/heads/master",
+  "commit": "dda4f783d436e2988c023313b3affa961e9fabf7",
+  "capturedOn": "2026-10-09",
+  "verification": "remote-ref-matches-local-head",
+  "documentationReview": "reviewed"
+}

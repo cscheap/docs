@@ -1,0 +1,2618 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "cs.cheap public user API",
+    "version": "dda4f783d436e2988c023313b3affa961e9fabf7"
+  },
+  "servers": [
+    {
+      "url": "https://api.cs.cheap"
+    }
+  ],
+  "paths": {
+    "/prices": {
+      "get": {
+        "tags": [
+          "Price"
+        ],
+        "summary": "获取单个饰品的价格",
+        "description": "按 Steam market hash name 返回单个饰品在各市场的当前报价。\n\n- 每个市场的每个方向最多一条报价，先按 `market_code`、再按 `side` 排序。当多个来源报告同一市场时，仍在售的报价优先于已下架的报价，其次直接取自该市场的数据优先于聚合平台的数据，再次以最近确认的报价（`fresh_at`）为准。\n- 只有当某市场的所有来源都已下架该饰品时，才返回该市场的下架报价（`delisted_at` 有值、`quantity` 为 `0`，保留最后已知的价格）。\n- 市场数据足够的饰品还会多一条 `side` 为 `mid` 的 `CSCP` 报价：cs.cheap 估值，即各市场在售挂单与求购订单的人民币加权共识，每天更新一次。其 `valuation` 对象给出置信度（`credibility`、`uncertainty`）和两侧共识价；其他报价的 `valuation` 均为 `null`。它是估值，不是可成交的报价。\n- 可用 `markets`（逗号分隔的市场代码；`CSCP` 选取估值）和 `side`（`ask`、`bid`、`mid` 或 `all`）缩小结果范围。\n- `market_hash_name` 必须完全匹配，包括大小写。\n- 价格为十进制字符串，使用各市场自身的货币（`market_currency_code`），不做任何换算。\n- `404` 表示该饰品在此 `app_id` 下没有任何报价。如果饰品的报价全部被 `markets` 或 `side` 过滤掉，则返回 `200`，`markets` 列表为空。\n\n> [!note]\n> 此端点按请求计费。失败的请求（包括 `404`）从不扣费；`meta.credit` 会报告本次费用和你的预估剩余余额。\n",
+        "operationId": "get_item_prices_prices_get",
+        "parameters": [
+          {
+            "name": "market_hash_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "description": "饰品的 Steam market hash name，须与 Steam 社区市场上显示的完全一致（精确匹配，区分大小写）。",
+              "title": "Market Hash Name"
+            },
+            "description": "饰品的 Steam market hash name，须与 Steam 社区市场上显示的完全一致（精确匹配，区分大小写）。"
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 16,
+              "description": "游戏的 Steam 应用 ID。默认为 `730`（Counter-Strike 2）。",
+              "default": "730",
+              "title": "App Id"
+            },
+            "description": "游戏的 Steam 应用 ID。默认为 `730`（Counter-Strike 2）。"
+          },
+          {
+            "name": "markets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "要包含的市场代码，以逗号分隔，例如 `BUFF,UUYP`。代码两侧的空格会被忽略；每个代码只能由大写字母、数字或下划线组成。省略则包含所有市场。",
+              "title": "Markets"
+            },
+            "description": "要包含的市场代码，以逗号分隔，例如 `BUFF,UUYP`。代码两侧的空格会被忽略；每个代码只能由大写字母、数字或下划线组成。省略则包含所有市场。"
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ask",
+                "bid",
+                "mid",
+                "all"
+              ],
+              "type": "string",
+              "description": "返回市场的哪一方向：`ask` 为在售挂单，`bid` 为求购订单，`mid` 为 CSCP 估值，`all` 为全部。默认为 `all`。",
+              "default": "all",
+              "title": "Side"
+            },
+            "description": "返回市场的哪一方向：`ask` 为在售挂单，`bid` 为求购订单，`mid` 为 CSCP 估值，`all` 为全部。默认为 `all`。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ItemPricesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "缺少认证信息或认证无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "点数不足以完成本次请求",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "凭证有效，但无权调用此操作",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求的资源不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "参数或请求体无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "对此端点的请求过多；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/prices/batch": {
+      "post": {
+        "tags": [
+          "Price"
+        ],
+        "summary": "批量获取饰品价格",
+        "description": "一次调用返回一组饰品的当前报价。每个饰品的报价遵循与 `GET /prices` 相同的规则：每个市场的每个方向最多一条，仍在售的报价优先于已下架的报价，其次直接取自市场的数据优先于聚合平台的数据，再次取最新的报价；饰品有估值时另附其 `CSCP` 估值（`side` 为 `mid`）。\n\n- `items` 中每个请求的名称对应一条记录，顺序与请求一致。\n- 未知名称不算错误：它们会以空的 `markets` 列表返回。此端点从不返回 `404`。\n- 重复的名称会被保留，每次出现都有各自的记录。\n- `markets` 和 `side` 以同样的方式过滤每个饰品。\n- 请求体中的未知字段会以 `422` 拒绝。\n\n> [!note]\n> 按饰品名称块计费，不足一块按一块计，计数基于完整的 `market_hash_names` 列表（包括重复项）。费用会在查询前检查（余额不足时返回 `402`），且仅在请求成功时扣费。\n",
+        "operationId": "batch_item_prices_prices_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchPricesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BatchPricesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "缺少认证信息或认证无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "点数不足以完成本次请求",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "凭证有效，但无权调用此操作",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "参数或请求体无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "对此端点的请求过多；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/prices/export": {
+      "get": {
+        "tags": [
+          "Price"
+        ],
+        "summary": "导出全部饰品价格",
+        "description": "以单个文件下载某款游戏所有有价格的饰品的报价，用于批量同步。`side` 默认为 `ask`；`side=mid` 只导出每个有估值饰品的 `CSCP` 估值，文件小得多。\n\n- 响应体就是导出文档本身（`app_id`、`side`、`generated_at`、`items`），经 gzip 压缩（`Content-Encoding: gzip`），不是常规信封。请求 ID 与计费字段改为响应头：`X-Request-ID`、`X-Billable`，计费的响应另有 `X-Credit-Cost` 与 `X-Credit-Remaining`。\n- `items` 列出在所请求方向上至少有一条报价的所有饰品，按 market hash name 排序；每个饰品的报价遵循与 `GET /prices` 相同的规则。\n- 文件是服务器每隔几分钟重建一次的快照；`generated_at`（也即 `X-Export-Generated-At` 头）给出构建时间。两次重建之间的请求收到同一份文件。\n- 把收到的 `ETag` 以 `If-None-Match` 原样发回：快照未变时响应为 `304 Not Modified` 且无响应体，`304` 永不计费。\n- 不支持 `Range` 请求；总是发送整个文件。不支持分页，也不支持按市场过滤。\n- `503 dependency_unavailable` 表示首份快照尚未建成；一分钟后重试。\n\n> [!warning]\n> 每个 `200` 都会计费，即使文件没有变化。带 `If-None-Match` 轮询，只在有新内容时才付费。\n",
+        "operationId": "export_prices_prices_export_get",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 16,
+              "description": "游戏的 Steam 应用 ID。默认为 `730`（Counter-Strike 2）。",
+              "default": "730",
+              "title": "App Id"
+            },
+            "description": "游戏的 Steam 应用 ID。默认为 `730`（Counter-Strike 2）。"
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ask",
+                "bid",
+                "mid",
+                "all"
+              ],
+              "type": "string",
+              "description": "返回市场的哪一方向：`ask` 为在售挂单，`bid` 为求购订单，`mid` 为 CSCP 估值，`all` 为全部。默认为 `ask`。",
+              "default": "ask",
+              "title": "Side"
+            },
+            "description": "返回市场的哪一方向：`ask` 为在售挂单，`bid` 为求购订单，`mid` 为 CSCP 估值，`all` 为全部。默认为 `ask`。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportOut"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "本快照的校验标识：在 `If-None-Match` 中原样发回。",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Last-Modified": {
+                "description": "本快照的构建时间，HTTP 日期格式。",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Encoding": {
+                "description": "总是 `gzip`：文件以压缩形式存储。",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Export-Generated-At": {
+                "description": "本快照的构建时间，RFC 3339 UTC 格式。",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Billable": {
+                "description": "本响应计费时为 `true`，否则为 `false`。",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Credit-Cost": {
+                "description": "本响应扣除的点数（仅计费的响应）。",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Credit-Remaining": {
+                "description": "本次扣费后剩余的点数（仅计费的响应）。",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "`If-None-Match` 所指的快照仍是最新；不计费"
+          },
+          "401": {
+            "description": "缺少认证信息或认证无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "点数不足以完成本次请求",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "凭证有效，但无权调用此操作",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求的资源不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "参数或请求体无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "对此端点的请求过多；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/websites": {
+      "get": {
+        "tags": [
+          "Website"
+        ],
+        "summary": "列出市场",
+        "operationId": "list_websites_websites_get",
+        "parameters": [
+          {
+            "name": "include_deprecated",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "同时返回已不再支持的市场（`is_deprecated: true`）。",
+              "default": false,
+              "title": "Include Deprecated"
+            },
+            "description": "同时返回已不再支持的市场（`is_deprecated: true`）。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_WebsiteOut__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "参数或请求体无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "返回本 API 覆盖的市场目录，例如 Steam 社区市场和第三方饰品市场。每条记录的 `code` 是其他接受市场参数的端点所使用的标识符。\n\n- 结果按 `code` 排序。\n- 已不再支持的市场默认隐藏，除非传入 `include_deprecated=true`；此时它们会带 `is_deprecated: true` 出现。\n\n> [!note]\n> 该目录由平台维护，通过 API 只能读取。\n"
+      }
+    },
+    "/websites/{code}": {
+      "get": {
+        "tags": [
+          "Website"
+        ],
+        "summary": "获取单个市场",
+        "operationId": "get_website_websites__code__get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "市场代码，即 `GET /websites` 列出的代码。",
+              "title": "Code"
+            },
+            "description": "市场代码，即 `GET /websites` 列出的代码。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_WebsiteOut_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求的资源不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "参数或请求体无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "按 `code` 返回单个市场，包括已不再支持的市场（请检查 `is_deprecated`）。\n\n`404` 表示没有使用该代码的市场。\n"
+      }
+    },
+    "/websites/{code}/fee-schedule": {
+      "get": {
+        "tags": [
+          "Website"
+        ],
+        "summary": "获取市场的官方费率表",
+        "description": "返回平台当前为某个市场发布的费率，每种用途一个槽位：`deposit`、`sale` 和 `withdraw`。\n\n- 每个已发布的槽位都带有完全展开的官方计算链：包含每个费用算子、换币算子和换币算子组及其数值与货币，因此一次请求就足以复现平台的计算。\n- 如果槽位的计算链 `id` 为 `0`，则明确表示免费：平台不对该用途收取任何费用，且该计算链没有步骤。\n- 如果平台尚未为某种用途发布官方计算链，对应槽位为 `null`：费用未知，或该市场不提供此用途。`null` 绝不表示免费。\n- 每条计算链都会注明其 `start_currency`：价格必须采用该货币，计算链才适用（`null`：任意货币）。\n- 不包含归属和管理类字段。\n\n`404` 表示没有使用该代码的市场。\n",
+        "operationId": "get_website_fee_schedule_websites__code__fee_schedule_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "市场代码，即 `GET /websites` 列出的代码。",
+              "title": "Code"
+            },
+            "description": "市场代码，即 `GET /websites` 列出的代码。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_FeeScheduleOut_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求的资源不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "参数或请求体无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/currencies": {
+      "get": {
+        "tags": [
+          "Currency"
+        ],
+        "summary": "列出官方货币",
+        "operationId": "list_public_currencies_currencies_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "对货币代码进行不区分大小写的子串匹配。省略则列出所有货币。",
+              "title": "Search"
+            },
+            "description": "对货币代码进行不区分大小写的子串匹配。省略则列出所有货币。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_CurrencyOut__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "参数或请求体无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "返回平台维护的官方货币及其当前的 USD 汇率。官方费率表中的货币换算使用的就是这些货币。\n\n- 结果按 `code` 排序。\n- `search` 将列表缩小到包含指定文本的代码（不区分大小写）。\n- `usd_rate` 是一单位该货币对应的美元价值，以十进制字符串表示（例如价值 1/8 美元的货币为 `0.125`）。\n- 只列出官方货币。\n"
+      }
+    },
+    "/currencies/{currency_id}": {
+      "get": {
+        "tags": [
+          "Currency"
+        ],
+        "summary": "获取单个官方货币",
+        "operationId": "get_public_currency_currencies__currency_id__get",
+        "parameters": [
+          {
+            "name": "currency_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "货币的数字 ID（即 `id` 字段）。",
+              "title": "Currency Id"
+            },
+            "description": "货币的数字 ID（即 `id` 字段）。"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CurrencyOut_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求的资源不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "参数或请求体无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "按数字 `id` 返回单个官方货币。\n\n`404` 表示没有使用该 ID 的官方货币：该 ID 不存在、已被删除，或不是官方货币。\n"
+      }
+    },
+    "/me": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "获取你的账户",
+        "operationId": "read_me_me_get",
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SyncUserView_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "缺少认证信息或认证无效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "凭证有效，但无权调用此操作",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "请求的资源不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "返回 API 当前掌握的你本人账户信息：资料字段（包括 `base_currency`，即你的计算换算到的货币；`null` 表示 USD）、请求时刻有效的订阅（没有则为 `null`），以及你的点数计数。\n\n- `credit.total` 是账户获得的全部点数，`credit.used` 是已消耗的点数，`credit.remaining` 是两者之差，最低为 `0`。\n- 这些就是计费所依据的数字。控制台中的修改通常在一分钟左右同步到这里。\n\n`404` 表示你的账户尚未同步到 API，请稍后重试。\n"
+      }
+    },
+    "/config": {
+      "get": {
+        "tags": [
+          "Meta"
+        ],
+        "summary": "获取公开服务配置",
+        "operationId": "read_config_config_get",
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ConfigOut_"
+                }
+              }
+            }
+          }
+        },
+        "description": "返回公开的非敏感服务配置。目前只有 `home_currency`，即官方计算链最终换算回的平台本位币。\n\n- 你自己的基准货币属于账户设置，不在此返回。\n- 响应带有 `Cache-Control: no-store`。\n"
+      }
+    },
+    "/endpoints": {
+      "get": {
+        "tags": [
+          "Meta"
+        ],
+        "summary": "列出端点元数据",
+        "description": "返回本 API 每个已文档化操作的机器可读元数据，客户端无需解析 OpenAPI 文档即可规划用量。\n\n- 每个方法和路径对应一条记录，先按路径、再按方法排序。\n- 每条记录给出点数费用（`credit_cost`，按饰品数量计费的操作另有 `unit_pricing`）、是否为 `premium`、建议轮询间隔（`recommended_interval_seconds`）、`rate_limit`，以及谁可以调用（`roles`：`user`、`admin`、`machine`；为空表示无需认证）。\n- 同样的数据也以每个操作的 `x-cscheap` 扩展字段出现在 OpenAPI 文档中。\n",
+        "operationId": "read_endpoints_endpoints_get",
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_EndpointInfoOut__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "检查服务存活状态",
+        "description": "轻量级存活探针：只要 API 进程正在运行并处理请求，就返回 `{\"status\": \"ok\"}`。\n\n- 它不检查数据库或其他依赖，因此这里返回 `200` 并不保证数据端点可用。如需服务健康历史，请使用 `GET /status`。\n- 响应体按原样返回，不带常规的 `data` / `meta` 信封。\n",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "获取服务状态",
+        "description": "返回公开状态页上展示的服务健康状况和数据采集活动：最近 24 个完整小时的每小时健康评分、各组件可用性、价格采集数量，以及采集网络的地理分布。\n\n- 与 `GET /health` 不同，它读取的是已记录的监控数据；这是历史视图，而不是对各项依赖的实时探测。\n- 时间戳均为 UTC。没有数据的组件或时间桶为空或缺失，而不是零。\n- `503` 表示无法读取监控数据；不会返回部分结果。\n",
+        "operationId": "status_status_get",
+        "responses": {
+          "200": {
+            "description": "请求成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StatusOut_"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "服务暂时不可用；请稍后重试",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BatchItemOut": {
+        "properties": {
+          "market_hash_name": {
+            "type": "string",
+            "title": "Market Hash Name",
+            "description": "饰品的 market hash name，与请求中的完全一致。"
+          },
+          "markets": {
+            "items": {
+              "$ref": "#/components/schemas/MarketQuoteOut"
+            },
+            "type": "array",
+            "title": "Markets",
+            "description": "该饰品的报价，每个市场的每个方向最多一条，先按市场代码、再按方向排序。饰品未知或所有报价都被过滤条件排除时为空。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "market_hash_name",
+          "markets"
+        ],
+        "title": "BatchItemOut",
+        "description": "一个请求的饰品及其市场报价。"
+      },
+      "BatchPricesIn": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "maxLength": 16,
+            "minLength": 1,
+            "title": "App Id",
+            "description": "游戏的 Steam 应用 ID。默认为 `730`（Counter-Strike 2）。",
+            "default": "730"
+          },
+          "market_hash_names": {
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Market Hash Names",
+            "description": "要查询的 Steam market hash name 列表（精确匹配，区分大小写）。允许重复：每次出现都有各自的结果条目，并计入计费的饰品数量。"
+          },
+          "markets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Z0-9_]{1,32}$"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markets",
+            "description": "要包含的市场代码，例如 `[\"BUFF\", \"UUYP\"]`。每个代码只能由大写字母、数字或下划线组成。省略则包含所有市场。"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid",
+              "all"
+            ],
+            "title": "Side",
+            "description": "返回市场的哪一方向：`ask` 为在售挂单，`bid` 为求购订单，`mid` 为 CSCP 估值，`all` 为全部。默认为 `all`。",
+            "default": "all"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "market_hash_names"
+        ],
+        "title": "BatchPricesIn",
+        "description": "批量价格查询的请求体。"
+      },
+      "BatchPricesOut": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "Steam 应用 ID，原样回显请求中的值。"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid",
+              "all"
+            ],
+            "title": "Side",
+            "description": "所应用的方向过滤条件，原样回显请求中的值。"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BatchItemOut"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "每个请求的名称对应一条记录，顺序与请求一致，包括重复项。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "side",
+          "items"
+        ],
+        "title": "BatchPricesOut",
+        "description": "每个请求饰品的市场报价，顺序与请求一致。"
+      },
+      "ConfigOut": {
+        "properties": {
+          "home_currency": {
+            "type": "string",
+            "title": "Home Currency",
+            "description": "平台本位币（ISO 4217 代码），官方计算链会将结果换算回该货币。目前始终为 `USD`。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "home_currency"
+        ],
+        "title": "ConfigOut",
+        "description": "公开服务配置。"
+      },
+      "CreditMeta": {
+        "properties": {
+          "cost": {
+            "type": "integer",
+            "title": "Cost",
+            "description": "本次请求花费的点数。"
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining",
+            "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cost",
+          "remaining"
+        ],
+        "title": "CreditMeta",
+        "description": "计费请求的点数结算信息。"
+      },
+      "CurrencyOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "货币的唯一 ID。"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "货币代码，例如 `USD`。"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "显示名称。"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "货币种类，例如 `fiat`。"
+          },
+          "usd_rate": {
+            "type": "string",
+            "title": "Usd Rate",
+            "description": "一单位该货币对应的美元价值，以十进制字符串表示。用于 `auto` 换算。"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id",
+            "description": "所有者用户的 ID；平台货币（包括所有官方货币）为 `null`。"
+          },
+          "is_official": {
+            "type": "boolean",
+            "title": "Is Official",
+            "description": "该货币是否属于平台维护的官方目录。"
+          },
+          "ref_count": {
+            "type": "integer",
+            "title": "Ref Count",
+            "description": "使用该货币的换币算子数量。"
+          },
+          "is_deleted": {
+            "type": "boolean",
+            "title": "Is Deleted",
+            "description": "货币是否已删除。已删除的货币不会被列出，因此只有在删除操作的响应中才为 `true`。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "usd_rate",
+          "owner_user_id",
+          "is_official",
+          "ref_count",
+          "is_deleted"
+        ],
+        "title": "CurrencyOut",
+        "description": "一种货币及其美元价值。"
+      },
+      "EndpointInfoOut": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "description": "HTTP 方法。"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "操作的路径模板。"
+          },
+          "premium": {
+            "type": "boolean",
+            "title": "Premium",
+            "description": "高级请求：即使订阅有效也仍需消耗点数。"
+          },
+          "credit_cost": {
+            "type": "integer",
+            "title": "Credit Cost",
+            "description": "每次请求收取的点数；带有 `unit_pricing` 时为每一块的费用。`0` 表示免费。"
+          },
+          "recommended_interval_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Interval Seconds",
+            "description": "建议的轮询间隔（秒）；按需调用时为 `null`。"
+          },
+          "rate_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RateLimitSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "按账户计算的速率限制，同一账户的所有 API 密钥共享；未声明时为 `null`。"
+          },
+          "unit_pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnitPricingSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "按量计价；按次固定计费时为 `null`。"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles",
+            "description": "谁可以调用：`user`（API 密钥）、`admin`（管理员凭证）或 `machine`（服务令牌）。只有 `user` 请求会被限流和扣费。为空表示公开。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "method",
+          "path",
+          "premium",
+          "credit_cost",
+          "recommended_interval_seconds",
+          "rate_limit",
+          "unit_pricing",
+          "roles"
+        ],
+        "title": "EndpointInfoOut",
+        "description": "单个 API 操作的访问规则、费用和限制。"
+      },
+      "Envelope_BatchPricesOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BatchPricesOut",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[BatchPricesOut]"
+      },
+      "Envelope_ConfigOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ConfigOut",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ConfigOut]"
+      },
+      "Envelope_CurrencyOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CurrencyOut",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[CurrencyOut]"
+      },
+      "Envelope_FeeScheduleOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FeeScheduleOut",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[FeeScheduleOut]"
+      },
+      "Envelope_ItemPricesOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ItemPricesOut",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ItemPricesOut]"
+      },
+      "Envelope_StatusOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StatusOut",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[StatusOut]"
+      },
+      "Envelope_SyncUserView_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SyncUserView",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[SyncUserView]"
+      },
+      "Envelope_WebsiteOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteOut",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[WebsiteOut]"
+      },
+      "Envelope_list_CurrencyOut__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CurrencyOut"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[CurrencyOut]]"
+      },
+      "Envelope_list_EndpointInfoOut__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EndpointInfoOut"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[EndpointInfoOut]]"
+      },
+      "Envelope_list_WebsiteOut__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/WebsiteOut"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "端点返回的数据。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[WebsiteOut]]"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "稳定的机器可读错误代码。请根据此值进行分支处理，而不是 `message`。"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "面向人类阅读的说明。措辞可能变化。"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details",
+            "description": "可选的结构化上下文，例如校验错误列表；对于 `credit_insufficient`，则为所需点数和剩余点数。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "description": "失败请求的详细信息。"
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody",
+            "description": "出了什么问题。"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "请求元数据。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error",
+          "meta"
+        ],
+        "title": "ErrorEnvelope",
+        "description": "错误响应：`error` 中为错误信息，`meta` 中为请求元数据。"
+      },
+      "ExportOut": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "Steam 应用 ID，原样回显请求中的值。"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid",
+              "all"
+            ],
+            "title": "Side",
+            "description": "所应用的方向过滤条件，原样回显请求中的值。"
+          },
+          "generated_at": {
+            "type": "string",
+            "title": "Generated At",
+            "description": "本份导出快照的构建时间，采用 RFC 3339 UTC 格式——与响应头 `X-Export-Generated-At` 的值相同。快照每隔几分钟重建一次；两次重建之间的请求收到同一份文件。"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BatchItemOut"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "在所请求方向上至少有一条报价的所有饰品，按 market hash name 排序。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "side",
+          "generated_at",
+          "items"
+        ],
+        "title": "ExportOut",
+        "description": "某款游戏所有有价格的饰品，在市场某一方向上的报价。"
+      },
+      "FeeScheduleOut": {
+        "properties": {
+          "website_code": {
+            "type": "string",
+            "title": "Website Code",
+            "description": "市场代码。"
+          },
+          "slots": {
+            "$ref": "#/components/schemas/FeeScheduleSlotsOut",
+            "description": "每种用途已发布的官方计算链。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "website_code",
+          "slots"
+        ],
+        "title": "FeeScheduleOut",
+        "description": "平台当前为某个市场发布的官方费率，按用途划分。某种用途尚未发布官方计算链时，其值为 `null`。"
+      },
+      "FeeScheduleSlotOut": {
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "deposit",
+              "sale",
+              "withdraw"
+            ],
+            "title": "Purpose",
+            "description": "用途：`deposit`、`sale` 或 `withdraw`。"
+          },
+          "calculation_chain": {
+            "$ref": "#/components/schemas/PublicCalculationChainOut",
+            "description": "该用途的官方计算链。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "purpose",
+          "calculation_chain"
+        ],
+        "title": "FeeScheduleSlotOut",
+        "description": "为某一用途发布的官方计算链。"
+      },
+      "FeeScheduleSlotsOut": {
+        "properties": {
+          "deposit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeScheduleSlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "充值费用；未发布时为 `null`。"
+          },
+          "sale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeScheduleSlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "出售费用；未发布时为 `null`。"
+          },
+          "withdraw": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeScheduleSlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "提现费用；未发布时为 `null`。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "deposit",
+          "sale",
+          "withdraw"
+        ],
+        "title": "FeeScheduleSlotsOut",
+        "description": "某个市场已发布的官方计算链，按用途划分。"
+      },
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "服务运行期间始终为 `ok`。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthOut",
+        "description": "存活检查结果。以裸对象返回，不带响应信封。"
+      },
+      "ItemPricesOut": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "Steam 应用 ID，原样回显请求中的值。"
+          },
+          "market_hash_name": {
+            "type": "string",
+            "title": "Market Hash Name",
+            "description": "饰品的 market hash name，原样回显请求中的值。"
+          },
+          "markets": {
+            "items": {
+              "$ref": "#/components/schemas/MarketQuoteOut"
+            },
+            "type": "array",
+            "title": "Markets",
+            "description": "该饰品的报价，每个市场的每个方向最多一条，先按市场代码、再按方向排序。`markets` 或 `side` 过滤条件排除了所有报价时为空。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "market_hash_name",
+          "markets"
+        ],
+        "title": "ItemPricesOut",
+        "description": "单个饰品及其全部市场报价。"
+      },
+      "MarketQuoteOut": {
+        "properties": {
+          "market_code": {
+            "type": "string",
+            "title": "Market Code",
+            "description": "该报价所属市场的代码，例如 `BUFF`。`CSCP` 表示 cs.cheap 对该饰品的估值：跨市场的人民币加权共识，每天更新，没有数量，`changed_at` 与 `fresh_at` 为其计算时间，详情见 `valuation`。它是估算值，不是任何人都能成交的报价。"
+          },
+          "provider_code": {
+            "type": "string",
+            "title": "Provider Code",
+            "description": "采集该报价的数据来源代码。数据直接来自该市场时等于 `market_code`；否则为报告该市场价格的聚合平台。"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid"
+            ],
+            "title": "Side",
+            "description": "`ask` 表示在售挂单报价，`bid` 表示求购订单报价，`mid` 表示 `CSCP` 估值（在售共识与求购共识的中间价）。"
+          },
+          "market_currency_code": {
+            "type": "string",
+            "title": "Market Currency Code",
+            "description": "`market_price_amount` 的货币，例如 `CNY`。价格以该市场自身的货币返回，不做换算。"
+          },
+          "market_price_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Price Amount",
+            "description": "以 `market_currency_code` 计的价格，为十进制字符串（普通记数法，去除末尾的零，从不使用科学记数法）；来源未报告价格时为 `null`。已下架的报价保留最后已知的价格。"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity",
+            "description": "来源报告的市场该方向上的数量；未报告时为 `null`。饰品下架后为 `0`。"
+          },
+          "is_quantity_minimum": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Quantity Minimum",
+            "description": "`quantity` 为下限时为 `true`（来源只报告“至少”这么多）；未知时为 `null`。"
+          },
+          "is_all_items_same_price": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is All Items Same Price",
+            "description": "所有在售单件的价格都等于 `market_price_amount` 时为 `true`；来源只报告最低价或各件价格不同时为 `false`；未知时为 `null`。"
+          },
+          "changed_at": {
+            "type": "string",
+            "title": "Changed At",
+            "description": "该报价的价格或数量在来源处最后一次变化的时间，采用 RFC 3339 UTC 格式（例如 `2026-09-24T03:12:08Z`）。"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At",
+            "description": "该报价最后一次在来源处被单独观测到的时间，采用 RFC 3339 UTC 格式；未记录时为 `null`。"
+          },
+          "delisted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delisted At",
+            "description": "发现该饰品在市场该方向上已不再挂出的时间，采用 RFC 3339 UTC 格式；仍在挂出时为 `null`。已下架的报价保留最后的价格，`quantity` 为 `0`。"
+          },
+          "fresh_at": {
+            "type": "string",
+            "title": "Fresh At",
+            "description": "来源最后一次确认该报价仍为当前值的时间，采用 RFC 3339 UTC 格式：取 `changed_at`、`observed_at` 与该市场最近一次完整扫描完成时间中的最晚者。"
+          },
+          "valuation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValuationOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "估值详情，仅出现在 `CSCP` 报价上；所有市场报价上均为 `null`。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "market_code",
+          "provider_code",
+          "side",
+          "market_currency_code",
+          "market_price_amount",
+          "quantity",
+          "is_quantity_minimum",
+          "is_all_items_same_price",
+          "changed_at",
+          "observed_at",
+          "delisted_at",
+          "fresh_at",
+          "valuation"
+        ],
+        "title": "MarketQuoteOut",
+        "description": "单个市场对某个饰品在某一方向上的报价。"
+      },
+      "Meta": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+          },
+          "billable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billable",
+            "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+          },
+          "credit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CreditMeta"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id"
+        ],
+        "title": "Meta",
+        "description": "每个带信封的响应中都包含的请求元数据。"
+      },
+      "PublicCalculationChainOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "计算链的唯一 ID。`0` 是内置的免费计算链：平台不对该用途收取任何费用。"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "显示名称（如已设置）。"
+          },
+          "start_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Currency",
+            "description": "计算链所期望的价格货币；适用于任意货币时为 `null`。采用其他货币的价格不在其适用范围内。"
+          },
+          "steps": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/PublicFeeOperatorOut"
+                },
+                {
+                  "$ref": "#/components/schemas/PublicConvertOperatorOut"
+                },
+                {
+                  "$ref": "#/components/schemas/PublicConvertOperatorGroupOut"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "convert": "#/components/schemas/PublicConvertOperatorOut",
+                  "convert_operator_group": "#/components/schemas/PublicConvertOperatorGroupOut",
+                  "fee": "#/components/schemas/PublicFeeOperatorOut"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Steps",
+            "description": "按执行顺序排列的步骤，以 `kind` 区分类型。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "start_currency",
+          "steps"
+        ],
+        "title": "PublicCalculationChainOut",
+        "description": "费率表中发布的一条官方计算链。"
+      },
+      "PublicConvertOperatorGroupOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "convert_operator_group",
+            "title": "Kind",
+            "description": "步骤类型：始终为 `convert_operator_group`。"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "组的唯一 ID。"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "显示名称。"
+          },
+          "rule": {
+            "type": "string",
+            "enum": [
+              "min",
+              "max",
+              "avg"
+            ],
+            "title": "Rule",
+            "description": "如何从换算成功的成员中选出结果：`min`、`max` 或 `avg`。"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/PublicConvertOperatorOut"
+            },
+            "type": "array",
+            "title": "Members",
+            "description": "成员换算，按顺序排列。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "rule",
+          "members"
+        ],
+        "title": "PublicConvertOperatorGroupOut",
+        "description": "已发布费率表中的一组备选换算。"
+      },
+      "PublicConvertOperatorOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "convert",
+            "title": "Kind",
+            "description": "步骤类型：始终为 `convert`。"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "换币算子的唯一 ID。"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "显示名称。"
+          },
+          "from": {
+            "$ref": "#/components/schemas/PublicCurrencyOut",
+            "description": "源货币。"
+          },
+          "to": {
+            "$ref": "#/components/schemas/PublicCurrencyOut",
+            "description": "目标货币。"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fixed"
+            ],
+            "title": "Mode",
+            "description": "`auto` 通过两种货币各自的 `usd_rate` 换算；`fixed` 乘以 `rate`。"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate",
+            "description": "每一单位源货币对应的目标货币数量，以十进制字符串表示；用于 `fixed` 模式。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "from",
+          "to",
+          "mode",
+          "rate"
+        ],
+        "title": "PublicConvertOperatorOut",
+        "description": "已发布费率表中的一个货币换算步骤。"
+      },
+      "PublicCurrencyOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "货币的唯一 ID。"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "货币代码，例如 `USD`。"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "显示名称。"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "货币种类，例如 `fiat`。"
+          },
+          "usd_rate": {
+            "type": "string",
+            "title": "Usd Rate",
+            "description": "一单位对应的美元价值，以十进制字符串表示。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "usd_rate"
+        ],
+        "title": "PublicCurrencyOut",
+        "description": "已发布费率表所使用的一种货币。"
+      },
+      "PublicFeeOperatorOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "fee",
+            "title": "Kind",
+            "description": "步骤类型：始终为 `fee`。"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "费用算子的唯一 ID。"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "显示名称。"
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "add",
+              "sub",
+              "mul",
+              "div"
+            ],
+            "title": "Operator",
+            "description": "作用于当前金额的算术运算：`add`、`sub`、`mul` 或 `div`。"
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "算术运算的操作数，以十进制字符串表示。"
+          },
+          "currency_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency Code",
+            "description": "`add` 和 `sub` 金额的货币；`mul` 和 `div` 时为 `null`。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "operator",
+          "value",
+          "currency_code"
+        ],
+        "title": "PublicFeeOperatorOut",
+        "description": "已发布费率表中的一个费用步骤。"
+      },
+      "RateLimitSpec": {
+        "properties": {
+          "max_requests": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Max Requests",
+            "description": "每个账户在每个时间窗口内允许的请求数（该账户的所有 API 密钥共享）。"
+          },
+          "window_seconds": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Window Seconds",
+            "description": "时间窗口长度（秒）。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "max_requests",
+          "window_seconds"
+        ],
+        "title": "RateLimitSpec",
+        "description": "速率限制：每 `window_seconds` 秒内最多 `max_requests` 次请求。"
+      },
+      "StatusOut": {
+        "properties": {
+          "summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Summary",
+            "description": "最近 24 个完整 UTC 小时的每小时健康评分，先按领域（`service`、`infrastructure`、`datasource`）、再按小时起始时间（例如 `2026-06-27T11:00:00Z`）作为键。评分为 `0.00` 到 `100.00` 之间的字符串。"
+          },
+          "service": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Service",
+            "description": "各公开服务组件（`web`、`api`、`api_cn`、`monitor`）在最近 24 小时内按 15 分钟时间桶统计的可用性，以时间桶时间戳作为键。缺失的时间桶表示没有数据。"
+          },
+          "datasource": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Datasource",
+            "description": "价格数据采集活动：`realtime` 统计最近几分钟内每个市场采集到的价格数，`result` 统计最近 24 小时内每个市场的数量。计数以 Unix 时间戳（秒）作为键。"
+          },
+          "infrastructure": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Infrastructure",
+            "description": "各后端组件在最近 24 小时内按 5 分钟时间桶进行的健康检查，以时间桶时间戳作为键。缺失的时间桶表示检查失败或未运行。"
+          },
+          "distribution": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Distribution",
+            "description": "当前的地理分布，以 `\"<latitude>,<longitude>\"` 作为键，给出每个位置的 `node_count`（代理节点数）和 `datacenter_count`。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "summary",
+          "service",
+          "datasource",
+          "infrastructure",
+          "distribution"
+        ],
+        "title": "StatusOut",
+        "description": "大约最近 24 小时内的服务健康状况和数据采集活动。"
+      },
+      "SyncCredit": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "账户迄今获得的全部点数。"
+          },
+          "used": {
+            "type": "integer",
+            "title": "Used",
+            "description": "迄今已消耗的点数。"
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining",
+            "description": "剩余点数：`total` 减去 `used`，最低为 `0`。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "total",
+          "used",
+          "remaining"
+        ],
+        "title": "SyncCredit",
+        "description": "账户的点数计数器：已授予、已消耗和剩余。"
+      },
+      "SyncSubscription": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "订阅类别。"
+          },
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id",
+            "description": "所订阅的套餐。"
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At",
+            "description": "订阅结束时间（RFC 3339，UTC）。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "category",
+          "plan_id",
+          "expires_at"
+        ],
+        "title": "SyncSubscription",
+        "description": "请求时刻有效的订阅。\n\n如果有多个订阅重叠，返回最晚到期的那个。"
+      },
+      "SyncUser": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "账户 ID。"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "显示名称。"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "description": "电子邮箱地址。"
+          },
+          "email_verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Verified",
+            "description": "电子邮箱是否已验证；未知时为 `null`。"
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image",
+            "description": "头像图片 URL。"
+          },
+          "steam_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steam Id",
+            "description": "绑定的 Steam 账户 ID（SteamID64）。"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "账户创建时间（RFC 3339，UTC）。"
+          },
+          "base_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Currency",
+            "description": "账户计算所换算到的货币（ISO 4217 代码）；`null` 表示 USD。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "SyncUser",
+        "description": "API 当前掌握的某个 cs.cheap 账户的资料字段。\n\n缺失的值为 `null`；`base_currency` 为 `null` 表示用户从未选择过基准货币，此时使用 USD。"
+      },
+      "SyncUserView": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SyncUser",
+            "description": "账户资料。"
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SyncSubscription"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "当前有效的订阅；没有则为 `null`。"
+          },
+          "credit": {
+            "$ref": "#/components/schemas/SyncCredit",
+            "description": "账户的点数计数。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user",
+          "subscription",
+          "credit"
+        ],
+        "title": "SyncUserView",
+        "description": "单个账户的资料、有效订阅和点数余额。"
+      },
+      "UnitPricingSpec": {
+        "properties": {
+          "unit_size": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Unit Size",
+            "description": "每个计费块包含的条目数。"
+          },
+          "units_body_field": {
+            "type": "string",
+            "title": "Units Body Field",
+            "description": "用于计数（统计其长度）的请求体列表字段。"
+          },
+          "max_units": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Max Units",
+            "description": "每次请求最多接受的条目数。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "unit_size",
+          "units_body_field",
+          "max_units"
+        ],
+        "title": "UnitPricingSpec",
+        "description": "按量计价：请求体列表 `units_body_field` 中每 `unit_size` 项为一块，不足一块按一块计，每块花费 `credit_cost` 点数。"
+      },
+      "ValuationOut": {
+        "properties": {
+          "valuation_date": {
+            "type": "string",
+            "title": "Valuation Date",
+            "description": "估值的 UTC 日期（`YYYY-MM-DD`）。每天计算一次，依据该日期之前七天的每日收盘报价。"
+          },
+          "credibility": {
+            "type": "number",
+            "title": "Credibility",
+            "description": "0 到 1 之间的置信度分数，等于 `e^(-uncertainty)`；越接近 1，各来源越一致。依赖该估值之前请自行设定阈值。"
+          },
+          "uncertainty": {
+            "type": "number",
+            "title": "Uncertainty",
+            "description": "估值在对数尺度上的标准不确定度（0 或以上）。约 68% 的合理取值落在 价格 × `e^(-uncertainty)` 与 价格 × `e^(uncertainty)` 之间。"
+          },
+          "is_two_sided": {
+            "type": "boolean",
+            "title": "Is Two Sided",
+            "description": "在售挂单与求购订单都参与计算时为 `true`。为 `false` 时只有在售挂单可用，估值为在售共识减去同类饰品的典型半价差。"
+          },
+          "ask_amount": {
+            "type": "string",
+            "title": "Ask Amount",
+            "description": "各市场在售挂单的加权共识，按人民币现金买入成本计（含费用），为十进制字符串。"
+          },
+          "bid_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bid Amount",
+            "description": "各市场求购订单的加权共识，按扣除费用后到手的人民币现金计，为十进制字符串；价格高于该市场在售挂单的求购订单已被剔除。`is_two_sided` 为 `false` 时为 `null`。"
+          },
+          "ask_quote_count": {
+            "type": "integer",
+            "title": "Ask Quote Count",
+            "description": "`ask_amount` 中在售挂单来源的数量。"
+          },
+          "bid_quote_count": {
+            "type": "integer",
+            "title": "Bid Quote Count",
+            "description": "`bid_amount` 中求购订单来源的数量。"
+          }
+        },
+        "type": "object",
+        "required": [
+          "valuation_date",
+          "credibility",
+          "uncertainty",
+          "is_two_sided",
+          "ask_amount",
+          "bid_amount",
+          "ask_quote_count",
+          "bid_quote_count"
+        ],
+        "title": "ValuationOut",
+        "description": "饰品的 CSCP 公允价值详情，取自最新一日的估值。"
+      },
+      "WebsiteOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "在整个 API 中使用的唯一市场代码，例如 `steam`。"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "显示名称。"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "市场主页（如已知）。"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "市场类别，例如 `market`。"
+          },
+          "subCategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcategory",
+            "description": "更细的类别（如有）。"
+          },
+          "is_deprecated": {
+            "type": "boolean",
+            "title": "Is Deprecated",
+            "description": "该市场是否已不再支持。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "url",
+          "category",
+          "subCategory",
+          "is_deprecated"
+        ],
+        "title": "WebsiteOut",
+        "description": "平台目录中的一个市场。"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "cs.cheap API key"
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+---
+docId: "api.errors"
+title: "Errors"
+description: "Validation details can include error.details.errors entries with loc, msg and type."
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Respond to the status and code
+
+| Status | Meaning and action |
+| --- | --- |
+| 401 | Missing or invalid authentication; check the active key. |
+| 402 | `credit_insufficient`; add credits or check your subscription. |
+| 403 | `forbidden`; this operation is not available to your credential. |
+| 404 | `resource_not_found`; check path, identifier and coverage. |
+| 405 | `method_not_allowed`; check the HTTP method and `Allow` header. |
+| 422 | `validation_error`; fix field constraints before retrying. |
+| 429 | `rate_limited`; wait for `Retry-After`. |
+| 500 | `internal_error`; keep the request ID and report persistent failures. |
+| 503 | `dependency_unavailable`; retry later with backoff. |
+
+Validation details can include `error.details.errors` entries with `loc`, `msg` and `type`. The response need not echo your original input. Do not rely on English message wording.
+
+Failed price requests do not consume credits. A lost successful response is different: see [retries](/docs/guides/polling-and-retries).

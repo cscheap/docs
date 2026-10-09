@@ -1,0 +1,25 @@
+---
+docId: "billing.request-costs"
+title: "Request costs"
+description: "Batch length includes duplicate and unknown names."
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Recorded price rules
+
+| Operation | Credits without an active subscription |
+| --- | --- |
+| `GET /prices` | 1 per successful request |
+| `POST /prices/batch` | 1 per started block of 100 submitted names |
+| `GET /prices/export` | 10 per `200` response |
+| `GET /me` and public catalogue/status reads | 0 |
+
+Batch length includes duplicate and unknown names. A successful empty result is still a successful request. Failed requests do not charge credits. Conditional export `304` responses are unbilled, but count toward rate limiting.
+
+## Check current declarations
+
+These values describe the recorded API revision. `GET /endpoints` exposes `credit_cost`, `premium`, `unit_pricing` and `rate_limit` for the running service. Active subscriptions waive non-premium credit charges; current price operations are non-premium.
+
+`meta.credit.remaining` is a hint under concurrent use, not a transaction ledger. Limit client concurrency if you need tighter local spending control.

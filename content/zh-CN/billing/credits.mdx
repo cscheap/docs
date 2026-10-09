@@ -1,0 +1,22 @@
+---
+docId: "billing.credits"
+title: "点数"
+description: "点数是 API 使用的整数单位，钱包则是用于购买产品的 USD 金额。"
+kind: "explanation"
+status: "ready"
+sources: ["api", "frontend"]
+translationOf: "billing.credits"
+sourceDigest: "sha256:31eebf576e91e84d1dd8deceb8d5c3c66f23152bde651fd69cb8440141bba30a"
+---
+
+## 点数与金额相互独立
+
+点数是 API 使用的整数单位，钱包则是用于购买产品的 USD 金额。仅向钱包充值不会自动获得点数包，产品订单需要完成履约。
+
+点数可来自已购买产品、有效兑换码，以及解锁后的每日签到奖励。API 用量记在账号上，更换密钥不会重置用量。
+
+## 订阅的作用
+
+有效订阅期间，非 premium 价格请求不扣点数，但仍受限速约束。时段结束后，只要点数足够，请求恢复点数计费。排队等待生效的订阅不会提前生效。
+
+通过[请求费用](/docs/billing/request-costs)估算消耗，通过[余额与用量](/docs/billing/balance-and-usage)读取账号计数。点数不是钱包提现或转账工具。

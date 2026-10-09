@@ -1,0 +1,22 @@
+---
+docId: "api.versioning"
+title: "版本与兼容性"
+description: "文档中的路由没有 URL 版本前缀。"
+kind: "reference"
+status: "ready"
+sources: ["api", "frontend"]
+translationOf: "api.versioning"
+sourceDigest: "sha256:9bf9fd1982bd710133fa7cee7088fc90528dd64fc73ca8aa719633468e7a20e1"
+---
+
+## 当前契约
+
+文档中的路由没有 URL 版本前缀。本套文档关联已记录的源代码提交与文档发布版本。应用包版本或捕获的 Git SHA 都不保证某个部署正在运行该版本。
+
+仓库内接口参考从固定 API 版本生成。线上 `/openapi.json` 与 `GET /endpoints` 描述实际运行的服务，在发布过程中可能不同。修改生产集成前应先核对差异。
+
+## 客户端处理
+
+解析需要的字段，容忍新增响应字段，处理已说明的 null。保留十进制字符串，按错误码而不是文字分支。升级时既要检查字段名称，也要检查含义变化。
+
+这里没有设定固定支持期限、弃用窗口或向后兼容保证。采用新的文档或 API 版本时，请验证自己的集成。

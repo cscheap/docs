@@ -1,0 +1,251 @@
+---
+docId: "api.reference.platform.get-status"
+title: "Get service status"
+description: "GET /status — Get service status"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`GET /status`
+
+## Behavior
+
+Returns the service health and data-collection activity shown on the public status page: hourly health scores for the last 24 completed hours, per-component availability, price collection counts, and the geographic footprint of the collection network.
+
+- Unlike `GET /health`, this reads recorded monitoring data; it is a history view, not a live probe of each dependency.
+- Timestamps are UTC. Components or buckets with no data are empty or absent rather than zero.
+- `503` means the monitoring data could not be read; partial results are never returned.
+
+
+## Usage
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 60,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_StatusOut_"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "The service is temporarily unavailable; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Credits this request costs."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Credit accounting for a billable request."
+  },
+  "Envelope_StatusOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/StatusOut",
+        "description": "The endpoint payload."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[StatusOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Stable machine-readable error code. Branch on this value, not on `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Human-readable explanation. The wording may change."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Optional structured context, such as the list of validation errors or, for `credit_insufficient`, the required and remaining credits."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Details of a failed request."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "What went wrong."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Error response: the error in `error` plus request metadata in `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Request metadata included in every enveloped response."
+  },
+  "StatusOut": {
+    "properties": {
+      "summary": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Summary",
+        "description": "Hourly health scores for the last 24 completed UTC hours, keyed by area (`service`, `infrastructure`, `datasource`) and then by hour start (for example `2026-06-27T11:00:00Z`). Scores are strings from `0.00` to `100.00`."
+      },
+      "service": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Service",
+        "description": "Availability of each public service component (`web`, `api`, `api_cn`, `monitor`) in 15-minute buckets over the last 24 hours, keyed by bucket timestamp. Missing buckets have no data."
+      },
+      "datasource": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Datasource",
+        "description": "Price data collection activity: `realtime` counts prices collected per market over the last few minutes, `result` per marketplace over the last 24 hours. Counts are keyed by Unix timestamp in seconds."
+      },
+      "infrastructure": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Infrastructure",
+        "description": "Health checks of each backing component in 5-minute buckets over the last 24 hours, keyed by bucket timestamp. A missing bucket means the check failed or did not run."
+      },
+      "distribution": {
+        "additionalProperties": true,
+        "type": "object",
+        "title": "Distribution",
+        "description": "Current geographic footprint, keyed by `\"<latitude>,<longitude>\"`, with `node_count` (proxy nodes) and `datacenter_count` at each location."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "summary",
+      "service",
+      "datasource",
+      "infrastructure",
+      "distribution"
+    ],
+    "title": "StatusOut",
+    "description": "Service health and data-feed activity over roughly the last 24 hours."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

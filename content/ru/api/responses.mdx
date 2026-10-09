@@ -1,0 +1,32 @@
+---
+docId: "api.responses"
+title: "Форматы ответов"
+description: "Примеры показывают обёртку, а не данные конкретного метода:"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.responses"
+sourceDigest: "sha256:8f10abba003b5b121311bd3df45e1ce33930f85b98207c057a285e5d9ee1c0c8"
+---
+
+## JSON-обёртка
+
+Примеры показывают обёртку, а не данные конкретного метода:
+
+```json
+{"data": {}, "meta": {"request_id": "req_example"}}
+```
+
+```json
+{"error": {"code": "validation_error", "message": "Invalid request."}, "meta": {"request_id": "req_example"}}
+```
+
+В программной логике используйте `error.code`: текст сообщения может меняться. Серверный `X-Request-ID` совпадает с `meta.request_id`; сохраняйте его для диагностики.
+
+Деньги и курсы — десятичные строки, кредиты — целые числа. Значение null зависит от поля и не всегда означает ноль.
+
+## Оплата и исключения
+
+`meta.billable` сообщает о применении кредитной оплаты. Оплаченный ответ может содержать `meta.credit.cost` и `remaining`; при параллельных запросах остаток приблизителен. Итоги аккаунта в `GET /me` находятся в `data.credit`.
+
+Тело выгрузки — сам документ; оплата указана в `X-Billable`, `X-Credit-Cost`, `X-Credit-Remaining`. Ответ `304` не содержит тела. Для проверки здоровья и других исключений смотрите схему операции.

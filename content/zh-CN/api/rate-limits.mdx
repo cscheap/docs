@@ -1,0 +1,20 @@
+---
+docId: "api.rate-limits"
+title: "速率限制"
+description: "当前记录的 API 版本采用 60 秒固定窗口：单品价格 120 次、批量 20 次、导出 2 次。"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.rate-limits"
+sourceDigest: "sha256:e67f2ee6f3dc0f0c4ca1ccd78877aa772a80e6feecf32856fb64deb8a696707b"
+---
+
+## 按用户与操作限速
+
+当前记录的 API 版本采用 60 秒固定窗口：单品价格 120 次、批量 20 次、导出 2 次。同一用户的多个客户端共享限额，订阅期间仍适用。确定轮询行为前，读取 `GET /endpoints` 的当前声明。
+
+## 达到上限后
+
+`429 rate_limited` 返回 `Retry-After`、`RateLimit-Limit`、`RateLimit-Remaining`、`RateLimit-Reset`。重置与重试值是需要等待的秒数，不是 Unix 时间戳。应同时降低该账号下各任务的频率，立即重试只会增加请求尝试。
+
+批量大小影响点数，独立于请求次数。订阅免除适用的点数费用，不免除限速。见[请求费用](/docs/billing/request-costs)与[轮询](/docs/guides/polling-and-retries)。

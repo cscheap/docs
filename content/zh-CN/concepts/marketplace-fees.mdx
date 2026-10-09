@@ -1,0 +1,22 @@
+---
+docId: "concepts.marketplace-fees"
+title: "市场手续费"
+description: "通过获取费率读取市场已发布的费率表。"
+kind: "explanation"
+status: "ready"
+sources: ["api", "refinery"]
+translationOf: "concepts.marketplace-fees"
+sourceDigest: "sha256:8dacc73d89d1656898e90b02e41aed48df1909d6e8da42136b24ce82cdac10ef"
+---
+
+## 读取官方费率表
+
+通过[获取费率](/docs/api/reference/markets/get-fees)读取市场已发布的费率表。充值、出售和提现槽位描述资金流的不同步骤。槽位绑定链 `0` 明确表示无费率；null 表示未填写或不支持，不能当作零费用。
+
+计算链可以包含比例费用、固定加减项与币种转换。步骤顺序和币种都很重要，不能简单相加百分比来替代整条链。
+
+## 正确使用范围
+
+这些定义用于数据处理与估算。市场实际结算、账号等级或支付方式可能影响交易。请读取当前费率表，不要把本指南中的费用说明硬编码为固定值。
+
+公开目录无需凭证即可读取。管理费率编辑与私有计算链操作不属于本套对外文档。详见[成本计算](/docs/concepts/cost-calculation)。

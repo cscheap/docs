@@ -1,0 +1,20 @@
+---
+docId: "dashboard.api-keys"
+title: "Manage your API key"
+description: "Open Settings after verifying a real email."
+kind: "how-to"
+status: "ready"
+sources: ["frontend", "api"]
+---
+
+## View and copy
+
+Open Settings after verifying a real email. An eligible account receives its first key automatically if it has no active key. The API key section lets you reveal and copy the current full key again; it is not a one-time display.
+
+There is one active key per account. Treat it as a credential: deploy it to your own backend and avoid public client code or shared screenshots.
+
+## Regenerate
+
+Use the regenerate action to replace the active key. The old key is revoked and a new one is issued, with a five-minute generation cooldown. Update every client using the old key. Changes reach the API asynchronously, so do not assume instantaneous activation or revocation.
+
+Regeneration does not reset account credits, usage or rate limits. If a key is exposed, regenerate it and remove the exposed copy from logs and configuration. See [API authentication](/docs/api/authentication).

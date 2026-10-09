@@ -1,0 +1,74 @@
+name: Documentation
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      mode:
+        type: choice
+        options: [publish, rollback]
+        default: publish
+        description: Publish current master or restore a previously activated release
+      environment:
+        type: choice
+        options: [production, staging]
+        default: staging
+        description: Target bucket environment
+      release:
+        type: string
+        description: Full 64-character release ID, required for rollback
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22.22.3
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: documentation-preview
+          path: dist/
+          retention-days: 7
+  activate:
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && vars.CSCHEAP_DOCS_PUBLISH_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: ${{ inputs.environment || 'production' }}
+    # All publish and rollback paths share this single writer lock. It is not FIFO.
+    concurrency:
+      group: cscheap-docs-activation
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      CSCHEAP_DOCS_ENVIRONMENT: ${{ inputs.environment == 'staging' && 'staging' || 'prod' }}
+      CSCHEAP_DOCS_INFISICAL_IDENTITY_ID: ${{ vars.CSCHEAP_DOCS_INFISICAL_IDENTITY_ID }}
+      DOCS_PUBLISH_MODE: ${{ inputs.mode || 'publish' }}
+      DOCS_ROLLBACK_RELEASE: ${{ inputs.release }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          # Read-only job token is used for fresh master checks by git fetch.
+          persist-credentials: true
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22.22.3
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - if: env.DOCS_PUBLISH_MODE == 'publish'
+        run: npm run docs:build
+      - run: node scripts/with-secrets.mjs publish

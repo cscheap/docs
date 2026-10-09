@@ -1,0 +1,26 @@
+---
+docId: "concepts.glossary"
+title: "Glossary"
+description: "See price semantics and billing for the corresponding behavior."
+kind: "reference"
+status: "ready"
+sources: ["spider", "refinery", "api", "frontend"]
+---
+
+## Terms
+
+| Term | Meaning |
+| --- | --- |
+| Item | A game and canonical market hash name, not a specific listing. |
+| Market | The trading venue a quote describes. |
+| Provider | The source from which that quote was collected. |
+| Ask / bid | Sell listing / buy order. |
+| Mid / CSCP | A calculated daily valuation, not a tradable offer. |
+| Freshness | The age of confirmation represented by `fresh_at`. |
+| Delisted | No longer listed; the last price can remain visible. |
+| Credit | An integer API usage unit, separate from wallet money. |
+| Wallet | USD balance used for purchases on cs.cheap. |
+| Subscription | A prepaid time window that makes non-premium API calls credit-free while active. |
+| Snapshot | A generated export or account view that can lag its source. |
+
+See [price semantics](/docs/concepts/prices) and [billing](/docs/billing/credits) for the corresponding behavior.

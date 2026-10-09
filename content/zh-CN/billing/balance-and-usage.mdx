@@ -1,0 +1,22 @@
+---
+docId: "billing.balance-and-usage"
+title: "余额与用量"
+description: "用有效密钥调用 GET /me。"
+kind: "how-to"
+status: "ready"
+sources: ["api", "frontend"]
+translationOf: "billing.balance-and-usage"
+sourceDigest: "sha256:d2fd2ddd9b6bfdd64562f2da393115a32ff9254c0415fe3099af1e1e50e43810"
+---
+
+## 读取 API 账号视图
+
+用有效密钥调用 [GET /me](/docs/api/reference/account/get-account)。`data.credit.total` 是已发放点数，`used` 是已消耗点数，`remaining=max(0, total-used)`。`data.subscription` 描述当前有效时段，无有效订阅时为 null。
+
+这是 API 当前的账号快照。新购买点数、密钥和资料变更异步同步。控制台钱包余额、点数发放与 API 用量属于不同记录，不一定同一时刻更新。
+
+## 排查差异
+
+确认比较的是同一账号，检查订单是否履约及订阅生效日期，等待同步后刷新。不要把钱包美元余额与点数相加。并发请求下，单次响应的余额提示可能与稍后的账号读取不同。
+
+当前不提供逐请求 API 历史访问日志。问题持续时保留请求 ID、UTC 时间与订单编号，见[计费排查](/docs/support/billing)。

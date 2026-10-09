@@ -1,0 +1,27 @@
+---
+docId: "billing.request-costs"
+title: "请求费用"
+description: "批量长度包含重复与未知名称。"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "billing.request-costs"
+sourceDigest: "sha256:895c5395fb984f4d2b051b7b1fdfc5fb0f2761abac0b65572d2e612cde2fa2f3"
+---
+
+## 当前记录的价目规则
+
+| 操作 | 无有效订阅时的点数 |
+| --- | --- |
+| `GET /prices` | 每次成功请求 1 点 |
+| `POST /prices/batch` | 每开始一组 100 个提交名称 1 点 |
+| `GET /prices/export` | 每次 `200` 响应 10 点 |
+| `GET /me` 与公开目录、状态读取 | 0 |
+
+批量长度包含重复与未知名称。成功的空结果仍算成功请求。失败请求不扣点数。条件导出的 `304` 不扣费，但计入限速。
+
+## 核对当前声明
+
+上述值描述已记录的 API 版本。`GET /endpoints` 返回运行服务的 `credit_cost`、`premium`、`unit_pricing` 与 `rate_limit`。有效订阅免除非 premium 点数费用，当前价格操作均为非 premium。
+
+并发时 `meta.credit.remaining` 只是提示，不是交易账本。如果需要更严格的客户端开销控制，应限制请求并发。

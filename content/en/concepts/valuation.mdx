@@ -1,0 +1,20 @@
+---
+docId: "concepts.valuation"
+title: "CSCP valuation"
+description: "A valuation row has market_code=CSCP, provider_code=CSCP, side=mid and currency CNY."
+kind: "explanation"
+status: "ready"
+sources: ["spider", "refinery", "api"]
+---
+
+## Recognize an estimate
+
+A valuation row has `market_code=CSCP`, `provider_code=CSCP`, `side=mid` and currency `CNY`. Quantity is null. The nested `valuation` object is populated; it is null on ordinary quotes.
+
+The daily estimate combines marketplace evidence from the preceding seven days' daily closing quotes. Ask consensus uses cash purchase costs including fees; bid consensus uses cash proceeds after fees and excludes crossed buy orders. With both sides, the value is their geometric midpoint. With only asks, a typical half-spread of comparable items adjusts the sell-side consensus.
+
+## Read confidence
+
+`is_two_sided` distinguishes these cases. `ask_quote_count` and `bid_quote_count` describe contributing sources. `uncertainty` expresses logarithmic uncertainty; `credibility` equals `exp(-uncertainty)`. Use your own acceptance threshold and check `valuation_date`.
+
+The value is not an executable offer or a guaranteed sale price. Missing valuation means no estimate is available; it does not mean the item is worthless.

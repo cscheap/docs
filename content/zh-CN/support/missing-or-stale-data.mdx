@@ -1,0 +1,22 @@
+---
+docId: "support.missing-or-stale-data"
+title: "数据缺失或陈旧"
+description: "核对 app_id、准确名称、磨损与其他限定，暂时移除 markets、side。"
+kind: "how-to"
+status: "ready"
+sources: ["spider", "refinery", "api"]
+translationOf: "support.missing-or-stale-data"
+sourceDigest: "sha256:89b12d23d85242c169b031fabf231f3a745d5e7f3f6480c431d45df5a66a9e30"
+---
+
+## 检查请求
+
+核对 `app_id`、准确名称、磨损与其他限定，暂时移除 `markets`、`side`。单品查询只有完全没有价格行时才返回 `404`；筛选后为空或批量未知名称可能返回成功的空数组。
+
+## 检查报价
+
+同时检查 `fresh_at`、`delisted_at`、数量与币种。金额不变也可能刚得到确认，保留的下架价格不是可购买报价。数量为 null 表示未知，不证明没有库存。
+
+市场覆盖、上游故障和名称判别都会影响可用性。并非所有饰品都有 CSCP 估值，所以 `side=mid` 可能为空。导出是快照，可能滞后于直接查询。
+
+查看[服务状态](/docs/support/service-status)。报告差异时提供游戏、标准名称、市场、方向、时间戳与脱敏响应。市场存在于目录中，不代表每个饰品都应有价格。

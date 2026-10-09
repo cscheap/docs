@@ -1,0 +1,427 @@
+---
+docId: "api.reference.account.get-account"
+title: "Получить данные аккаунта"
+description: "GET /me — Получить данные аккаунта"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.account.get-account"
+sourceDigest: "sha256:433708eef2dfa3e6ce6c82b9fb1edf0552f31fc6aa095da35a1a868087fa3e32"
+---
+
+## Операция
+
+`GET /me`
+
+## Поведение
+
+Возвращает то, что API сейчас знает о вашем аккаунте: поля профиля, включая `base_currency` (валюта, в которую переводятся ваши расчёты; `null` означает USD), подписку, действующую в момент запроса (`null`, если её нет), и счётчики ваших кредитов.
+
+- `credit.total` — все кредиты, начисленные аккаунту, `credit.used` — израсходованные, а `credit.remaining` — разница, никогда не меньше `0`.
+- Именно по этим значениям выполняется тарификация. Изменения, сделанные в личном кабинете, появляются здесь примерно в течение минуты.
+
+`404` означает, что ваш аккаунт ещё не попал в API; повторите запрос чуть позже.
+
+
+## Использование
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 60,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Запрос
+
+```json
+{}
+```
+
+## Ответы
+
+```json
+{
+  "200": {
+    "description": "Успешный ответ",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_SyncUserView_"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "Аутентификационные данные отсутствуют или недействительны",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "Учётные данные действительны, но не дают права вызывать эту операцию",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "404": {
+    "description": "Запрошенный ресурс не существует",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "Сервис временно недоступен; повторите позже",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Модели
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Сколько кредитов стоит этот запрос."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Расчётный остаток кредитов после этого запроса. Это ориентир, а не данные учёта: из-за параллельных запросов значение может немного отличаться."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Учёт кредитов для платного запроса."
+  },
+  "Envelope_SyncUserView_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/SyncUserView",
+        "description": "Полезные данные эндпоинта."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[SyncUserView]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Стабильный машиночитаемый код ошибки. Ориентируйтесь на это значение, а не на `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Пояснение для человека. Формулировка может меняться."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Необязательный структурированный контекст, например список ошибок валидации или, для `credit_insufficient`, требуемое и оставшееся количество кредитов."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Подробности неудачного запроса."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "Что пошло не так."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Ответ с ошибкой: ошибка в `error` и метаданные запроса в `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Уникальный идентификатор этого запроса, совпадает с заголовком ответа `X-Request-ID`. Указывайте его при обращении в поддержку."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Оплачивается ли запрос кредитами. Присутствует только у тарифицируемых эндпоинтов; `false` означает, что запрос бесплатен — например, потому что он ничего не стоит или его покрывает ваша подписка."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "SyncCredit": {
+    "properties": {
+      "total": {
+        "type": "integer",
+        "title": "Total",
+        "description": "Кредиты, начисленные аккаунту на текущий момент."
+      },
+      "used": {
+        "type": "integer",
+        "title": "Used",
+        "description": "Кредиты, израсходованные на текущий момент."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Оставшиеся кредиты: `total` минус `used`, никогда не меньше `0`."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "total",
+      "used",
+      "remaining"
+    ],
+    "title": "SyncCredit",
+    "description": "Счётчики кредитов аккаунта: начислено, израсходовано и осталось."
+  },
+  "SyncSubscription": {
+    "properties": {
+      "category": {
+        "type": "string",
+        "title": "Category",
+        "description": "Категория подписки."
+      },
+      "plan_id": {
+        "type": "string",
+        "title": "Plan Id",
+        "description": "Оформленный тариф."
+      },
+      "expires_at": {
+        "type": "string",
+        "title": "Expires At",
+        "description": "Когда заканчивается подписка (RFC 3339, UTC)."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "category",
+      "plan_id",
+      "expires_at"
+    ],
+    "title": "SyncSubscription",
+    "description": "Подписка, активная на момент запроса.\n\nЕсли активны несколько пересекающихся подписок, возвращается та, что истекает последней."
+  },
+  "SyncUser": {
+    "properties": {
+      "id": {
+        "type": "string",
+        "title": "Id",
+        "description": "Идентификатор аккаунта."
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "Отображаемое имя."
+      },
+      "email": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Email",
+        "description": "Адрес электронной почты."
+      },
+      "email_verified": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Email Verified",
+        "description": "Подтверждён ли адрес электронной почты; `null`, если неизвестно."
+      },
+      "image": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Image",
+        "description": "URL изображения аватара."
+      },
+      "steam_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Steam Id",
+        "description": "Привязанный аккаунт Steam (SteamID64)."
+      },
+      "created_at": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Created At",
+        "description": "Когда создан аккаунт (RFC 3339, UTC)."
+      },
+      "base_currency": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Base Currency",
+        "description": "Валюта, в которую переводятся расчёты аккаунта (код ISO 4217); `null` означает USD."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "id"
+    ],
+    "title": "SyncUser",
+    "description": "Поля профиля аккаунта cs.cheap в том виде, в каком их сейчас знает API.\n\nОтсутствующее значение равно `null`; `null` в `base_currency` означает, что пользователь\nне выбирал базовую валюту и применяется USD."
+  },
+  "SyncUserView": {
+    "properties": {
+      "user": {
+        "$ref": "#/components/schemas/SyncUser",
+        "description": "Профиль аккаунта."
+      },
+      "subscription": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SyncSubscription"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Подписка, действующая сейчас; `null`, если её нет."
+      },
+      "credit": {
+        "$ref": "#/components/schemas/SyncCredit",
+        "description": "Счётчики кредитов аккаунта."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "user",
+      "subscription",
+      "credit"
+    ],
+    "title": "SyncUserView",
+    "description": "Профиль одного аккаунта, активная подписка и баланс кредитов."
+  }
+}
+```
+
+[Скачать публичную схему OpenAPI](/assets/openapi-ru.json)

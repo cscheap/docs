@@ -1,0 +1,24 @@
+---
+docId: "concepts.markets-and-sources"
+title: "市场与来源"
+description: "market_code 标识被报价的市场，provider_code 标识采集来源。"
+kind: "explanation"
+status: "ready"
+sources: ["spider", "api", "frontend"]
+translationOf: "concepts.markets-and-sources"
+sourceDigest: "sha256:81c025eba591897eeb2a11c48c33c40b1faa309ef1fb71050081dafd091dc78e"
+---
+
+## 两个不同的代码
+
+`market_code` 标识被报价的市场，`provider_code` 标识采集来源。两者相同表示市场自身的数据，不同则表示其他提供方报告该市场价格。一个市场可以有多个来源。
+
+API 每个市场、每个买卖方向最多返回一行。在售报价优先于下架报价，其次市场自身来源优先于聚合来源，然后比较新鲜度。因此最终选择的不一定是所有来源中时间最新的一条。
+
+## 查看覆盖范围
+
+通过[市场列表](/docs/api/reference/markets/list-markets)读取当前目录，通过[服务状态](/docs/support/service-status)查看采集健康度。目录中存在某市场，不代表每个饰品、游戏或方向都有报价。`CSCP` 是合成估值代码，不是交易市场。
+
+## 网站目录
+
+网站的[目录页](https://cs.cheap/zh-CN/directory)按类别展示市场与工具链接。它用于浏览，与 API 数据来源目录不同；其中的外部工具不一定是价格来源。通过卡片访问对应服务，其账号与交易规则由该服务管理。

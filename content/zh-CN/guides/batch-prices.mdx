@@ -1,0 +1,27 @@
+---
+docId: "guides.batch-prices"
+title: "批量查询价格"
+description: "market_hash_names 接受 1–1000 个名称。"
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+translationOf: "guides.batch-prices"
+sourceDigest: "sha256:3f8ad2bad55ec404491b8a4afd7ba8a267b9a4e8bff3f7eade305651b18510ac"
+---
+
+## 发送批量请求
+
+`market_hash_names` 接受 1–1000 个名称。一次请求使用同一个 `app_id` 与方向筛选。与单品查询的 CSV 参数不同，批量请求的 `markets` 是市场代码 JSON 数组。
+
+```bash
+curl 'https://api.cs.cheap/prices/batch' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{"app_id":"730","market_hash_names":["AK-47 | Redline (Field-Tested)"],"side":"all"}'
+```
+
+## 对应输入与输出
+
+`data.items` 保留请求顺序。未知名称返回 `markets` 为空的条目，不会导致整批失败。重复名称仍在输出中重复，并计入费用。
+
+没有有效订阅时，每开始一组 100 个名称消耗 1 点：100 个为 1 点，101 个为 2 点。如果无需重复条目，应在发送前去重。更大的集合分批提交，并遵守[速率限制](/docs/api/rate-limits)。

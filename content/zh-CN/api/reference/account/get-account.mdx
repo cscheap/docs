@@ -1,0 +1,427 @@
+---
+docId: "api.reference.account.get-account"
+title: "获取你的账户"
+description: "GET /me — 获取你的账户"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.account.get-account"
+sourceDigest: "sha256:433708eef2dfa3e6ce6c82b9fb1edf0552f31fc6aa095da35a1a868087fa3e32"
+---
+
+## 操作
+
+`GET /me`
+
+## 行为
+
+返回 API 当前掌握的你本人账户信息：资料字段（包括 `base_currency`，即你的计算换算到的货币；`null` 表示 USD）、请求时刻有效的订阅（没有则为 `null`），以及你的点数计数。
+
+- `credit.total` 是账户获得的全部点数，`credit.used` 是已消耗的点数，`credit.remaining` 是两者之差，最低为 `0`。
+- 这些就是计费所依据的数字。控制台中的修改通常在一分钟左右同步到这里。
+
+`404` 表示你的账户尚未同步到 API，请稍后重试。
+
+
+## 用量
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 60,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_SyncUserView_"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "缺少认证信息或认证无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "凭证有效，但无权调用此操作",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "404": {
+    "description": "请求的资源不存在",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "服务暂时不可用；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "本次请求花费的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "计费请求的点数结算信息。"
+  },
+  "Envelope_SyncUserView_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/SyncUserView",
+        "description": "端点返回的数据。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[SyncUserView]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "稳定的机器可读错误代码。请根据此值进行分支处理，而不是 `message`。"
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "面向人类阅读的说明。措辞可能变化。"
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "可选的结构化上下文，例如校验错误列表；对于 `credit_insufficient`，则为所需点数和剩余点数。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "失败请求的详细信息。"
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "出了什么问题。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "错误响应：`error` 中为错误信息，`meta` 中为请求元数据。"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "SyncCredit": {
+    "properties": {
+      "total": {
+        "type": "integer",
+        "title": "Total",
+        "description": "账户迄今获得的全部点数。"
+      },
+      "used": {
+        "type": "integer",
+        "title": "Used",
+        "description": "迄今已消耗的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "剩余点数：`total` 减去 `used`，最低为 `0`。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "total",
+      "used",
+      "remaining"
+    ],
+    "title": "SyncCredit",
+    "description": "账户的点数计数器：已授予、已消耗和剩余。"
+  },
+  "SyncSubscription": {
+    "properties": {
+      "category": {
+        "type": "string",
+        "title": "Category",
+        "description": "订阅类别。"
+      },
+      "plan_id": {
+        "type": "string",
+        "title": "Plan Id",
+        "description": "所订阅的套餐。"
+      },
+      "expires_at": {
+        "type": "string",
+        "title": "Expires At",
+        "description": "订阅结束时间（RFC 3339，UTC）。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "category",
+      "plan_id",
+      "expires_at"
+    ],
+    "title": "SyncSubscription",
+    "description": "请求时刻有效的订阅。\n\n如果有多个订阅重叠，返回最晚到期的那个。"
+  },
+  "SyncUser": {
+    "properties": {
+      "id": {
+        "type": "string",
+        "title": "Id",
+        "description": "账户 ID。"
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "显示名称。"
+      },
+      "email": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Email",
+        "description": "电子邮箱地址。"
+      },
+      "email_verified": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Email Verified",
+        "description": "电子邮箱是否已验证；未知时为 `null`。"
+      },
+      "image": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Image",
+        "description": "头像图片 URL。"
+      },
+      "steam_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Steam Id",
+        "description": "绑定的 Steam 账户 ID（SteamID64）。"
+      },
+      "created_at": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Created At",
+        "description": "账户创建时间（RFC 3339，UTC）。"
+      },
+      "base_currency": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Base Currency",
+        "description": "账户计算所换算到的货币（ISO 4217 代码）；`null` 表示 USD。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "id"
+    ],
+    "title": "SyncUser",
+    "description": "API 当前掌握的某个 cs.cheap 账户的资料字段。\n\n缺失的值为 `null`；`base_currency` 为 `null` 表示用户从未选择过基准货币，此时使用 USD。"
+  },
+  "SyncUserView": {
+    "properties": {
+      "user": {
+        "$ref": "#/components/schemas/SyncUser",
+        "description": "账户资料。"
+      },
+      "subscription": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SyncSubscription"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "当前有效的订阅；没有则为 `null`。"
+      },
+      "credit": {
+        "$ref": "#/components/schemas/SyncCredit",
+        "description": "账户的点数计数。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "user",
+      "subscription",
+      "credit"
+    ],
+    "title": "SyncUserView",
+    "description": "单个账户的资料、有效订阅和点数余额。"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

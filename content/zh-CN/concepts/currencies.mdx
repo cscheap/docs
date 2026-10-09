@@ -1,0 +1,22 @@
+---
+docId: "concepts.currencies"
+title: "币种与精度"
+description: "普通价格响应保留 market_currency_code。"
+kind: "explanation"
+status: "ready"
+sources: ["refinery", "api"]
+translationOf: "concepts.currencies"
+sourceDigest: "sha256:198b32dee95ff2c95debbbc2710b2b32c89f976c92be906201d9ede6cd413066"
+---
+
+## 金额必须连同币种使用
+
+普通价格响应保留 `market_currency_code`。修改控制台偏好不会转换这些 API 报价。通过[币种列表](/docs/api/reference/currencies/list-currencies)查看官方币种目录及汇率字段。
+
+金额与汇率是十进制字符串。计算应使用十进制库，并明确舍入边界，不要将金额转为二进制浮点数后假定结果精确。
+
+## 不同的币种上下文
+
+CSCP 估值使用 CNY。费用处理在内部计算 CNY 购买、出售与提现到手金额，平台配置则描述自己的本位币。这些上下文不同，公开价格 schema 不包含所有内部费用金额。
+
+自行转换报价时，保留原金额与币种，记录所用汇率，并标明结果由你转换。汇率与市场手续费可能分别变化。

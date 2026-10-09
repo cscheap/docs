@@ -1,0 +1,20 @@
+---
+docId: "get-started.read-price-data"
+title: "Read price data"
+description: "Use market_code to identify the marketplace and provider_code to identify the source."
+kind: "tutorial"
+status: "ready"
+sources: ["api", "spider", "refinery"]
+---
+
+## Read a quote in context
+
+Use `market_code` to identify the marketplace and `provider_code` to identify the source. `side=ask` means sell listings, `bid` means buy orders, and `mid` means the CSCP estimate.
+
+Treat `market_price_amount` as a decimal string in `market_currency_code`. Do not compare raw numbers across currencies. `null` means no reported amount; it is not zero. A delisted quote can retain its last price, so also check `delisted_at` and `quantity`.
+
+## Decide whether to use it
+
+Check `fresh_at` against your own maximum age. `changed_at` is the last change, not the last successful observation. Quantity may be unknown or a lower bound. Unless `is_all_items_same_price` is true, do not assume every unit is available at the quoted price.
+
+For `CSCP`, inspect `valuation.valuation_date` and confidence fields. See [prices](/docs/concepts/prices), [freshness](/docs/concepts/freshness) and [valuation](/docs/concepts/valuation).

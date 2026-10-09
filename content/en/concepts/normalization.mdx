@@ -1,0 +1,20 @@
+---
+docId: "concepts.normalization"
+title: "Name normalization"
+description: "Collection preserves source naming."
+kind: "explanation"
+status: "ready"
+sources: ["spider", "refinery"]
+---
+
+## From source names to canonical names
+
+Collection preserves source naming. Normalization trims surrounding whitespace and resolves known aliases within the game's name catalogue. Alias resolution is one step, not a chain; names are not generally lowercased or fuzzily matched.
+
+An accepted canonical name can receive prices. Excluded names are discarded; unknown names wait for classification. Rules and manual review can expand coverage, so a newly encountered marketplace name may not immediately appear in API results.
+
+## Aggregated observations
+
+Several source names can map to one canonical item. When observations are merged within the same market, provider, app, currency and side, prices use the lowest available amount and known quantities are combined. Flags preserve uncertainty about quantities and equal prices.
+
+Clients should query the canonical exact name. Do not remove wear or other qualifiers to force a match. See [items](/docs/concepts/items).

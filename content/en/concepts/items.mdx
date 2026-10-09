@@ -1,0 +1,18 @@
+---
+docId: "concepts.items"
+title: "Items and names"
+description: "Use the pair app_id and market_hash_name."
+kind: "explanation"
+status: "ready"
+sources: ["spider", "refinery", "api"]
+---
+
+## Identify an item
+
+Use the pair `app_id` and `market_hash_name`. The default app is `730` (Counter-Strike 2). Names are exact and case-sensitive; wear, StatTrak and Souvenir qualifiers can identify different items. URL-encode names in query strings instead of concatenating them manually.
+
+A price query describes a named item across marketplaces. It does not identify a particular listing, float value, sticker placement or seller. Marketplace listing identifiers are not parameters of the public price routes.
+
+## Name availability
+
+Collection and normalization are separate stages. Known aliases can map a marketplace spelling to a canonical name; unknown or excluded names do not become public price rows automatically. A valid Steam name does not guarantee current coverage. See [normalization](/docs/concepts/normalization) and [missing data](/docs/support/missing-or-stale-data).

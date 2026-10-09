@@ -1,0 +1,29 @@
+---
+docId: "guides.export-prices"
+title: "Выгрузка цен"
+description: "GET /prices/export возвращает заранее сформированный JSON, сжатый gzip."
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+translationOf: "guides.export-prices"
+sourceDigest: "sha256:90f9c8282555f4da3df2fa81d9f443cf69a77e04497303fc3ca6ec6aa516a747"
+---
+
+## Загрузка снимка
+
+`GET /prices/export` возвращает заранее сформированный JSON, сжатый gzip. Обёртки `data` нет; сведения об оплате находятся в заголовках. Сторона по умолчанию — `ask`; для остальных сторон и доступных оценок задайте `all`.
+
+```bash
+curl --compressed --get 'https://api.cs.cheap/prices/export' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'app_id=730' --data-urlencode 'side=all' \
+  --dump-header export.headers --output prices.json
+```
+
+`--compressed` распаковывает ответ. Проверьте HTTP-статус перед использованием файла. Проверяйте `generated_at` и `X-Export-Generated-At`: снимок обычно создаётся каждые пять минут, а не при скачивании.
+
+## Не загружайте неизменённые данные
+
+Сохраните `ETag` и передайте его точное значение в `If-None-Match`. Совпадение даёт `304` без тела и списания кредитов; ограничение частоты действует. При `304` сохраняйте предыдущий файл, не заменяя его пустым выводом.
+
+Каждый `200` оплачивается по обычным правилам выгрузки, даже если файл не изменился. `Range` игнорируется. Неизвестная игра даёт `404`, недоступный снимок — `503`.

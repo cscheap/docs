@@ -1,0 +1,32 @@
+---
+docId: "get-started.first-request"
+title: "首次请求"
+description: "API 基础地址为 https://api.cs.cheap，当前路由没有 /v1 前缀。"
+kind: "tutorial"
+status: "ready"
+sources: ["api", "frontend"]
+translationOf: "get-started.first-request"
+sourceDigest: "sha256:94d784239ea691788c92e37c255d0fb3fc56e88f9621da6ce0baf49882ad4b03"
+---
+
+## 准备账号
+
+1. 登录，在设置中绑定并验证真实邮箱。
+2. 打开 API 密钥区域，复制当前密钥。符合条件的账号首次打开设置时会自动获得密钥。
+3. 在账单页检查点数或有效订阅。没有有效订阅时，这次价格请求通常消耗 1 点。
+
+## 请求价格
+
+```bash
+export CSCHEAP_API_KEY='replace-with-your-key'
+curl --get 'https://api.cs.cheap/prices' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'app_id=730' \
+  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)'
+```
+
+API 基础地址为 `https://api.cs.cheap`，当前路由没有 `/v1` 前缀。请在自己的服务器或本地终端运行示例，部署应用时通过密钥管理服务提供凭证。
+
+## 检查结果
+
+成功 JSON 响应包含 `data` 与 `meta.request_id`，报价位于 `data.markets`。遇到 `401` 检查密钥，`402` 检查点数，`429` 按 `Retry-After` 等待。详见[错误处理](/docs/api/errors)。

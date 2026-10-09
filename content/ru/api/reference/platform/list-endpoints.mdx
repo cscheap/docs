@@ -1,0 +1,283 @@
+---
+docId: "api.reference.platform.list-endpoints"
+title: "Получить метаданные эндпоинтов"
+description: "GET /endpoints — Получить метаданные эндпоинтов"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.platform.list-endpoints"
+sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47c4422c"
+---
+
+## Операция
+
+`GET /endpoints`
+
+## Поведение
+
+Возвращает машиночитаемые метаданные для каждой документированной операции этого API, чтобы клиент мог планировать использование, не разбирая документ OpenAPI.
+
+- Одна запись на каждую пару метода и пути, отсортированы по пути, затем по методу.
+- Каждая запись содержит стоимость в кредитах (`credit_cost`, а также `unit_pricing` для операций, которые тарифицируются по количеству предметов), признак `premium`, рекомендуемый интервал опроса (`recommended_interval_seconds`), `rate_limit` и кто может её вызывать (`roles`: `user`, `admin`, `machine`; пустой список означает, что аутентификация не нужна).
+- Те же данные есть в документе OpenAPI в расширении `x-cscheap` каждой операции.
+
+
+## Использование
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 3600,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Запрос
+
+```json
+{}
+```
+
+## Ответы
+
+```json
+{
+  "200": {
+    "description": "Успешный ответ",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_list_EndpointInfoOut__"
+        }
+      }
+    }
+  }
+}
+```
+
+## Модели
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Сколько кредитов стоит этот запрос."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Расчётный остаток кредитов после этого запроса. Это ориентир, а не данные учёта: из-за параллельных запросов значение может немного отличаться."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Учёт кредитов для платного запроса."
+  },
+  "EndpointInfoOut": {
+    "properties": {
+      "method": {
+        "type": "string",
+        "title": "Method",
+        "description": "HTTP-метод."
+      },
+      "path": {
+        "type": "string",
+        "title": "Path",
+        "description": "Шаблон пути операции."
+      },
+      "premium": {
+        "type": "boolean",
+        "title": "Premium",
+        "description": "Премиум-запрос: расходует кредиты даже при активной подписке."
+      },
+      "credit_cost": {
+        "type": "integer",
+        "title": "Credit Cost",
+        "description": "Сколько кредитов списывается за запрос; при наличии `unit_pricing` — стоимость одного блока. `0` означает бесплатно."
+      },
+      "recommended_interval_seconds": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Recommended Interval Seconds",
+        "description": "Рекомендуемый интервал опроса в секундах; `null`, если запрос выполняется по необходимости."
+      },
+      "rate_limit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/RateLimitSpec"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Лимит запросов на аккаунт, общий для всех его API-ключей; `null`, если лимит не объявлен."
+      },
+      "unit_pricing": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/UnitPricingSpec"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Тарификация по объёму; `null` при фиксированной стоимости за запрос."
+      },
+      "roles": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array",
+        "title": "Roles",
+        "description": "Кто может вызывать: `user` (API-ключ), `admin` (учётные данные администратора) или `machine` (сервисный токен). Лимиты и списание кредитов применяются только к запросам `user`. Пустой список означает публичный доступ."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "method",
+      "path",
+      "premium",
+      "credit_cost",
+      "recommended_interval_seconds",
+      "rate_limit",
+      "unit_pricing",
+      "roles"
+    ],
+    "title": "EndpointInfoOut",
+    "description": "Правила доступа, стоимость и лимиты одной операции API."
+  },
+  "Envelope_list_EndpointInfoOut__": {
+    "properties": {
+      "data": {
+        "items": {
+          "$ref": "#/components/schemas/EndpointInfoOut"
+        },
+        "type": "array",
+        "title": "Data",
+        "description": "Полезные данные эндпоинта."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[list[EndpointInfoOut]]"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Уникальный идентификатор этого запроса, совпадает с заголовком ответа `X-Request-ID`. Указывайте его при обращении в поддержку."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Оплачивается ли запрос кредитами. Присутствует только у тарифицируемых эндпоинтов; `false` означает, что запрос бесплатен — например, потому что он ничего не стоит или его покрывает ваша подписка."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "RateLimitSpec": {
+    "properties": {
+      "max_requests": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Max Requests",
+        "description": "Сколько запросов разрешено за окно на один аккаунт (общий лимит для всех его API-ключей)."
+      },
+      "window_seconds": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Window Seconds",
+        "description": "Длительность окна в секундах."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "max_requests",
+      "window_seconds"
+    ],
+    "title": "RateLimitSpec",
+    "description": "Лимит запросов: не больше `max_requests` запросов за `window_seconds`."
+  },
+  "UnitPricingSpec": {
+    "properties": {
+      "unit_size": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Unit Size",
+        "description": "Количество предметов в одном оплачиваемом блоке."
+      },
+      "units_body_field": {
+        "type": "string",
+        "title": "Units Body Field",
+        "description": "Список в теле запроса, длина которого учитывается."
+      },
+      "max_units": {
+        "type": "integer",
+        "exclusiveMinimum": 0,
+        "title": "Max Units",
+        "description": "Максимальное количество предметов в одном запросе."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "unit_size",
+      "units_body_field",
+      "max_units"
+    ],
+    "title": "UnitPricingSpec",
+    "description": "Тарификация по объёму: запрос стоит `credit_cost` за каждый начатый блок из\n`unit_size` элементов списка `units_body_field` в теле запроса."
+  }
+}
+```
+
+[Скачать публичную схему OpenAPI](/assets/openapi-ru.json)

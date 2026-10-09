@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "project": "frontend",
+  "repository": "https://github.com/senjianlu/cscheap-frontend",
+  "ref": "refs/heads/master",
+  "commit": "01547868bdd0d87d13815e9d60938c27a8beaa50",
+  "capturedOn": "2026-10-09",
+  "verification": "remote-ref-matches-local-head",
+  "documentationReview": "reviewed"
+}

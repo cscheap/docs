@@ -1,0 +1,299 @@
+---
+docId: "api.reference.markets.list-markets"
+title: "列出市场"
+description: "GET /websites — 列出市场"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.markets.list-markets"
+sourceDigest: "sha256:7920ecd38942a2829891bb64bc210b8488c0d9ebf4bde786c04d0ee7c9471f71"
+---
+
+## 操作
+
+`GET /websites`
+
+## 行为
+
+返回本 API 覆盖的市场目录，例如 Steam 社区市场和第三方饰品市场。每条记录的 `code` 是其他接受市场参数的端点所使用的标识符。
+
+- 结果按 `code` 排序。
+- 已不再支持的市场默认隐藏，除非传入 `include_deprecated=true`；此时它们会带 `is_deprecated: true` 出现。
+
+> [!note]
+> 该目录由平台维护，通过 API 只能读取。
+
+
+## 用量
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 300,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{
+  "parameters": [
+    {
+      "name": "include_deprecated",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "type": "boolean",
+        "description": "同时返回已不再支持的市场（`is_deprecated: true`）。",
+        "default": false,
+        "title": "Include Deprecated"
+      },
+      "description": "同时返回已不再支持的市场（`is_deprecated: true`）。"
+    }
+  ]
+}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_list_WebsiteOut__"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "参数或请求体无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "服务暂时不可用；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "本次请求花费的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "计费请求的点数结算信息。"
+  },
+  "Envelope_list_WebsiteOut__": {
+    "properties": {
+      "data": {
+        "items": {
+          "$ref": "#/components/schemas/WebsiteOut"
+        },
+        "type": "array",
+        "title": "Data",
+        "description": "端点返回的数据。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[list[WebsiteOut]]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "稳定的机器可读错误代码。请根据此值进行分支处理，而不是 `message`。"
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "面向人类阅读的说明。措辞可能变化。"
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "可选的结构化上下文，例如校验错误列表；对于 `credit_insufficient`，则为所需点数和剩余点数。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "失败请求的详细信息。"
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "出了什么问题。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "错误响应：`error` 中为错误信息，`meta` 中为请求元数据。"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "WebsiteOut": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "在整个 API 中使用的唯一市场代码，例如 `steam`。"
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "显示名称。"
+      },
+      "url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Url",
+        "description": "市场主页（如已知）。"
+      },
+      "category": {
+        "type": "string",
+        "title": "Category",
+        "description": "市场类别，例如 `market`。"
+      },
+      "subCategory": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Subcategory",
+        "description": "更细的类别（如有）。"
+      },
+      "is_deprecated": {
+        "type": "boolean",
+        "title": "Is Deprecated",
+        "description": "该市场是否已不再支持。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "code",
+      "name",
+      "url",
+      "category",
+      "subCategory",
+      "is_deprecated"
+    ],
+    "title": "WebsiteOut",
+    "description": "平台目录中的一个市场。"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

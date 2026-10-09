@@ -1,0 +1,20 @@
+---
+docId: "support.missing-or-stale-data"
+title: "Missing or stale data"
+description: "Verify app_id, exact name, wear and other qualifiers."
+kind: "how-to"
+status: "ready"
+sources: ["spider", "refinery", "api"]
+---
+
+## Check the request
+
+Verify `app_id`, exact name, wear and other qualifiers. Remove `markets` and `side` filters temporarily. A single lookup returns `404` only if no price rows exist; filtered-empty and batch-unknown results can be successful empty arrays.
+
+## Check the quote
+
+Inspect `fresh_at`, `delisted_at`, quantity and currency together. An unchanged amount can still be recently confirmed. A retained delisted price is not an available offer. `null` quantity is unknown, not proof of no stock.
+
+Marketplace coverage, upstream failures and name classification can all affect availability. Not every item has a CSCP valuation; `side=mid` can therefore be empty. Exports can lag direct queries because they are snapshots.
+
+Check [service status](/docs/support/service-status). To report a discrepancy, include the app, canonical name, market, side, timestamps and a redacted response. A market catalogue entry alone is not evidence that every item must have a price.

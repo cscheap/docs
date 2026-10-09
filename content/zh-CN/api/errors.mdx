@@ -1,0 +1,28 @@
+---
+docId: "api.errors"
+title: "错误处理"
+description: "校验详情可能包含 error.details.errors，条目带有 loc、msg、type。"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.errors"
+sourceDigest: "sha256:28b1e71aae0fe1574dd4f61f7f75a65bf95d0f0decb82a980e2dc67aac1a965c"
+---
+
+## 按状态与错误码处理
+
+| 状态 | 含义与处理 |
+| --- | --- |
+| 401 | 缺失或无效认证，检查当前密钥。 |
+| 402 | `credit_insufficient`，补充点数或检查订阅。 |
+| 403 | `forbidden`，该凭证无权执行操作。 |
+| 404 | `resource_not_found`，检查路径、标识与覆盖。 |
+| 405 | `method_not_allowed`，检查 HTTP 方法与 `Allow` 头。 |
+| 422 | `validation_error`，修正字段约束再重试。 |
+| 429 | `rate_limited`，按 `Retry-After` 等待。 |
+| 500 | `internal_error`，保留请求 ID，持续失败时报告。 |
+| 503 | `dependency_unavailable`，稍后退避重试。 |
+
+校验详情可能包含 `error.details.errors`，条目带有 `loc`、`msg`、`type`。响应不一定回显输入，不要依赖英文错误文字做程序判断。
+
+失败的价格请求不扣点数，但丢失成功响应是另一种情况，见[重试](/docs/guides/polling-and-retries)。

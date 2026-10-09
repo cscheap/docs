@@ -1,0 +1,20 @@
+---
+docId: "concepts.freshness"
+title: "Freshness and timestamps"
+description: "changed_at records the last price or quantity change."
+kind: "explanation"
+status: "ready"
+sources: ["spider", "refinery", "api"]
+---
+
+## Which timestamp to use
+
+`changed_at` records the last price or quantity change. `observed_at` records an individual observation when available. `delisted_at` marks delisting. All API timestamps use RFC 3339 UTC.
+
+`fresh_at` combines the change time, individual observation and completed collection round. It can advance even if the amount stays unchanged. Use it for age checks rather than assuming an old `changed_at` means collection stopped.
+
+## Your freshness policy
+
+Choose a maximum age appropriate to your application; collection intervals vary by source and failures can delay data. The API does not remove every old quote automatically. For CSCP, `fresh_at` is computation time and `valuation_date` is the valuation date; neither makes the underlying daily inputs live prices.
+
+Exports add snapshot age: check `generated_at` as well as each quote's `fresh_at`. See [export prices](/docs/guides/export-prices).

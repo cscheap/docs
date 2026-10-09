@@ -1,0 +1,160 @@
+---
+docId: "api.reference.platform.get-config"
+title: "Получить публичную конфигурацию сервиса"
+description: "GET /config — Получить публичную конфигурацию сервиса"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.platform.get-config"
+sourceDigest: "sha256:cc119451b3e646d810037e815150a8312abe9348608e26f1fee27f4a7239fd0f"
+---
+
+## Операция
+
+`GET /config`
+
+## Поведение
+
+Возвращает публичную, не конфиденциальную конфигурацию сервиса. Сейчас это только `home_currency` — базовая валюта платформы, в которую официальные цепочки расчёта переводят свои результаты.
+
+- Ваша собственная базовая валюта — это настройка аккаунта, здесь она не возвращается.
+- Ответы отправляются с `Cache-Control: no-store`.
+
+
+## Использование
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 3600,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Запрос
+
+```json
+{}
+```
+
+## Ответы
+
+```json
+{
+  "200": {
+    "description": "Успешный ответ",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_ConfigOut_"
+        }
+      }
+    }
+  }
+}
+```
+
+## Модели
+
+```json
+{
+  "ConfigOut": {
+    "properties": {
+      "home_currency": {
+        "type": "string",
+        "title": "Home Currency",
+        "description": "Базовая валюта платформы (код ISO 4217), в которую официальные цепочки расчёта переводят свои результаты. Сейчас всегда `USD`."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "home_currency"
+    ],
+    "title": "ConfigOut",
+    "description": "Публичная конфигурация сервиса."
+  },
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Сколько кредитов стоит этот запрос."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Расчётный остаток кредитов после этого запроса. Это ориентир, а не данные учёта: из-за параллельных запросов значение может немного отличаться."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Учёт кредитов для платного запроса."
+  },
+  "Envelope_ConfigOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/ConfigOut",
+        "description": "Полезные данные эндпоинта."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[ConfigOut]"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Уникальный идентификатор этого запроса, совпадает с заголовком ответа `X-Request-ID`. Указывайте его при обращении в поддержку."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Оплачивается ли запрос кредитами. Присутствует только у тарифицируемых эндпоинтов; `false` означает, что запрос бесплатен — например, потому что он ничего не стоит или его покрывает ваша подписка."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  }
+}
+```
+
+[Скачать публичную схему OpenAPI](/assets/openapi-ru.json)

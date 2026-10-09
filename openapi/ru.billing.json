@@ -1,0 +1,119 @@
+{
+  "GET /prices": {
+    "authentication": "user-api-key",
+    "credit_cost": 1,
+    "premium": false,
+    "recommended_interval_seconds": 60,
+    "rate_limit": {
+      "max_requests": 120,
+      "window_seconds": 60
+    },
+    "unit_pricing": null
+  },
+  "POST /prices/batch": {
+    "authentication": "user-api-key",
+    "credit_cost": 1,
+    "premium": false,
+    "recommended_interval_seconds": 60,
+    "rate_limit": {
+      "max_requests": 20,
+      "window_seconds": 60
+    },
+    "unit_pricing": {
+      "unit_size": 100,
+      "units_body_field": "market_hash_names",
+      "max_units": 1000
+    }
+  },
+  "GET /prices/export": {
+    "authentication": "user-api-key",
+    "credit_cost": 10,
+    "premium": false,
+    "recommended_interval_seconds": 300,
+    "rate_limit": {
+      "max_requests": 2,
+      "window_seconds": 60
+    },
+    "unit_pricing": null
+  },
+  "GET /websites": {
+    "authentication": "public",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 300,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /websites/{code}": {
+    "authentication": "public",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 300,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /websites/{code}/fee-schedule": {
+    "authentication": "public",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 300,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /currencies": {
+    "authentication": "public",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 300,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /currencies/{currency_id}": {
+    "authentication": "public",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 300,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /me": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 60,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /config": {
+    "authentication": "public",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 3600,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /endpoints": {
+    "authentication": "public",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 3600,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /health": {
+    "authentication": "public",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 30,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /status": {
+    "authentication": "public",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": 60,
+    "rate_limit": null,
+    "unit_pricing": null
+  }
+}

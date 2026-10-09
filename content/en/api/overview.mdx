@@ -1,0 +1,26 @@
+---
+docId: "api.overview"
+title: "API overview"
+description: "Use https://api.cs.cheap."
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Base URL and formats
+
+Use `https://api.cs.cheap`. Routes in this reference have no version prefix. JSON is UTF-8. Most successful responses use `data` and `meta`; [export](/docs/api/reference/prices/export-prices) is a file response.
+
+## Choose an operation
+
+| Task | Operation |
+| --- | --- |
+| One item | `GET /prices` |
+| Up to 1000 names | `POST /prices/batch` |
+| Whole app snapshot | `GET /prices/export` |
+| Your credits and subscription | `GET /me` |
+| Market and fee catalogue | `GET /websites` and its read routes |
+| Currency catalogue | `GET /currencies` and its read route |
+| Metadata and health | `GET /config`, `/endpoints`, `/health`, `/status` |
+
+Price and account routes require a user API key. Catalogue, metadata and status reads are public. This reference includes only operations usable anonymously or by ordinary users. The service's own endpoint catalogue can also describe operations intended for other roles; appearance there does not grant permission.

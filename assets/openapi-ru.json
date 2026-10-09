@@ -1,0 +1,2618 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "cs.cheap public user API",
+    "version": "dda4f783d436e2988c023313b3affa961e9fabf7"
+  },
+  "servers": [
+    {
+      "url": "https://api.cs.cheap"
+    }
+  ],
+  "paths": {
+    "/prices": {
+      "get": {
+        "tags": [
+          "Price"
+        ],
+        "summary": "Получить цены одного предмета",
+        "description": "Возвращает текущие котировки одного предмета на площадках; предмет определяется по его Steam market hash name.\n\n- В результате не больше одной котировки на каждую пару площадки и стороны рынка, отсортированных по `market_code`, затем по `side`. Если одну и ту же площадку сообщают несколько источников, котировка, которая всё ещё выставлена, имеет приоритет над снятой, затем данные, полученные напрямую с площадки, — над агрегаторами, а затем выбирается котировка, подтверждённая последней (`fresh_at`).\n- Площадка возвращается как снятая с продажи (`delisted_at` задано, `quantity` равно `0`, последняя известная цена сохраняется), только если предмет сняли все её источники.\n- Предметы с достаточными рыночными данными получают ещё одну котировку `CSCP` со `side` `mid`: оценку cs.cheap — взвешенный консенсус лотов на продажу и заявок на покупку площадок в CNY, который обновляется раз в день. Её объект `valuation` содержит уверенность (`credibility`, `uncertainty`) и обе консенсусные цены; у всех остальных котировок `valuation` равно `null`. Это оценка, а не предложение для сделки.\n- Сузить результат можно параметрами `markets` (коды площадок через запятую; `CSCP` выбирает оценку) и `side` (`ask`, `bid`, `mid` или `all`).\n- `market_hash_name` должен совпадать точно, включая регистр.\n- Цены — десятичные строки в собственной валюте каждой площадки (`market_currency_code`); ничего не конвертируется.\n- `404` означает, что у предмета нет ни одной котировки для этого `app_id`. Если все котировки предмета отфильтрованы через `markets` или `side`, возвращается `200` с пустым списком `markets`.\n\n> [!note]\n> Этот эндпоинт оплачивается за каждый запрос. Неудачные запросы, включая `404`, никогда не оплачиваются; `meta.credit` сообщает стоимость и расчётный остаток баланса.\n",
+        "operationId": "get_item_prices_prices_get",
+        "parameters": [
+          {
+            "name": "market_hash_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 255,
+              "description": "Steam market hash name предмета точно в том виде, в каком он указан на Steam Community Market (точное совпадение с учётом регистра).",
+              "title": "Market Hash Name"
+            },
+            "description": "Steam market hash name предмета точно в том виде, в каком он указан на Steam Community Market (точное совпадение с учётом регистра)."
+          },
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 16,
+              "description": "Steam app ID игры. По умолчанию `730` (Counter-Strike 2).",
+              "default": "730",
+              "title": "App Id"
+            },
+            "description": "Steam app ID игры. По умолчанию `730` (Counter-Strike 2)."
+          },
+          {
+            "name": "markets",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Коды площадок через запятую, например `BUFF,UUYP`. Пробелы вокруг кодов игнорируются; каждый код должен состоять из заглавных латинских букв, цифр или подчёркиваний. Не указывайте, чтобы включить все площадки.",
+              "title": "Markets"
+            },
+            "description": "Коды площадок через запятую, например `BUFF,UUYP`. Пробелы вокруг кодов игнорируются; каждый код должен состоять из заглавных латинских букв, цифр или подчёркиваний. Не указывайте, чтобы включить все площадки."
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ask",
+                "bid",
+                "mid",
+                "all"
+              ],
+              "type": "string",
+              "description": "Какую сторону рынка вернуть: `ask` — лоты на продажу, `bid` — заявки на покупку, `mid` — оценка CSCP, `all` — всё. По умолчанию `all`.",
+              "default": "all",
+              "title": "Side"
+            },
+            "description": "Какую сторону рынка вернуть: `ask` — лоты на продажу, `bid` — заявки на покупку, `mid` — оценка CSCP, `all` — всё. По умолчанию `all`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ItemPricesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Аутентификационные данные отсутствуют или недействительны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Недостаточно кредитов для этого запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Учётные данные действительны, но не дают права вызывать эту операцию",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрошенный ресурс не существует",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Параметр или тело запроса некорректны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Слишком много запросов к этому эндпоинту; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/prices/batch": {
+      "post": {
+        "tags": [
+          "Price"
+        ],
+        "summary": "Получить цены нескольких предметов",
+        "description": "Возвращает текущие котировки списка предметов за один вызов. Котировки каждого предмета подчиняются тем же правилам, что и в `GET /prices`: не больше одной на каждую пару площадки и стороны рынка, выставленные котировки предпочтительнее снятых, затем данные с самой площадки предпочтительнее данных агрегаторов, затем выбирается самая свежая; если у предмета есть оценка `CSCP` (`side` `mid`), она добавляется.\n\n- `items` содержит по одной записи на каждое запрошенное название в порядке запроса.\n- Неизвестные названия не считаются ошибкой: для них возвращается пустой список `markets`. Этот эндпоинт никогда не возвращает `404`.\n- Повторяющиеся названия сохраняются, и каждое вхождение получает собственную запись.\n- `markets` и `side` фильтруют все предметы одинаково.\n- Неизвестные поля в теле запроса отклоняются с `422`.\n\n> [!note]\n> Оплата взимается за каждый начатый блок названий предметов; считается весь список `market_hash_names`, включая повторы. Стоимость проверяется до поиска (`402`, если баланса не хватает), а списывается только при успешном запросе.\n",
+        "operationId": "batch_item_prices_prices_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchPricesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_BatchPricesOut_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Аутентификационные данные отсутствуют или недействительны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Недостаточно кредитов для этого запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Учётные данные действительны, но не дают права вызывать эту операцию",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Параметр или тело запроса некорректны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Слишком много запросов к этому эндпоинту; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/prices/export": {
+      "get": {
+        "tags": [
+          "Price"
+        ],
+        "summary": "Выгрузить цены всех предметов",
+        "description": "Скачивает котировки всех предметов одной игры, у которых есть цены, одним файлом — для массовой синхронизации. По умолчанию `side` равен `ask`; `side=mid` выгружает только оценку `CSCP` каждого оценённого предмета — гораздо меньший файл.\n\n- Тело ответа — сам документ выгрузки (`app_id`, `side`, `generated_at`, `items`), сжатый gzip (`Content-Encoding: gzip`), а не обычный конверт. Идентификатор запроса и поля биллинга передаются в заголовках: `X-Request-ID`, `X-Billable`, а для оплаченного ответа ещё `X-Credit-Cost` и `X-Credit-Remaining`.\n- `items` перечисляет все предметы, у которых есть хотя бы одна котировка на запрошенной стороне рынка, в порядке market hash name; котировки каждого предмета подчиняются тем же правилам, что и в `GET /prices`.\n- Файл — снимок, который сервер пересобирает раз в несколько минут; `generated_at` (он же заголовок `X-Export-Generated-At`) показывает когда. Запросы между пересборками получают один и тот же файл.\n- Отправляйте полученный `ETag` обратно в `If-None-Match`: пока снимок не изменился, ответом будет `304 Not Modified` без тела, и `304` никогда не оплачивается.\n- Запросы `Range` не поддерживаются; файл всегда отдаётся целиком. Пагинации и фильтра по площадкам нет.\n- `503 dependency_unavailable` означает, что первый снимок ещё не собран; повторите через минуту.\n\n> [!warning]\n> Каждый `200` оплачивается, даже если файл не изменился. Опрашивайте с `If-None-Match` — и платите только когда есть что-то новое.\n",
+        "operationId": "export_prices_prices_export_get",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 16,
+              "description": "Steam app ID игры. По умолчанию `730` (Counter-Strike 2).",
+              "default": "730",
+              "title": "App Id"
+            },
+            "description": "Steam app ID игры. По умолчанию `730` (Counter-Strike 2)."
+          },
+          {
+            "name": "side",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "ask",
+                "bid",
+                "mid",
+                "all"
+              ],
+              "type": "string",
+              "description": "Какую сторону рынка вернуть: `ask` — лоты на продажу, `bid` — заявки на покупку, `mid` — оценка CSCP, `all` — всё. По умолчанию `ask`.",
+              "default": "ask",
+              "title": "Side"
+            },
+            "description": "Какую сторону рынка вернуть: `ask` — лоты на продажу, `bid` — заявки на покупку, `mid` — оценка CSCP, `all` — всё. По умолчанию `ask`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportOut"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Валидатор этого снимка: отправьте его обратно в `If-None-Match`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Last-Modified": {
+                "description": "Когда был собран этот снимок, в формате HTTP-даты.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Content-Encoding": {
+                "description": "Всегда `gzip`: файл хранится в сжатом виде.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Export-Generated-At": {
+                "description": "Когда был собран этот снимок, в формате RFC 3339 UTC.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Billable": {
+                "description": "`true`, если этот ответ был оплачен, иначе `false`.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Credit-Cost": {
+                "description": "Сколько кредитов списано за этот ответ (только для оплаченных ответов).",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-Credit-Remaining": {
+                "description": "Сколько кредитов осталось после этого списания (только для оплаченных ответов).",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Снимок, указанный в `If-None-Match`, всё ещё актуален; не оплачивается"
+          },
+          "401": {
+            "description": "Аутентификационные данные отсутствуют или недействительны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Недостаточно кредитов для этого запроса",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Учётные данные действительны, но не дают права вызывать эту операцию",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрошенный ресурс не существует",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Параметр или тело запроса некорректны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Слишком много запросов к этому эндпоинту; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/websites": {
+      "get": {
+        "tags": [
+          "Website"
+        ],
+        "summary": "Получить список площадок",
+        "operationId": "list_websites_websites_get",
+        "parameters": [
+          {
+            "name": "include_deprecated",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Также вернуть площадки, которые больше не поддерживаются (`is_deprecated: true`).",
+              "default": false,
+              "title": "Include Deprecated"
+            },
+            "description": "Также вернуть площадки, которые больше не поддерживаются (`is_deprecated: true`)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_WebsiteOut__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Параметр или тело запроса некорректны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "Возвращает каталог площадок, которые охватывает API, например Steam Community Market и сторонние площадки скинов. `code` каждой записи — это идентификатор, который используют другие эндпоинты, принимающие площадку.\n\n- Результаты упорядочены по `code`.\n- Площадки, которые больше не поддерживаются, скрыты, если не указано `include_deprecated=true`; тогда они выводятся с `is_deprecated: true`.\n\n> [!note]\n> Каталог ведёт платформа; через API он доступен только для чтения.\n"
+      }
+    },
+    "/websites/{code}": {
+      "get": {
+        "tags": [
+          "Website"
+        ],
+        "summary": "Получить площадку",
+        "operationId": "get_website_websites__code__get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Код площадки из списка `GET /websites`.",
+              "title": "Code"
+            },
+            "description": "Код площадки из списка `GET /websites`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_WebsiteOut_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрошенный ресурс не существует",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Параметр или тело запроса некорректны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "Возвращает одну площадку по её `code`, в том числе площадку, которая больше не поддерживается (проверяйте `is_deprecated`).\n\n`404` означает, что площадки с таким кодом нет.\n"
+      }
+    },
+    "/websites/{code}/fee-schedule": {
+      "get": {
+        "tags": [
+          "Website"
+        ],
+        "summary": "Получить официальный график комиссий площадки",
+        "description": "Возвращает комиссии, которые платформа сейчас публикует для одной площадки, по одному слоту на каждое назначение: `deposit`, `sale` и `withdraw`.\n\n- Каждый опубликованный слот содержит полностью развёрнутую официальную цепочку расчёта: все операторы комиссий, операторы конвертации и группы операторов конвертации с их значениями и валютами, поэтому одного запроса достаточно, чтобы воспроизвести расчёт платформы.\n- Слот, цепочка которого имеет `id` `0`, явно бесплатен: платформа ничего не взимает за это назначение, а у цепочки нет шагов.\n- Слот равен `null`, если у платформы нет опубликованной официальной цепочки расчёта для этого назначения: комиссия неизвестна или площадка его не предлагает. `null` никогда не означает «бесплатно».\n- Каждая цепочка указывает свою `start_currency`: валюту, в которой должна быть цена, чтобы цепочка применялась (`null`: любая валюта).\n- Поля владения и управления не включаются.\n\n`404` означает, что площадки с таким кодом нет.\n",
+        "operationId": "get_website_fee_schedule_websites__code__fee_schedule_get",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Код площадки из списка `GET /websites`.",
+              "title": "Code"
+            },
+            "description": "Код площадки из списка `GET /websites`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_FeeScheduleOut_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрошенный ресурс не существует",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Параметр или тело запроса некорректны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/currencies": {
+      "get": {
+        "tags": [
+          "Currency"
+        ],
+        "summary": "Получить список официальных валют",
+        "operationId": "list_public_currencies_currencies_get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Поиск подстроки в коде валюты без учёта регистра. Не указывайте, чтобы получить все валюты.",
+              "title": "Search"
+            },
+            "description": "Поиск подстроки в коде валюты без учёта регистра. Не указывайте, чтобы получить все валюты."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_CurrencyOut__"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Параметр или тело запроса некорректны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "Возвращает официальные валюты, которые ведёт платформа, с их текущими курсами к USD. Именно между этими валютами выполняются конвертации в официальных графиках комиссий.\n\n- Результаты упорядочены по `code`.\n- `search` оставляет в списке только коды, содержащие заданный текст (без учёта регистра).\n- `usd_rate` — стоимость одной единицы валюты в долларах США в виде десятичной строки (например, `0.125` для валюты, которая стоит 1/8 USD).\n- В списке только официальные валюты.\n"
+      }
+    },
+    "/currencies/{currency_id}": {
+      "get": {
+        "tags": [
+          "Currency"
+        ],
+        "summary": "Получить официальную валюту",
+        "operationId": "get_public_currency_currencies__currency_id__get",
+        "parameters": [
+          {
+            "name": "currency_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "description": "Числовой ID валюты (поле `id`).",
+              "title": "Currency Id"
+            },
+            "description": "Числовой ID валюты (поле `id`)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_CurrencyOut_"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрошенный ресурс не существует",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Параметр или тело запроса некорректны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "description": "Возвращает одну официальную валюту по её числовому `id`.\n\n`404` означает, что официальной валюты с таким ID нет: ID не существует, валюта удалена или не является официальной.\n"
+      }
+    },
+    "/me": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Получить данные аккаунта",
+        "operationId": "read_me_me_get",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_SyncUserView_"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Аутентификационные данные отсутствуют или недействительны",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Учётные данные действительны, но не дают права вызывать эту операцию",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрошенный ресурс не существует",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Возвращает то, что API сейчас знает о вашем аккаунте: поля профиля, включая `base_currency` (валюта, в которую переводятся ваши расчёты; `null` означает USD), подписку, действующую в момент запроса (`null`, если её нет), и счётчики ваших кредитов.\n\n- `credit.total` — все кредиты, начисленные аккаунту, `credit.used` — израсходованные, а `credit.remaining` — разница, никогда не меньше `0`.\n- Именно по этим значениям выполняется тарификация. Изменения, сделанные в личном кабинете, появляются здесь примерно в течение минуты.\n\n`404` означает, что ваш аккаунт ещё не попал в API; повторите запрос чуть позже.\n"
+      }
+    },
+    "/config": {
+      "get": {
+        "tags": [
+          "Meta"
+        ],
+        "summary": "Получить публичную конфигурацию сервиса",
+        "operationId": "read_config_config_get",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_ConfigOut_"
+                }
+              }
+            }
+          }
+        },
+        "description": "Возвращает публичную, не конфиденциальную конфигурацию сервиса. Сейчас это только `home_currency` — базовая валюта платформы, в которую официальные цепочки расчёта переводят свои результаты.\n\n- Ваша собственная базовая валюта — это настройка аккаунта, здесь она не возвращается.\n- Ответы отправляются с `Cache-Control: no-store`.\n"
+      }
+    },
+    "/endpoints": {
+      "get": {
+        "tags": [
+          "Meta"
+        ],
+        "summary": "Получить метаданные эндпоинтов",
+        "description": "Возвращает машиночитаемые метаданные для каждой документированной операции этого API, чтобы клиент мог планировать использование, не разбирая документ OpenAPI.\n\n- Одна запись на каждую пару метода и пути, отсортированы по пути, затем по методу.\n- Каждая запись содержит стоимость в кредитах (`credit_cost`, а также `unit_pricing` для операций, которые тарифицируются по количеству предметов), признак `premium`, рекомендуемый интервал опроса (`recommended_interval_seconds`), `rate_limit` и кто может её вызывать (`roles`: `user`, `admin`, `machine`; пустой список означает, что аутентификация не нужна).\n- Те же данные есть в документе OpenAPI в расширении `x-cscheap` каждой операции.\n",
+        "operationId": "read_endpoints_endpoints_get",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_list_EndpointInfoOut__"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "Проверить доступность сервиса",
+        "description": "Лёгкая проверка доступности: возвращает `{\"status\": \"ok\"}`, пока процесс API запущен и обслуживает запросы.\n\n- Базы данных и другие зависимости не проверяются, поэтому `200` здесь не гарантирует доступность эндпоинтов с данными. Историю состояния сервиса смотрите в `GET /status`.\n- Тело возвращается как есть, без обычной обёртки `data` / `meta`.\n",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status": {
+      "get": {
+        "tags": [
+          "Status"
+        ],
+        "summary": "Получить статус сервиса",
+        "description": "Возвращает состояние сервиса и активность сбора данных, которые показаны на публичной странице статуса: почасовые оценки состояния за последние 24 завершённых часа, доступность по компонентам, количество собранных цен и географию сети сбора.\n\n- В отличие от `GET /health`, этот эндпоинт читает сохранённые данные мониторинга: это история, а не живая проверка каждой зависимости.\n- Время указано в UTC. Компоненты или интервалы без данных пусты или отсутствуют, а не равны нулю.\n- `503` означает, что данные мониторинга не удалось прочитать; частичные результаты никогда не возвращаются.\n",
+        "operationId": "status_status_get",
+        "responses": {
+          "200": {
+            "description": "Успешный ответ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Envelope_StatusOut_"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Сервис временно недоступен; повторите позже",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "BatchItemOut": {
+        "properties": {
+          "market_hash_name": {
+            "type": "string",
+            "title": "Market Hash Name",
+            "description": "Market hash name предмета точно в том виде, в каком он был запрошен."
+          },
+          "markets": {
+            "items": {
+              "$ref": "#/components/schemas/MarketQuoteOut"
+            },
+            "type": "array",
+            "title": "Markets",
+            "description": "Котировки предмета: не больше одной на каждую пару площадки и стороны рынка, отсортированы по коду площадки, затем по стороне. Пусто, если предмет неизвестен или фильтры исключают все котировки."
+          }
+        },
+        "type": "object",
+        "required": [
+          "market_hash_name",
+          "markets"
+        ],
+        "title": "BatchItemOut",
+        "description": "Один запрошенный предмет и его котировки на площадках."
+      },
+      "BatchPricesIn": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "maxLength": 16,
+            "minLength": 1,
+            "title": "App Id",
+            "description": "Steam app ID игры. По умолчанию `730` (Counter-Strike 2).",
+            "default": "730"
+          },
+          "market_hash_names": {
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Market Hash Names",
+            "description": "Steam market hash name предметов для поиска (точное совпадение с учётом регистра). Повторы допускаются: каждое вхождение получает собственную запись в результате и учитывается в оплачиваемом количестве предметов."
+          },
+          "markets": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Z0-9_]{1,32}$"
+                },
+                "type": "array",
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Markets",
+            "description": "Коды площадок, которые нужно включить, например `[\"BUFF\", \"UUYP\"]`. Каждый код должен состоять из заглавных латинских букв, цифр или подчёркиваний. Не указывайте, чтобы включить все площадки."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid",
+              "all"
+            ],
+            "title": "Side",
+            "description": "Какую сторону рынка вернуть: `ask` — лоты на продажу, `bid` — заявки на покупку, `mid` — оценка CSCP, `all` — всё. По умолчанию `all`.",
+            "default": "all"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "market_hash_names"
+        ],
+        "title": "BatchPricesIn",
+        "description": "Тело запроса пакетного поиска цен."
+      },
+      "BatchPricesOut": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "Steam app ID, повторённый из запроса."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid",
+              "all"
+            ],
+            "title": "Side",
+            "description": "Применённый фильтр стороны рынка, повторённый из запроса."
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BatchItemOut"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "По одной записи на каждое запрошенное название в порядке запроса, включая повторы."
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "side",
+          "items"
+        ],
+        "title": "BatchPricesOut",
+        "description": "Котировки на площадках для каждого запрошенного предмета в порядке запроса."
+      },
+      "ConfigOut": {
+        "properties": {
+          "home_currency": {
+            "type": "string",
+            "title": "Home Currency",
+            "description": "Базовая валюта платформы (код ISO 4217), в которую официальные цепочки расчёта переводят свои результаты. Сейчас всегда `USD`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "home_currency"
+        ],
+        "title": "ConfigOut",
+        "description": "Публичная конфигурация сервиса."
+      },
+      "CreditMeta": {
+        "properties": {
+          "cost": {
+            "type": "integer",
+            "title": "Cost",
+            "description": "Сколько кредитов стоит этот запрос."
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining",
+            "description": "Расчётный остаток кредитов после этого запроса. Это ориентир, а не данные учёта: из-за параллельных запросов значение может немного отличаться."
+          }
+        },
+        "type": "object",
+        "required": [
+          "cost",
+          "remaining"
+        ],
+        "title": "CreditMeta",
+        "description": "Учёт кредитов для платного запроса."
+      },
+      "CurrencyOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Уникальный ID валюты."
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Код валюты, например `USD`."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Отображаемое название."
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "Вид валюты, например `fiat`."
+          },
+          "usd_rate": {
+            "type": "string",
+            "title": "Usd Rate",
+            "description": "Стоимость одной единицы этой валюты в долларах США в виде десятичной строки. Используется конвертациями `auto`."
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id",
+            "description": "ID пользователя-владельца; `null` для валют платформы — к ним относятся все официальные валюты."
+          },
+          "is_official": {
+            "type": "boolean",
+            "title": "Is Official",
+            "description": "Входит ли валюта в официальный каталог, который ведёт платформа."
+          },
+          "ref_count": {
+            "type": "integer",
+            "title": "Ref Count",
+            "description": "Количество операторов конвертации, использующих эту валюту."
+          },
+          "is_deleted": {
+            "type": "boolean",
+            "title": "Is Deleted",
+            "description": "Удалена ли валюта. Удалённые валюты никогда не выводятся в списках, поэтому `true` бывает только в ответе на удаление."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "usd_rate",
+          "owner_user_id",
+          "is_official",
+          "ref_count",
+          "is_deleted"
+        ],
+        "title": "CurrencyOut",
+        "description": "Валюта и её стоимость в долларах США."
+      },
+      "EndpointInfoOut": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "description": "HTTP-метод."
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "description": "Шаблон пути операции."
+          },
+          "premium": {
+            "type": "boolean",
+            "title": "Premium",
+            "description": "Премиум-запрос: расходует кредиты даже при активной подписке."
+          },
+          "credit_cost": {
+            "type": "integer",
+            "title": "Credit Cost",
+            "description": "Сколько кредитов списывается за запрос; при наличии `unit_pricing` — стоимость одного блока. `0` означает бесплатно."
+          },
+          "recommended_interval_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommended Interval Seconds",
+            "description": "Рекомендуемый интервал опроса в секундах; `null`, если запрос выполняется по необходимости."
+          },
+          "rate_limit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RateLimitSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Лимит запросов на аккаунт, общий для всех его API-ключей; `null`, если лимит не объявлен."
+          },
+          "unit_pricing": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UnitPricingSpec"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Тарификация по объёму; `null` при фиксированной стоимости за запрос."
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles",
+            "description": "Кто может вызывать: `user` (API-ключ), `admin` (учётные данные администратора) или `machine` (сервисный токен). Лимиты и списание кредитов применяются только к запросам `user`. Пустой список означает публичный доступ."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "method",
+          "path",
+          "premium",
+          "credit_cost",
+          "recommended_interval_seconds",
+          "rate_limit",
+          "unit_pricing",
+          "roles"
+        ],
+        "title": "EndpointInfoOut",
+        "description": "Правила доступа, стоимость и лимиты одной операции API."
+      },
+      "Envelope_BatchPricesOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BatchPricesOut",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[BatchPricesOut]"
+      },
+      "Envelope_ConfigOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ConfigOut",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ConfigOut]"
+      },
+      "Envelope_CurrencyOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/CurrencyOut",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[CurrencyOut]"
+      },
+      "Envelope_FeeScheduleOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FeeScheduleOut",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[FeeScheduleOut]"
+      },
+      "Envelope_ItemPricesOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ItemPricesOut",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[ItemPricesOut]"
+      },
+      "Envelope_StatusOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StatusOut",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[StatusOut]"
+      },
+      "Envelope_SyncUserView_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SyncUserView",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[SyncUserView]"
+      },
+      "Envelope_WebsiteOut_": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WebsiteOut",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[WebsiteOut]"
+      },
+      "Envelope_list_CurrencyOut__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CurrencyOut"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[CurrencyOut]]"
+      },
+      "Envelope_list_EndpointInfoOut__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/EndpointInfoOut"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[EndpointInfoOut]]"
+      },
+      "Envelope_list_WebsiteOut__": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/WebsiteOut"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "Полезные данные эндпоинта."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "Envelope[list[WebsiteOut]]"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Стабильный машиночитаемый код ошибки. Ориентируйтесь на это значение, а не на `message`."
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Пояснение для человека. Формулировка может меняться."
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details",
+            "description": "Необязательный структурированный контекст, например список ошибок валидации или, для `credit_insufficient`, требуемое и оставшееся количество кредитов."
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody",
+        "description": "Подробности неудачного запроса."
+      },
+      "ErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody",
+            "description": "Что пошло не так."
+          },
+          "meta": {
+            "$ref": "#/components/schemas/Meta",
+            "description": "Метаданные запроса."
+          }
+        },
+        "type": "object",
+        "required": [
+          "error",
+          "meta"
+        ],
+        "title": "ErrorEnvelope",
+        "description": "Ответ с ошибкой: ошибка в `error` и метаданные запроса в `meta`."
+      },
+      "ExportOut": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "Steam app ID, повторённый из запроса."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid",
+              "all"
+            ],
+            "title": "Side",
+            "description": "Применённый фильтр стороны рынка, повторённый из запроса."
+          },
+          "generated_at": {
+            "type": "string",
+            "title": "Generated At",
+            "description": "Когда был собран этот снимок выгрузки, в формате RFC 3339 UTC — то же значение, что и в заголовке ответа `X-Export-Generated-At`. Снимки пересобираются раз в несколько минут; запросы между пересборками получают один и тот же файл."
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/BatchItemOut"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Все предметы, у которых есть хотя бы одна котировка на запрошенной стороне рынка, отсортированные по market hash name."
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "side",
+          "generated_at",
+          "items"
+        ],
+        "title": "ExportOut",
+        "description": "Все предметы одной игры, у которых есть цены, для одной стороны рынка."
+      },
+      "FeeScheduleOut": {
+        "properties": {
+          "website_code": {
+            "type": "string",
+            "title": "Website Code",
+            "description": "Код площадки."
+          },
+          "slots": {
+            "$ref": "#/components/schemas/FeeScheduleSlotsOut",
+            "description": "Опубликованная официальная цепочка для каждого назначения."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "website_code",
+          "slots"
+        ],
+        "title": "FeeScheduleOut",
+        "description": "Официальные комиссии, которые платформа сейчас публикует для одной площадки,\nпо назначениям. Назначение равно `null`, если для него не опубликована\nофициальная цепочка."
+      },
+      "FeeScheduleSlotOut": {
+        "properties": {
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "deposit",
+              "sale",
+              "withdraw"
+            ],
+            "title": "Purpose",
+            "description": "Назначение: `deposit`, `sale` или `withdraw`."
+          },
+          "calculation_chain": {
+            "$ref": "#/components/schemas/PublicCalculationChainOut",
+            "description": "Официальная цепочка расчёта для этого назначения."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "purpose",
+          "calculation_chain"
+        ],
+        "title": "FeeScheduleSlotOut",
+        "description": "Официальная цепочка, опубликованная для одного назначения."
+      },
+      "FeeScheduleSlotsOut": {
+        "properties": {
+          "deposit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeScheduleSlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Комиссии при пополнении; `null`, если ничего не опубликовано."
+          },
+          "sale": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeScheduleSlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Комиссии при продаже; `null`, если ничего не опубликовано."
+          },
+          "withdraw": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeeScheduleSlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Комиссии при выводе; `null`, если ничего не опубликовано."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "deposit",
+          "sale",
+          "withdraw"
+        ],
+        "title": "FeeScheduleSlotsOut",
+        "description": "Опубликованные официальные цепочки одной площадки по назначениям."
+      },
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Всегда `ok`, пока сервис работает."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "HealthOut",
+        "description": "Результат проверки доступности. Возвращается как голый объект, без обёртки ответа."
+      },
+      "ItemPricesOut": {
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "title": "App Id",
+            "description": "Steam app ID, повторённый из запроса."
+          },
+          "market_hash_name": {
+            "type": "string",
+            "title": "Market Hash Name",
+            "description": "Market hash name предмета, повторённый из запроса."
+          },
+          "markets": {
+            "items": {
+              "$ref": "#/components/schemas/MarketQuoteOut"
+            },
+            "type": "array",
+            "title": "Markets",
+            "description": "Котировки предмета: не больше одной на каждую пару площадки и стороны рынка, отсортированы по коду площадки, затем по стороне. Пусто, если фильтры `markets` или `side` исключают все котировки."
+          }
+        },
+        "type": "object",
+        "required": [
+          "app_id",
+          "market_hash_name",
+          "markets"
+        ],
+        "title": "ItemPricesOut",
+        "description": "Один предмет и все его котировки на площадках."
+      },
+      "MarketQuoteOut": {
+        "properties": {
+          "market_code": {
+            "type": "string",
+            "title": "Market Code",
+            "description": "Код площадки, к которой относится котировка, например `BUFF`. `CSCP` обозначает оценку предмета cs.cheap: взвешенный консенсус площадок в CNY, обновляемый ежедневно, без количества; время расчёта — в `changed_at` и `fresh_at`, подробности — в `valuation`. Это оценка, а не предложение, по которому можно совершить сделку."
+          },
+          "provider_code": {
+            "type": "string",
+            "title": "Provider Code",
+            "description": "Код источника, из которого получена котировка. Совпадает с `market_code`, если данные получены с самой площадки; иначе указывает агрегатор, сообщающий цены этой площадки."
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "ask",
+              "bid",
+              "mid"
+            ],
+            "title": "Side",
+            "description": "`ask` — котировка лота на продажу, `bid` — котировка заявки на покупку, `mid` — оценка `CSCP` (середина между консенсусами продажи и покупки)."
+          },
+          "market_currency_code": {
+            "type": "string",
+            "title": "Market Currency Code",
+            "description": "Валюта `market_price_amount`, например `CNY`. Цены возвращаются в собственной валюте площадки, без конвертации."
+          },
+          "market_price_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Market Price Amount",
+            "description": "Цена в `market_currency_code` в виде десятичной строки (обычная запись, без конечных нулей, никогда не в экспоненциальной форме) или `null`, если источник не сообщает цену. Снятая с продажи котировка сохраняет последнюю известную цену."
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity",
+            "description": "Количество на этой стороне рынка по данным источника или `null`, если оно не сообщается. `0`, как только предмет снят с продажи."
+          },
+          "is_quantity_minimum": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Quantity Minimum",
+            "description": "`true`, если `quantity` — нижняя граница (источник сообщает лишь, что их «не меньше» этого числа), или `null`, если неизвестно."
+          },
+          "is_all_items_same_price": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is All Items Same Price",
+            "description": "`true`, если все предлагаемые единицы стоят `market_price_amount`; `false`, если источник сообщает только лучшую цену или цены различаются; `null`, если неизвестно."
+          },
+          "changed_at": {
+            "type": "string",
+            "title": "Changed At",
+            "description": "Когда цена или количество этой котировки последний раз изменились у источника, в формате RFC 3339 UTC (например, `2026-09-24T03:12:08Z`)."
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At",
+            "description": "Когда эта котировка последний раз была отдельно замечена у источника, в формате RFC 3339 UTC, или `null`, если это не записано."
+          },
+          "delisted_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delisted At",
+            "description": "Когда обнаружилось, что предмет больше не выставлен на этой стороне рынка, в формате RFC 3339 UTC, или `null`, пока он выставлен. Снятая котировка сохраняет последнюю цену, а `quantity` равно `0`."
+          },
+          "fresh_at": {
+            "type": "string",
+            "title": "Fresh At",
+            "description": "Когда источник последний раз подтвердил актуальность этой котировки, в формате RFC 3339 UTC: самое позднее из `changed_at`, `observed_at` и времени завершения последнего полного сканирования этой площадки."
+          },
+          "valuation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValuationOut"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Подробности оценки; есть только у котировки `CSCP`, у котировок площадок равно `null`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "market_code",
+          "provider_code",
+          "side",
+          "market_currency_code",
+          "market_price_amount",
+          "quantity",
+          "is_quantity_minimum",
+          "is_all_items_same_price",
+          "changed_at",
+          "observed_at",
+          "delisted_at",
+          "fresh_at",
+          "valuation"
+        ],
+        "title": "MarketQuoteOut",
+        "description": "Котировка одной площадки для предмета на одной стороне рынка."
+      },
+      "Meta": {
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "title": "Request Id",
+            "description": "Уникальный идентификатор этого запроса, совпадает с заголовком ответа `X-Request-ID`. Указывайте его при обращении в поддержку."
+          },
+          "billable": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billable",
+            "description": "Оплачивается ли запрос кредитами. Присутствует только у тарифицируемых эндпоинтов; `false` означает, что запрос бесплатен — например, потому что он ничего не стоит или его покрывает ваша подписка."
+          },
+          "credit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CreditMeta"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "request_id"
+        ],
+        "title": "Meta",
+        "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+      },
+      "PublicCalculationChainOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Уникальный ID цепочки расчёта. `0` — встроенная цепочка без комиссий: платформа ничего не взимает за это назначение."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Отображаемое название, если задано."
+          },
+          "start_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Currency",
+            "description": "Валюта, в которой цепочка ожидает цену; `null`, если она применима к любой валюте. На цену в другой валюте цепочка не распространяется."
+          },
+          "steps": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/PublicFeeOperatorOut"
+                },
+                {
+                  "$ref": "#/components/schemas/PublicConvertOperatorOut"
+                },
+                {
+                  "$ref": "#/components/schemas/PublicConvertOperatorGroupOut"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "convert": "#/components/schemas/PublicConvertOperatorOut",
+                  "convert_operator_group": "#/components/schemas/PublicConvertOperatorGroupOut",
+                  "fee": "#/components/schemas/PublicFeeOperatorOut"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Steps",
+            "description": "Шаги в порядке выполнения; тип определяется полем `kind`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "start_currency",
+          "steps"
+        ],
+        "title": "PublicCalculationChainOut",
+        "description": "Официальная цепочка расчёта в том виде, в каком она опубликована в графике комиссий."
+      },
+      "PublicConvertOperatorGroupOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "convert_operator_group",
+            "title": "Kind",
+            "description": "Тип шага: всегда `convert_operator_group`."
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Уникальный ID группы."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Отображаемое название."
+          },
+          "rule": {
+            "type": "string",
+            "enum": [
+              "min",
+              "max",
+              "avg"
+            ],
+            "title": "Rule",
+            "description": "Как выбирается результат среди участников, успешно выполнивших конвертацию: `min`, `max` или `avg`."
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/PublicConvertOperatorOut"
+            },
+            "type": "array",
+            "title": "Members",
+            "description": "Конвертации — участники группы, по порядку."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "rule",
+          "members"
+        ],
+        "title": "PublicConvertOperatorGroupOut",
+        "description": "Группа альтернативных конвертаций в опубликованном графике комиссий."
+      },
+      "PublicConvertOperatorOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "convert",
+            "title": "Kind",
+            "description": "Тип шага: всегда `convert`."
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Уникальный ID оператора конвертации."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Отображаемое название."
+          },
+          "from": {
+            "$ref": "#/components/schemas/PublicCurrencyOut",
+            "description": "Исходная валюта."
+          },
+          "to": {
+            "$ref": "#/components/schemas/PublicCurrencyOut",
+            "description": "Целевая валюта."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "fixed"
+            ],
+            "title": "Mode",
+            "description": "`auto` конвертирует через `usd_rate` обеих валют; `fixed` умножает на `rate`."
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate",
+            "description": "Количество единиц целевой валюты за одну единицу исходной, в виде десятичной строки; используется в режиме `fixed`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "from",
+          "to",
+          "mode",
+          "rate"
+        ],
+        "title": "PublicConvertOperatorOut",
+        "description": "Шаг конвертации валюты в опубликованном графике комиссий."
+      },
+      "PublicCurrencyOut": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Уникальный ID валюты."
+          },
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Код валюты, например `USD`."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Отображаемое название."
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind",
+            "description": "Вид валюты, например `fiat`."
+          },
+          "usd_rate": {
+            "type": "string",
+            "title": "Usd Rate",
+            "description": "Стоимость одной единицы в долларах США в виде десятичной строки."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "kind",
+          "usd_rate"
+        ],
+        "title": "PublicCurrencyOut",
+        "description": "Валюта в том виде, в каком её использует опубликованный график комиссий."
+      },
+      "PublicFeeOperatorOut": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "fee",
+            "title": "Kind",
+            "description": "Тип шага: всегда `fee`."
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id",
+            "description": "Уникальный ID оператора комиссии."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Отображаемое название."
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "add",
+              "sub",
+              "mul",
+              "div"
+            ],
+            "title": "Operator",
+            "description": "Арифметическое действие над текущей суммой: `add`, `sub`, `mul` или `div`."
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "Операнд арифметического действия в виде десятичной строки."
+          },
+          "currency_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency Code",
+            "description": "Валюта суммы для `add` и `sub`; `null` для `mul` и `div`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "operator",
+          "value",
+          "currency_code"
+        ],
+        "title": "PublicFeeOperatorOut",
+        "description": "Шаг комиссии в опубликованном графике комиссий."
+      },
+      "RateLimitSpec": {
+        "properties": {
+          "max_requests": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Max Requests",
+            "description": "Сколько запросов разрешено за окно на один аккаунт (общий лимит для всех его API-ключей)."
+          },
+          "window_seconds": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Window Seconds",
+            "description": "Длительность окна в секундах."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "max_requests",
+          "window_seconds"
+        ],
+        "title": "RateLimitSpec",
+        "description": "Лимит запросов: не больше `max_requests` запросов за `window_seconds`."
+      },
+      "StatusOut": {
+        "properties": {
+          "summary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Summary",
+            "description": "Почасовые оценки состояния за последние 24 завершённых часа по UTC, сгруппированные по области (`service`, `infrastructure`, `datasource`), затем по началу часа (например, `2026-06-27T11:00:00Z`). Оценки — строки от `0.00` до `100.00`."
+          },
+          "service": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Service",
+            "description": "Доступность каждого публичного компонента сервиса (`web`, `api`, `api_cn`, `monitor`) по 15-минутным интервалам за последние 24 часа, с ключом по метке времени интервала. Отсутствующие интервалы не содержат данных."
+          },
+          "datasource": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Datasource",
+            "description": "Активность сбора ценовых данных: `realtime` — количество цен, собранных по каждой площадке за последние несколько минут, `result` — по каждой площадке за последние 24 часа. Ключи счётчиков — метки времени Unix в секундах."
+          },
+          "infrastructure": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Infrastructure",
+            "description": "Проверки состояния каждого вспомогательного компонента по 5-минутным интервалам за последние 24 часа, с ключом по метке времени интервала. Отсутствующий интервал означает, что проверка не прошла или не выполнялась."
+          },
+          "distribution": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Distribution",
+            "description": "Текущая география с ключом `\"<latitude>,<longitude>\"`: для каждой точки указаны `node_count` (прокси-узлы) и `datacenter_count`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "summary",
+          "service",
+          "datasource",
+          "infrastructure",
+          "distribution"
+        ],
+        "title": "StatusOut",
+        "description": "Состояние сервиса и активность потоков данных примерно за последние 24 часа."
+      },
+      "SyncCredit": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Кредиты, начисленные аккаунту на текущий момент."
+          },
+          "used": {
+            "type": "integer",
+            "title": "Used",
+            "description": "Кредиты, израсходованные на текущий момент."
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining",
+            "description": "Оставшиеся кредиты: `total` минус `used`, никогда не меньше `0`."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "total",
+          "used",
+          "remaining"
+        ],
+        "title": "SyncCredit",
+        "description": "Счётчики кредитов аккаунта: начислено, израсходовано и осталось."
+      },
+      "SyncSubscription": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Категория подписки."
+          },
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id",
+            "description": "Оформленный тариф."
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At",
+            "description": "Когда заканчивается подписка (RFC 3339, UTC)."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "category",
+          "plan_id",
+          "expires_at"
+        ],
+        "title": "SyncSubscription",
+        "description": "Подписка, активная на момент запроса.\n\nЕсли активны несколько пересекающихся подписок, возвращается та, что истекает последней."
+      },
+      "SyncUser": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Идентификатор аккаунта."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Отображаемое имя."
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email",
+            "description": "Адрес электронной почты."
+          },
+          "email_verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Verified",
+            "description": "Подтверждён ли адрес электронной почты; `null`, если неизвестно."
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image",
+            "description": "URL изображения аватара."
+          },
+          "steam_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steam Id",
+            "description": "Привязанный аккаунт Steam (SteamID64)."
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "Когда создан аккаунт (RFC 3339, UTC)."
+          },
+          "base_currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Currency",
+            "description": "Валюта, в которую переводятся расчёты аккаунта (код ISO 4217); `null` означает USD."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "SyncUser",
+        "description": "Поля профиля аккаунта cs.cheap в том виде, в каком их сейчас знает API.\n\nОтсутствующее значение равно `null`; `null` в `base_currency` означает, что пользователь\nне выбирал базовую валюту и применяется USD."
+      },
+      "SyncUserView": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/SyncUser",
+            "description": "Профиль аккаунта."
+          },
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SyncSubscription"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Подписка, действующая сейчас; `null`, если её нет."
+          },
+          "credit": {
+            "$ref": "#/components/schemas/SyncCredit",
+            "description": "Счётчики кредитов аккаунта."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user",
+          "subscription",
+          "credit"
+        ],
+        "title": "SyncUserView",
+        "description": "Профиль одного аккаунта, активная подписка и баланс кредитов."
+      },
+      "UnitPricingSpec": {
+        "properties": {
+          "unit_size": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Unit Size",
+            "description": "Количество предметов в одном оплачиваемом блоке."
+          },
+          "units_body_field": {
+            "type": "string",
+            "title": "Units Body Field",
+            "description": "Список в теле запроса, длина которого учитывается."
+          },
+          "max_units": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "title": "Max Units",
+            "description": "Максимальное количество предметов в одном запросе."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "unit_size",
+          "units_body_field",
+          "max_units"
+        ],
+        "title": "UnitPricingSpec",
+        "description": "Тарификация по объёму: запрос стоит `credit_cost` за каждый начатый блок из\n`unit_size` элементов списка `units_body_field` в теле запроса."
+      },
+      "ValuationOut": {
+        "properties": {
+          "valuation_date": {
+            "type": "string",
+            "title": "Valuation Date",
+            "description": "Дата оценки по UTC (`YYYY-MM-DD`). Рассчитывается раз в день по дневным ценам закрытия за семь дней до этой даты."
+          },
+          "credibility": {
+            "type": "number",
+            "title": "Credibility",
+            "description": "Показатель уверенности от 0 до 1, равный `e^(-uncertainty)`; чем ближе к 1, тем лучше согласуются источники. Задайте собственный порог, прежде чем полагаться на оценку."
+          },
+          "uncertainty": {
+            "type": "number",
+            "title": "Uncertainty",
+            "description": "Стандартная неопределённость оценки в логарифмической шкале (0 или больше). Примерно 68% правдоподобных значений лежат между цена × `e^(-uncertainty)` и цена × `e^(uncertainty)`."
+          },
+          "is_two_sided": {
+            "type": "boolean",
+            "title": "Is Two Sided",
+            "description": "`true`, если в расчёте участвовали и лоты на продажу, и заявки на покупку. При `false` были доступны только лоты на продажу, и оценка равна консенсусу продажи за вычетом типичного полуспреда сопоставимых предметов."
+          },
+          "ask_amount": {
+            "type": "string",
+            "title": "Ask Amount",
+            "description": "Взвешенный консенсус лотов на продажу по площадкам — денежная стоимость покупки в CNY с учётом комиссий, десятичной строкой."
+          },
+          "bid_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bid Amount",
+            "description": "Взвешенный консенсус заявок на покупку по площадкам — деньги, получаемые в CNY после комиссий, десятичной строкой; заявки дороже лотов на продажу той же площадки исключены. `null`, если `is_two_sided` равно `false`."
+          },
+          "ask_quote_count": {
+            "type": "integer",
+            "title": "Ask Quote Count",
+            "description": "Количество источников лотов на продажу в `ask_amount`."
+          },
+          "bid_quote_count": {
+            "type": "integer",
+            "title": "Bid Quote Count",
+            "description": "Количество источников заявок на покупку в `bid_amount`."
+          }
+        },
+        "type": "object",
+        "required": [
+          "valuation_date",
+          "credibility",
+          "uncertainty",
+          "is_two_sided",
+          "ask_amount",
+          "bid_amount",
+          "ask_quote_count",
+          "bid_quote_count"
+        ],
+        "title": "ValuationOut",
+        "description": "Подробности справедливой оценки CSCP для предмета по последнему дневному расчёту."
+      },
+      "WebsiteOut": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Уникальный код площадки, используемый во всём API, например `steam`."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Отображаемое название."
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url",
+            "description": "Главная страница площадки, если известна."
+          },
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Категория площадки, например `market`."
+          },
+          "subCategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcategory",
+            "description": "Более точная категория, если есть."
+          },
+          "is_deprecated": {
+            "type": "boolean",
+            "title": "Is Deprecated",
+            "description": "Прекращена ли поддержка площадки."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "url",
+          "category",
+          "subCategory",
+          "is_deprecated"
+        ],
+        "title": "WebsiteOut",
+        "description": "Площадка в каталоге платформы."
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "cs.cheap API key"
+      }
+    }
+  }
+}

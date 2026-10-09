@@ -1,0 +1,20 @@
+---
+docId: "concepts.items"
+title: "饰品与名称"
+description: "使用 app_id 与 market_hash_name 的组合。"
+kind: "explanation"
+status: "ready"
+sources: ["spider", "refinery", "api"]
+translationOf: "concepts.items"
+sourceDigest: "sha256:77c186fb14fe8b3bd65afc09aa2f81988ac8bc4c6b918642f627421ad9a9c0ab"
+---
+
+## 识别饰品
+
+使用 `app_id` 与 `market_hash_name` 的组合。默认游戏为 `730`（Counter-Strike 2）。名称区分大小写，磨损、StatTrak 与纪念品等限定可能对应不同饰品。查询参数中的名称应进行 URL 编码，不要手工拼接。
+
+价格查询描述某个名称的饰品在不同市场的报价，不代表具体挂单、磨损数值、贴纸位置或卖家。公开价格接口不接收市场挂单 ID。
+
+## 名称覆盖
+
+采集与名称规范化是不同步骤。已知别名可以映射到标准名称；未知或排除的名称不会自动成为公开价格行。名称在 Steam 中有效，也不保证当前有覆盖数据。详见[名称规范化](/docs/concepts/normalization)与[数据缺失排查](/docs/support/missing-or-stale-data)。

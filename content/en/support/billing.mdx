@@ -1,0 +1,22 @@
+---
+docId: "support.billing"
+title: "Billing troubleshooting"
+description: "Confirm that you are signed in to the account that made the purchase."
+kind: "how-to"
+status: "ready"
+sources: ["api", "frontend"]
+---
+
+## Credits or subscription not visible
+
+Confirm that you are signed in to the account that made the purchase. Check the order is completed, not pending, and inspect the subscription's start and end dates. A queued future period is not active yet. Allow for synchronization before comparing the dashboard with `GET /me`.
+
+## Payment sent but order pending
+
+Review the invoice, network, amount and payment status. A partial payment can leave the order pending. Continue payment through the existing order when appropriate; do not assume a browser return from the provider means final confirmation. Canceling an order does not automatically refund credited wallet funds.
+
+## Unexpected API cost
+
+Check whether the subscription was active at request time, whether the request returned `200`, the raw batch length and whether an export used `If-None-Match`. A `402` differs from `429` and should not be solved by immediate retries.
+
+For help, provide an order reference or request ID, UTC time and redacted status. Never provide a wallet seed, private key or API credential.

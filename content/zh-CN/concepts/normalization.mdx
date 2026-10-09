@@ -1,0 +1,22 @@
+---
+docId: "concepts.normalization"
+title: "名称规范化"
+description: "采集保留来源命名。"
+kind: "explanation"
+status: "ready"
+sources: ["spider", "refinery"]
+translationOf: "concepts.normalization"
+sourceDigest: "sha256:ff791b494a1cf54c6521f21876bd24211d592df8882d101fd3b9efed763af071"
+---
+
+## 从来源名称到标准名称
+
+采集保留来源命名。规范化会去除首尾空白，并在对应游戏的名称目录中解析已知别名。别名只展开一步，不追踪别名链；系统不会普遍转小写或进行模糊匹配。
+
+被接受的标准名称可以写入价格，排除名称被丢弃，未知名称等待判别。规则与人工复核会扩展覆盖范围，因此市场中新出现的名称不一定立即出现在 API 中。
+
+## 合并观测
+
+多个来源名称可能映射到同一饰品。在同一市场、提供方、游戏、币种与方向内合并观测时，采用可用金额中的最低值，并合计已知数量。数量与同价标记保留不确定性。
+
+客户端应查询准确的标准名称，不要为了匹配而删除磨损等限定。详见[饰品与名称](/docs/concepts/items)。

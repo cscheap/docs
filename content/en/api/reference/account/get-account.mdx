@@ -1,0 +1,425 @@
+---
+docId: "api.reference.account.get-account"
+title: "Get your account"
+description: "GET /me — Get your account"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`GET /me`
+
+## Behavior
+
+Returns what the API currently knows about your own account: profile fields including `base_currency` (the currency your calculations convert into; `null` means USD), the subscription active at the moment of the request (`null` when none), and your credit counters.
+
+- `credit.total` is every credit granted to the account, `credit.used` what has been consumed, and `credit.remaining` the difference, never below `0`.
+- These are the figures billing is applied against. They follow changes made in the dashboard within about a minute.
+
+A `404` means your account has not reached the API yet; retry shortly.
+
+
+## Usage
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 60,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_SyncUserView_"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "Authentication is missing or invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "The credential is valid but not allowed to call this operation",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "404": {
+    "description": "The requested resource does not exist",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "The service is temporarily unavailable; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Credits this request costs."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Credit accounting for a billable request."
+  },
+  "Envelope_SyncUserView_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/SyncUserView",
+        "description": "The endpoint payload."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[SyncUserView]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Stable machine-readable error code. Branch on this value, not on `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Human-readable explanation. The wording may change."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Optional structured context, such as the list of validation errors or, for `credit_insufficient`, the required and remaining credits."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Details of a failed request."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "What went wrong."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Error response: the error in `error` plus request metadata in `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Request metadata included in every enveloped response."
+  },
+  "SyncCredit": {
+    "properties": {
+      "total": {
+        "type": "integer",
+        "title": "Total",
+        "description": "Credits granted to the account so far."
+      },
+      "used": {
+        "type": "integer",
+        "title": "Used",
+        "description": "Credits consumed so far."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Credits left: `total` minus `used`, never below `0`."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "total",
+      "used",
+      "remaining"
+    ],
+    "title": "SyncCredit",
+    "description": "Credit counters of the account: granted, consumed and remaining."
+  },
+  "SyncSubscription": {
+    "properties": {
+      "category": {
+        "type": "string",
+        "title": "Category",
+        "description": "Subscription category."
+      },
+      "plan_id": {
+        "type": "string",
+        "title": "Plan Id",
+        "description": "Subscribed plan."
+      },
+      "expires_at": {
+        "type": "string",
+        "title": "Expires At",
+        "description": "When the subscription ends (RFC 3339, UTC)."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "category",
+      "plan_id",
+      "expires_at"
+    ],
+    "title": "SyncSubscription",
+    "description": "The subscription active at the moment of the request.\n\nWhen several overlap, the one that expires last is returned."
+  },
+  "SyncUser": {
+    "properties": {
+      "id": {
+        "type": "string",
+        "title": "Id",
+        "description": "Account id."
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "Display name."
+      },
+      "email": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Email",
+        "description": "E-mail address."
+      },
+      "email_verified": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Email Verified",
+        "description": "Whether the e-mail address is verified; `null` if unknown."
+      },
+      "image": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Image",
+        "description": "Avatar image URL."
+      },
+      "steam_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Steam Id",
+        "description": "Linked Steam account id (SteamID64)."
+      },
+      "created_at": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Created At",
+        "description": "When the account was created (RFC 3339, UTC)."
+      },
+      "base_currency": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Base Currency",
+        "description": "Currency the account's calculations convert into (ISO 4217 code); `null` means USD."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "id"
+    ],
+    "title": "SyncUser",
+    "description": "Profile fields of a cs.cheap account as the API currently knows them.\n\nA missing value is `null`; a `null` `base_currency` means the user never\nchose one and USD applies."
+  },
+  "SyncUserView": {
+    "properties": {
+      "user": {
+        "$ref": "#/components/schemas/SyncUser",
+        "description": "Profile of the account."
+      },
+      "subscription": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SyncSubscription"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "The subscription active right now; `null` when there is none."
+      },
+      "credit": {
+        "$ref": "#/components/schemas/SyncCredit",
+        "description": "Credit counters of the account."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "user",
+      "subscription",
+      "credit"
+    ],
+    "title": "SyncUserView",
+    "description": "One account's profile, active subscription and credit balance."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

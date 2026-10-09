@@ -1,0 +1,22 @@
+---
+docId: "concepts.cost-calculation"
+title: "成本计算"
+description: "处理链路区分现金购买成本、进入市场余额的出售收入，以及提现后的现金到手金额。"
+kind: "explanation"
+status: "ready"
+sources: ["refinery", "api"]
+translationOf: "concepts.cost-calculation"
+sourceDigest: "sha256:41871f62a7752bd7a0e5001b444e711306ae759e30ca6a41ebba57eedb88158b"
+---
+
+## 三种不同金额
+
+处理链路区分现金购买成本、进入市场余额的出售收入，以及提现后的现金到手金额。购买应用充值链，出售应用出售链，到手金额先应用出售链再应用提现链，之后换算为可比较的 CNY 金额。
+
+计算使用十进制运算，每步保留八位小数。缺少必要汇率、槽位未定义或步骤不兼容，都可能导致结果不可用。不可用不能解释为零手续费或有利可图的交易。
+
+## API 提供什么
+
+普通 `/prices` 报价提供市场金额，不提供上述三档计算值。CSCP 使用经费用调整的数据，见[估值](/docs/concepts/valuation)。当前对外文档不提供利润筛选接口或用户费率编辑器。
+
+自行比较时，应明确手续费、汇率、可用数量与数据年龄等假设。价格差额不等于实际利润。

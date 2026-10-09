@@ -1,6 +1,6 @@
 # TinaCMS 初始化与环境配置
 
-本仓负责独立编辑后台，前端仅消费发布后的内容包。当前初始化登记三语集合与内容元数据，不创建示例正文冒充已完成的业务文档，也不启用 R2 发布。
+本仓负责独立编辑后台，前端仅消费发布后的内容包。三语集合与元数据已登记；本地已有 147 页实际正文、编译器和发布流程，R2 线上发布尚未启用。
 
 ## 配置和凭证
 
@@ -42,14 +42,16 @@ npm run cms:build:local
 3. TinaCloud 自动索引后检查 dashboard 状态，再用只读 Token 查询集合。集合可以为空；空集合成功不等于业务正文初始化完成。
 4. 单独验收认证编辑用户的保存→Git 提交；之后再验收 docs 发布→frontend 更新。索引成功本身不证明这两条链路完成。
 
-2026-10-09 实际探测：提供的 Token 查询 master 返回 404 `Branch 'master' not found`，无效 Token 对照返回 401。GitHub 远端确有 master；用户提供的 Tina dashboard 警告明确说明尚无 Tina config。因此当前问题为仓库初始化缺失，不能据此要求更换 Token。配置仅在本地准备好后，警告仍会保留到文件推送并被索引。
+2026-10-09 初次探测：提供的 Token 查询 master 返回 404 `Branch 'master' not found`，无效 Token 对照返回 401。当时为仓库初始化缺失，而非需要更换 Token。随后已按用户确认推送初始化提交 `234884d`，云端三语集合与全部元数据字段查询返回 200，初始化问题已解决。当时仅有 schema，正文集合为空；147 页正文推送后应确认各语言集合均索引 49 页。
 
-同日用本仓配置在临时目录启动真实 Tina API，三个集合均通过创建、修改、重读及 MDX 落盘核验；英文、中文、俄文元数据均保留。已复制 CLI 生成的锁文件。本地后台打包在 1536 MiB Node 堆上限下发生 OOM，未生成可验收后台；后续须在有足够资源的构建环境重试。该失败不应混同为 schema/API 验证失败，也不代表后台已可部署。安装另有 Tina 内部 react-final-form 的 React 19 peer 警告，管理 UI 兼容性仍须验收。
+同日用本仓配置在临时目录启动真实 Tina API，三个集合均通过创建、修改、重读及 MDX 落盘核验；英文、中文、俄文元数据均保留。已复制 CLI 生成的锁文件。
+
+初次后台打包在 1536 MiB Node 堆上限下 OOM；后续检查本机可用内存后，以 2560 MiB 上限重试，本地构建和正式云端构建都成功。正式构建注入 Infisical 中的既有只读凭证，未跳过云端检查；产物中的凭证扫描通过。构建成功不等于托管、登录或 Git 写回验收。Tina 内部 react-final-form 的 React 19 peer 警告仍存在，管理 UI 兼容性待浏览器验收。
 
 ## 与 R2 的关系
 
 Tina 索引不需要 R2。R2 属于本项目选择的发布层，保存已经校验的版本化正文包、导航/搜索数据和图片。docs 发布器负责上传和激活；frontend 通过绑定读取，因而正文更新无需 frontend 构建。
 
-上线时发布器只需专用文档桶的 S3 `Object Read & Write`，不需账户管理员权限；frontend 不接收上传密钥。R2 的桶、凭证、CI 和正式发布本轮尚未配置。
+上线时发布器只需专用文档桶的 S3 `Object Read & Write`，不需账户管理员权限；frontend 不接收上传密钥。CI 代码已实现；R2 桶/凭证、Actions OIDC 身份和首次正式发布尚待接入，见 [发布操作](release-operations.md)。
 
 参考：[TinaCloud 初始化](https://tina.io/docs/tinacloud/overview)、[Tina 配置与环境变量](https://tina.io/docs/reference/config)、[CLI](https://tina.io/docs/cli-overview)、[R2 权限](https://developers.cloudflare.com/r2/api/tokens/)。

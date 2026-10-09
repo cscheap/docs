@@ -1,0 +1,22 @@
+---
+docId: "api.authentication"
+title: "认证"
+description: "需要认证的请求携带 Authorization: Bearer YOUR_API_KEY。"
+kind: "how-to"
+status: "ready"
+sources: ["api", "frontend"]
+translationOf: "api.authentication"
+sourceDigest: "sha256:029f71b4b140dcf6244fd7cf8e7a30a1f2bc5b67e8dbf09fd184788477ca5d5b"
+---
+
+## Bearer API 密钥
+
+需要认证的请求携带 `Authorization: Bearer YOUR_API_KEY`。验证真实邮箱后，在[设置](/docs/dashboard/api-keys)获取密钥。网站会话 Cookie 不能替代 API 密钥。
+
+把凭证放在服务器配置中，不要写入 URL、截图、共享示例或公开的浏览器代码。标为公开的目录接口无需密钥。
+
+## 密钥变更
+
+重新生成会替换当前有效密钥，并有五分钟冷却时间。生成后更新客户端配置。账号和密钥变更异步传播到 API，因此新密钥不一定立即可用。
+
+缺失或无效凭证返回 `401`；凭证有效但权限不足返回 `403`。点数不足是 `402`，属于不同问题。详见[认证排查](/docs/support/authentication)。
