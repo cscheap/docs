@@ -1,0 +1,24 @@
+{
+  "name": "@cscheap/docs",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "cms:dev": "node scripts/tina.mjs dev --noTelemetry",
+    "cms:build": "node scripts/tina.mjs build --noTelemetry",
+    "cms:build:local": "node scripts/tina.mjs build --local --skip-cloud-checks --noTelemetry",
+    "cms:check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "tinacms": "3.14.3"
+  },
+  "devDependencies": {
+    "@tinacms/cli": "4.0.1",
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}

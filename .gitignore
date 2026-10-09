@@ -1,0 +1,14 @@
+# Generated content and local checkouts
+.cache/
+dist/
+.source/
+node_modules/
+.next/
+public/admin/
+tina/__generated__/
+
+# Local credentials and editor state
+.env
+.env.*
+!.env.example
+.DS_Store
