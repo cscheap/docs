@@ -7,7 +7,7 @@ AI 在 `content/en/` 修改正文，并同步 `zh-CN` 与 `ru` 的实际翻译�
 3. 页面移动保留 docId，更新 navigation.json、内部引用与 redirects.json。生成 API 页通过 `npm run api:generate` 更新。
 4. 运行 `npm run check`。本地预览包用全零 docsCommit，不具备发布资格。
 5. 在 docs PR 中一起提交该行为涉及的正文、译文、基线和导航；独立变化使用独立 PR。
-6. master 上的固定 SHA 经 CI 编译、上传、激活后，frontend 在后续请求中读取新内容。
+6. 合入 preview 后 CI 将该固定 SHA 编译并发布到预览桶；验收后合入 master 发布生产桶。frontend 后续请求读取其绑定桶的新内容。
 
 代码围栏支持语言及可选 `title="…"`。Callout 只接受字面量 `type="info"` 或 `type="warning"` 和可选 `title`。不允许 ESM、表达式、事件、原始 HTML、脚注或数学公式。
 

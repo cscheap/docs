@@ -31,62 +31,57 @@ Python 使用该 API 的已安装依赖，但代码来自 baselines/api.json 的
 
 openapi/ 保存审核后的三语投影和来源摘要；content/*/api/reference/ 与 assets/openapi-*.json 都由生成器生成。不要手工编辑这些生成页。CI 从本仓审核后的投影验证生成一致性，不需要访问业务私有仓或数据库。
 
-## GitHub Actions
+## GitHub Actions 与分支
 
-- PR：只读代码权限，安装锁定依赖，运行 check，上传本地预览 artifact；不取得生产 secret，也不请求 OIDC。
-- master：完成同样校验；仓库变量 `CSCHEAP_DOCS_PUBLISH_ENABLED=true` 后，进入生产环境激活任务，从事件 SHA 编译正式产物。
-- 手动发布：在 master 上选择 publish 与 staging 或 production；不受自动发布开关限制，因此开关为 false 时可以先验证 staging。staging 对应 Infisical staging，production 对应 prod。
-- 回滚：同一 workflow 选择 rollback、目标环境及完整 releaseId。仅接受已激活的历史版本。
-- 所有环境的激活/回滚共用 `cscheap-docs-activation`，cancel-in-progress=false。串行不等于 FIFO，代码在激活前重新 fetch master 并核验祖先关系；旧任务跳过。
+| 来源 | 动作 | 固定目标 |
+| --- | --- | --- |
+| PR | check 与本地预览 artifact，不读取发布凭证 | 无 |
+| push 到 preview | check 通过后从事件 SHA 构建、上传并激活 | preview-cscheap-docs |
+| push 到 master | check 通过后从事件 SHA 构建、上传并激活 | cscheap-docs |
+| 手动 publish / rollback | 使用 Run workflow 的分支选择器，只接受 preview / master | 对应分支的固定桶 |
 
-正常提交、合并只发生在 docs 仓；没有跨仓聚合 PR、frontend dispatch、frontend 构建或 revalidation 请求。提交同一行为涉及的内容、基线、译文和导航时，它们组成一个发布快照；独立变化仍使用独立 PR。
+没有额外发布开关、环境选择输入或 GitHub Environment。首次向两个分支推送本工作流即会尝试自动发布，三项仓库 Secrets 必须已就绪。
 
-## 凭证与环境
+每个分支的激活与回滚共用 `cscheap-docs-activation-<branch>`，cancel-in-progress=false。两个桶可独立推进。串行不等于 FIFO；激活前重新 fetch 对应分支，核对最新 SHA 与当前发布的祖先关系，过时任务跳过。
 
-R2 使用不同的 staging/prod 专用桶。staging 为 `preview-cscheap-docs`，prod 为 `cscheap-docs`。用户暂授权两环境共用一组对象读写凭证；publisher 还检查环境与桶名配对。以下键放在 Infisical steammarket 项目对应环境 `/cscheap/docs`：
+日常将独立 docs PR 合入 preview，完成预览验收后将 preview 合入 master。两分支不自动互相同步；生产热修复后将 master 合回 preview。保持历史连续，避免重建或强推长期发布分支。合并提交的 SHA 可以不同，因此生产发布会有自己的 docsCommit / releaseId，即使正文与预览一致。
 
-| 键 | 内容 |
+没有跨仓聚合 PR、frontend dispatch、frontend 构建或 revalidation 请求。内容、基线、译文与导航在同一提交中组成一个发布快照。
+
+## 三项仓库 Secrets
+
+在 **cscheap/docs → Settings → Secrets and variables → Actions → Repository secrets** 配置：
+
+| 名称 | 值的来源 |
 | --- | --- |
-| CSCHEAP_DOCS_R2_ACCOUNT_ID | Cloudflare 账号 ID |
-| CSCHEAP_DOCS_R2_BUCKET | 本环境文档桶名 |
-| CSCHEAP_DOCS_R2_ACCESS_KEY_ID | S3 Access Key ID，暂共用两文档桶凭证 |
-| CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY | 对应 Secret Access Key |
+| CSCHEAP_DOCS_R2_ACCOUNT_ID | Cloudflare Account ID，32 位十六进制账号标识 |
+| CSCHEAP_DOCS_R2_ACCESS_KEY_ID | R2 S3 Access Key ID |
+| CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY | 与上述 Access Key 配对的 S3 Secret Access Key |
 
-R2 需要文档桶 Object Read & Write；发布器不创建桶，不读取其他桶，不管理 DNS/Workers。frontend 仅增加 `CSCHEAP_DOCS_BUCKET` 原生 binding，不接收 S3 secret。2026-10-10 两个桶均已存在，用户凭证在两边的临时对象写入、读回与删除验证通过。三个环境的旧编辑变量已清理，dev 不放线上发布写凭证。
+Account ID 不是 Cloudflare API token。发布器使用 S3 API，不需要 `cfut_...` API token。桶名在 `scripts/deployment.mjs` 写死，`CSCHEAP_DOCS_R2_BUCKET`、`CSCHEAP_DOCS_ENVIRONMENT` 与 `CSCHEAP_DOCS_PUBLISH_ENABLED` 均不再使用。
 
-## GitHub 构建变量与 Infisical
+无需建立 GitHub Environments 或 Actions Variables。若之前创建了这些配置，本工作流不读取它们；仓库 Secrets 中的三项名称必须与上表完全一致。
 
-沿用 frontend 已验证的构建期接入方式：Infisical 是权威来源，向 CI 手动配置最小变量集。既有部署记录指出 Infisical 服务器有来源 IP 白名单，云端构建机不能直接访问；不在发布任务中调用 Infisical，不新增 OIDC 或网络代理。
+R2 凭证需对两个文档桶有 Object Read & Write 权限，用户暂授权共用一组对象凭证。发布器不创建桶、不管理 DNS/Workers。frontend 只需 `CSCHEAP_DOCS_BUCKET` 原生 binding，preview 绑定预览桶，生产绑定生产桶，不接收 S3 secret。
 
-两环境在 Settings → Environments 建立，并只允许 master 部署。分别填写：
+## Infisical 的角色
 
-| GitHub 位置 | 名称 | staging | production |
-| --- | --- | --- | --- |
-| Environment Variable | CSCHEAP_DOCS_R2_ACCOUNT_ID | 对应 Infisical staging 值 | 对应 Infisical prod 值 |
-| Environment Variable | CSCHEAP_DOCS_R2_BUCKET | preview-cscheap-docs | cscheap-docs |
-| Environment Secret | CSCHEAP_DOCS_R2_ACCESS_KEY_ID | 对应 S3 Access Key ID | 暂与 staging 共用 |
-| Environment Secret | CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY | 对应 S3 Secret Access Key | 暂与 staging 共用 |
+沿用 frontend 既有构建期配置模式。Infisical steammarket 项目 staging / prod 环境 `/cscheap/docs` 保留凭证记录；CI 只使用用户配置的仓库 Secrets。既有 Infisical 来源 IP 白名单阻止云端 runner 直接访问，因此发布任务不连接 Infisical，也不新增 OIDC 或网络代理。
 
-仓库 Settings → Secrets and variables → Actions → Variables 另建 `CSCHEAP_DOCS_PUBLISH_ENABLED=false`。手动 staging 验收完成后改为 `true`，开启 master 自动生产发布。手动任务始终要求明确的环境及 master 来源，不受自动开关限制。
+既存 `CSCHEAP_DOCS_R2_BUCKET` 值仅作环境记录，实际发布映射以代码为准。轮换凭证时同步更新三项仓库 Secrets，并在 preview 手动 publish 验证；手动副本不会自动同步。本次分支改造不改 Infisical 或 frontend 既有 Cloudflare Workers Secret Sync。
 
-GitHub 不配置 Infisical 管理员密码、身份 ID、Client Secret 或 R2 API token 原值；发布器只用 S3 访问凭证。Infisical 中值变更/轮换后，必须同步更新对应 GitHub Environment。记录更新日期并手动发布验证，不能假定手动副本自动同步。
+## 首次启用与前端验收
 
-frontend 的既有 Cloudflare Workers Secret Sync 保持原状，docs 不复用它的目标；frontend 文档 reader 只需 R2 binding，不接收上传密钥。
-
-本机 Git SSH 推送能力不等于 GitHub 配置管理权限，上述 GitHub 设置由用户完成。今后若需要自动同步 GitHub Secrets，可单独配置 Infisical GitHub Secret Sync；本轮不引入新的账户授权。
-
-## 首次启用
-
-1. 确认 master 上待发布提交的 Documentation 校验通过，内容包为 v2 且 docsCommit 是该提交。
-2. 配置桶、Infisical secrets 和 GitHub Environment variables/secrets。CI 的发布开关缺省关闭；这是首次部署准备状态，正常使用时置 true 后 master 自动发布。
-3. 在 staging 执行 publish，核对读回摘要、完整资源、current/previous 与 published 记录。
-4. 前端 AI 完成既有 plan 的 reader/路由/搜索/SEO/E2E，在 staging 通过实际软导航与 R1→R2→R3 验证。
-5. 完成生产 binding 后发布 production。做一次仅正文修改，确认 frontend 不出现构建任务，下一次文档请求读取新 release。
+1. 确认三项仓库 Secrets 已配置，两个固定桶已存在。
+2. 推送 preview，等待 Documentation 的 validate / activate 成功；核对 bundle、资源、current/previous 和 published 记录。
+3. 将已验证变更合入 master，同样验证生产桶发布。内容包就绪不等于 frontend 已接入。
+4. 前端 AI 完成既有 plan 的 v2 reader、路由、搜索、SEO、R2 binding 与 E2E，在预览环境验证实际软导航和 R1→R2→R3。
+5. 前端生产接入后做一次仅正文修改，确认无需 frontend 构建即可读取新 release。
 
 ## 发布失败与回滚
 
-资源或 bundle 上传/校验失败：current 不变。激活前 master 已前进：旧任务返回 skipped-stale。重复激活同一 release：already-current，不改 previous。
+资源或 bundle 上传/校验失败：current 不变。激活前对应分支已前进：旧任务返回 skipped-stale。重复激活同一 release：already-current，不改 previous。
 
 指针成功但 published 标记失败：工作流失败时当前版本可能已切换。先检查指针，不把失败一律理解为“没有发布”；下一次激活会先修复 current/previous 的标记。上传但未激活的包没有历史读取资格。
 
-回滚使用历史 releaseId，由同一受控 workflow 激活整个内容包，原 current 变成 previous。首版不自动删除历史对象。若整个桶不可用，同桶 previous 不是灾备。
+回滚在 Actions → Documentation → Run workflow：选择 preview 或 master，mode=rollback，release 填该桶已激活过的完整 64 位 releaseId。回滚只调整所选桶的整个内容包，原 current 变成 previous，不改 Git 分支。之后该分支的新提交仍会自动发布；永久撤销内容应通过 Git revert。首版不自动删除历史对象；整个桶不可用时，同桶 previous 不是灾备。

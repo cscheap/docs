@@ -33,7 +33,7 @@ docs/
 ├── package.json                  # 内容编译工具，锁定实际验证版本
 ├── templates/page.mdx
 ├── scripts/                      # 校验、导出和发布检查
-├── .github/workflows/            # PR 校验与 master 内容发布
+├── .github/workflows/            # PR 校验与 preview / master 内容发布
 └── docs/                         # 维护设计，不作为用户正文加载
     ├── architecture/
     ├── decisions/

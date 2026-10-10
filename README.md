@@ -20,9 +20,9 @@ npm run docs:build     # 干净的已提交 checkout，生成真实 SHA 的正�
 
 ## 发布环境
 
-保留一个 `master` 发布分支。GitHub Environments `staging` / `production` 分别对应 R2 桶 `preview-cscheap-docs` / `cscheap-docs`。手动任务可选环境，启用自动发布后 master 更新生产。PR 校验不读取秘密；R2 凭证以 Infisical 为准，按既有构建模式复制到 GitHub Environment Secrets。
+`preview` 提交自动发布到 `preview-cscheap-docs`，`master` 提交自动发布到 `cscheap-docs`。桶名固定在代码中；CI 只读取三项仓库 Secrets，无需 GitHub Environment 或 Variables。PR 只校验；正常流程为独立 PR → preview 验收 → 合入 master。
 
-两桶与 S3 对象读写已验证；正式 CI 激活、GitHub Environment 接线和 frontend v2 reader 的端到端接入仍需联调。本地验证见[本轮记录](docs/references/validation-2026-10-10.md)，具体配置见[发布操作](docs/architecture/release-operations.md)，不能把本地预览视为线上版本。
+发布时 CI 从事件 SHA 构建正式包，并读回验证 R2 产物与指针；frontend v2 reader 的端到端接入另行验收。历史本地验证见[验证记录](docs/references/validation-2026-10-10.md)，配置与操作见[发布操作](docs/architecture/release-operations.md)。
 
 ## 阅读入口
 
@@ -36,6 +36,7 @@ npm run docs:build     # 干净的已提交 checkout，生成真实 SHA 的正�
 | [发布与回滚](docs/architecture/publishing.md) | 版本、激活、并发与前端读取 |
 | [发布操作](docs/architecture/release-operations.md) | GitHub 与 Infisical 配置 |
 | [贡献指南](CONTRIBUTING.md) | 事实来源与编写规范 |
-| [当前架构决策](docs/decisions/0004-drop-tina-fumadocs-toolchain.md) | v2 编译工具链选择 |
+| [编译工具链决策](docs/decisions/0004-drop-tina-fumadocs-toolchain.md) | v2 编译工具链选择 |
+| [分支发布决策](docs/decisions/0005-branch-based-r2-publication.md) | preview / master 与仓库 Secrets |
 
 对外目录仍为 get-started、concepts、guides、api、billing、dashboard、support。项目名称只用于维护责任与来源追踪。

@@ -31,6 +31,7 @@ v2 的受限正文树、编译期代码高亮和 structuredData 是一份可校�
 - [编辑流程](editing.md)
 - [内容发布](publishing.md)
 - [发布操作](release-operations.md)
-- [当前决策](../decisions/0004-drop-tina-fumadocs-toolchain.md)
+- [工具链决策](../decisions/0004-drop-tina-fumadocs-toolchain.md)
+- [分支发布决策](../decisions/0005-branch-based-r2-publication.md)
 
-147 页正文及其业务 SHA 基线保留。两桶和 S3 读写已验证；完整 Actions 发布与 frontend 接入需要在线验收。历史验证报告保留原时间点事实，不作为 v2 已上线的证明。
+147 页正文及其业务 SHA 基线保留。preview / master 分别发布到固定的 R2 桶；frontend 接入需要单独端到端验收。历史验证报告保留原时间点事实，不作为 frontend 已上线的证明。

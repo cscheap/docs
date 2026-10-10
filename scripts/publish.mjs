@@ -1,18 +1,20 @@
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { r2Store, validateTarget } from './r2-store.mjs';
+import { r2Store } from './r2-store.mjs';
+import { publicationTarget, refreshPublicationHead } from './deployment.mjs';
 import { activate, verifyBundle } from './publish-core.mjs';
 import { Digest, LIMITS } from '../contracts/schema.ts';
 import { digest } from './compile.mjs';
 
 let store;
 try {
-  // Deliberately no direct laptop publishing bypass: all writers share the workflow lock.
-  if(process.env.GITHUB_ACTIONS!=='true'||process.env.GITHUB_REPOSITORY!=='cscheap/docs'||process.env.GITHUB_REF!=='refs/heads/master')throw new Error('Publishing is restricted to the serialized master workflow');
+  // Deliberately no direct laptop publishing bypass: writers share each branch's lock.
+  const {branch,bucket}=publicationTarget();
   const git=(...args)=>execFileSync('git',args,{encoding:'utf8',timeout:20000}).trim();
   if(git('status','--porcelain'))throw new Error('Publishing requires a clean checkout');
+  if(process.env.GITHUB_SHA!==git('rev-parse','HEAD'))throw new Error('Checkout does not match workflow event SHA');
   const mode=process.env.DOCS_PUBLISH_MODE||'publish';
-  validateTarget();
+  if(!['publish','rollback'].includes(mode))throw new Error('Invalid activation mode');
   store=r2Store();
   let bytes,releaseId;
   if(mode==='rollback'){
@@ -27,12 +29,9 @@ try {
   const bundle=verifyBundle(bytes,releaseId),assetBytes=new Map();
   if(mode==='publish')for(const asset of Object.values(bundle.assets))assetBytes.set(asset.key,await readFile(`dist/${asset.key}`));
   const result=await activate({store,bytes,releaseId,assetBytes,mode,
-    head:async()=>{
-      git('fetch','--no-tags','origin','master');
-      return git('rev-parse','refs/remotes/origin/master');
-    },
+    head:async()=>refreshPublicationHead(branch),
     isAncestor:async(before,after)=>{try{git('merge-base','--is-ancestor',before,after);return true;}catch{return false;}},
   });
-  console.log(JSON.stringify(result));
+  console.log(JSON.stringify({branch,bucket,...result}));
 }catch(error){console.error(error instanceof Error?error.message.slice(0,1000):'Publication failed');process.exitCode=1;}
 finally{store?.close();}

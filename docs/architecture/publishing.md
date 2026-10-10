@@ -4,14 +4,16 @@
 
 ## 编辑与分支
 
-正文通过 Git 分支和 PR 编辑，master 是唯一发布来源；staging / production 是 GitHub Environments，不需要额外 preview 分支。两环境分别写 preview-cscheap-docs / cscheap-docs。
+正文通过独立 PR 合入 preview，自动发布到 preview-cscheap-docs；验收后将 preview 合入 master，自动发布到 cscheap-docs。两分支长期保留，不自动互相合并。生产修复若先合入 master，随后把 master 合回 preview，保持发布历史连续。
+
+桶名固定在 scripts/deployment.mjs，不使用环境变量或手动输入选择。两分支暂共用三项仓库 Secrets，不需要 GitHub Environment。preview 分支发布的也是带真实 docsCommit 的正式包；它与本地全零 SHA 的不可发布预览产物不同。
 
 ## CI 流程
 
 ```text
 独立 docs PR
   → 校验元数据、MDX、翻译摘要、导航、链接、资源、来源 SHA、公开 API 范围
-  → 合入 master
+  → 合入 preview（预览桶），验收后合入 master（生产桶）
   → checkout 本次事件完整 SHA
   → 离线解析/生成正文树 + 编译期高亮 + TOC + 树 + structuredData + 有效语言 + 基线
   → 上传不可变资源及内容包，读回并验证摘要/schema
@@ -33,7 +35,7 @@ PR 校验不拿生产写凭证。独立变化保持独立 PR，不自动把不�
 
 ## 并发、激活和回滚
 
-上传并验证完整产物后才切指针，任何前置失败保持旧版本。所有激活与回滚共用一个 GitHub Actions concurrency group，禁止第二个未受管的写入口。concurrency 不是 FIFO；激活前还需核对 master 目标和已发布 SHA 的祖先关系，旧任务/重跑不得覆盖新发布。回滚通过显式选择历史版本的同一串行流程。
+上传并验证完整产物后才切指针，任何前置失败保持旧版本。每个分支的激活与回滚共用该分支的 GitHub Actions concurrency group，两个桶互不阻塞，禁止第二个未受管的写入口。concurrency 不是 FIFO；激活前还需重新 fetch 对应分支并核对已发布 SHA 的祖先关系，旧任务/重跑不得覆盖新发布。回滚通过选定分支及该桶中已激活的历史版本执行，不允许跨桶回滚。
 
 R2 是 last-writer-wins，不能把对象存储当成自动去除乱序事件的服务。以后引入多写者前必须增加经过验证的条件更新/围栏。首版不自动删除历史 release，旧浏览器页面仍按其 release 搜索。显式版本读取仅允许 current/previous 或有历史激活记录的版本，不能通过猜测 hash 读取尚未激活的包；每次下一轮激活前补齐历史记录。
 
@@ -49,6 +51,6 @@ R2 是 last-writer-wins，不能把对象存储当成自动去除乱序事件的
 
 本地 PoC 已完成，完整前端改造 plan、接口和原始输出在 frontend `.ai/2026-10-09/docs-cms-runtime-poc/`。
 
-发布所需四个 R2 键在 Infisical 对应环境 `/cscheap/docs`。frontend 用原生 binding，不接收上传凭证。staging 与生产暂共用用户提供的对象读写凭证，桶名仍分离。
+CI 从仓库 Secrets 读取 R2 Account ID、S3 Access Key ID 和 S3 Secret Access Key。Infisical 对应环境 `/cscheap/docs` 保留凭证记录，CI 不在线连接 Infisical；轮换后同步更新仓库 Secrets。frontend 用原生 binding，不接收上传凭证。预览与生产暂共用对象读写凭证，桶名由代码按分支固定。
 
-前端改造交由用户安排的前端 AI。本仓 v2 编译器、CI、发布/回滚保持独立；GitHub 环境配置、正式激活及 frontend 接入仍需联调。操作见[发布操作](release-operations.md)，设计见[当前决策](../decisions/0004-drop-tina-fumadocs-toolchain.md)。
+前端改造交由用户安排的前端 AI。本仓 v2 编译器、CI、发布/回滚保持独立；R2 激活成功不代表 frontend 接入已完成。操作见[发布操作](release-operations.md)，设计见[工具链决策](../decisions/0004-drop-tina-fumadocs-toolchain.md)与[分支发布决策](../decisions/0005-branch-based-r2-publication.md)。

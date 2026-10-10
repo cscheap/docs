@@ -2,19 +2,14 @@ name: Documentation
 on:
   pull_request:
   push:
-    branches: [master]
+    branches: [preview, master]
   workflow_dispatch:
     inputs:
       mode:
         type: choice
         options: [publish, rollback]
         default: publish
-        description: Publish current master or restore a previously activated release
-      environment:
-        type: choice
-        options: [production, staging]
-        default: staging
-        description: Target bucket environment
+        description: Publish the selected branch or restore its previously activated release
       release:
         type: string
         description: Full 64-character release ID, required for rollback
@@ -41,21 +36,18 @@ jobs:
           retention-days: 7
   activate:
     needs: validate
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && (github.event_name == 'workflow_dispatch' || vars.CSCHEAP_DOCS_PUBLISH_ENABLED == 'true')
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/preview' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    environment: ${{ inputs.environment || 'production' }}
-    # All publish and rollback paths share this single writer lock. It is not FIFO.
+    # Publish and rollback share one writer lock per bucket. It is not FIFO.
     concurrency:
-      group: cscheap-docs-activation
+      group: cscheap-docs-activation-${{ github.ref_name }}
       cancel-in-progress: false
     permissions:
       contents: read
     env:
-      CSCHEAP_DOCS_ENVIRONMENT: ${{ inputs.environment == 'staging' && 'staging' || 'prod' }}
-      # Copy this minimal set from Infisical; hosted runners cannot reach its IP allowlist.
-      CSCHEAP_DOCS_R2_ACCOUNT_ID: ${{ vars.CSCHEAP_DOCS_R2_ACCOUNT_ID }}
-      CSCHEAP_DOCS_R2_BUCKET: ${{ vars.CSCHEAP_DOCS_R2_BUCKET }}
+      # Repository Secrets only. Bucket names are fixed in scripts/deployment.mjs.
+      CSCHEAP_DOCS_R2_ACCOUNT_ID: ${{ secrets.CSCHEAP_DOCS_R2_ACCOUNT_ID }}
       CSCHEAP_DOCS_R2_ACCESS_KEY_ID: ${{ secrets.CSCHEAP_DOCS_R2_ACCESS_KEY_ID }}
       CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY: ${{ secrets.CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY }}
       DOCS_PUBLISH_MODE: ${{ inputs.mode || 'publish' }}
@@ -65,7 +57,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-          # Read-only job token is used for fresh master checks by git fetch.
+          # Read-only job token is used to fetch the selected publication branch.
           persist-credentials: true
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
