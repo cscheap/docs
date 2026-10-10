@@ -1,5 +1,13 @@
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 
+// A shared S3 credential must not allow selecting the other environment by mistake.
+export function validateTarget(env=process.env) {
+  const environment=env.CSCHEAP_DOCS_ENVIRONMENT;
+  if(!['staging','prod'].includes(environment))throw new Error('Invalid deployment environment');
+  const expected=environment==='staging'?'preview-cscheap-docs':'cscheap-docs';
+  if(env.CSCHEAP_DOCS_R2_BUCKET!==expected)throw new Error('R2 bucket does not match the deployment environment');
+}
+
 export function r2Store(env=process.env) {
   const required=name=>{const value=env[name];if(!value)throw new Error(`Missing ${name}`);return value;};
   const account=required('CSCHEAP_DOCS_R2_ACCOUNT_ID');

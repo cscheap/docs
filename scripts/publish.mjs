@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
-import { r2Store } from './r2-store.mjs';
+import { r2Store, validateTarget } from './r2-store.mjs';
 import { activate, verifyBundle } from './publish-core.mjs';
 import { Digest, LIMITS } from '../contracts/schema.ts';
 import { digest } from './compile.mjs';
@@ -12,6 +12,7 @@ try {
   const git=(...args)=>execFileSync('git',args,{encoding:'utf8',timeout:20000}).trim();
   if(git('status','--porcelain'))throw new Error('Publishing requires a clean checkout');
   const mode=process.env.DOCS_PUBLISH_MODE||'publish';
+  validateTarget();
   store=r2Store();
   let bytes,releaseId;
   if(mode==='rollback'){

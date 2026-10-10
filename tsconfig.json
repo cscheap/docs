@@ -12,7 +12,6 @@
     "allowImportingTsExtensions": true
   },
   "include": [
-    "tina/config.ts",
     "contracts/**/*.ts"
   ]
 }

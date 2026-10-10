@@ -41,7 +41,7 @@ jobs:
           retention-days: 7
   activate:
     needs: validate
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && vars.CSCHEAP_DOCS_PUBLISH_ENABLED == 'true'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master' && (github.event_name == 'workflow_dispatch' || vars.CSCHEAP_DOCS_PUBLISH_ENABLED == 'true')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     environment: ${{ inputs.environment || 'production' }}
@@ -51,10 +51,13 @@ jobs:
       cancel-in-progress: false
     permissions:
       contents: read
-      id-token: write
     env:
       CSCHEAP_DOCS_ENVIRONMENT: ${{ inputs.environment == 'staging' && 'staging' || 'prod' }}
-      CSCHEAP_DOCS_INFISICAL_IDENTITY_ID: ${{ vars.CSCHEAP_DOCS_INFISICAL_IDENTITY_ID }}
+      # Copy this minimal set from Infisical; hosted runners cannot reach its IP allowlist.
+      CSCHEAP_DOCS_R2_ACCOUNT_ID: ${{ vars.CSCHEAP_DOCS_R2_ACCOUNT_ID }}
+      CSCHEAP_DOCS_R2_BUCKET: ${{ vars.CSCHEAP_DOCS_R2_BUCKET }}
+      CSCHEAP_DOCS_R2_ACCESS_KEY_ID: ${{ secrets.CSCHEAP_DOCS_R2_ACCESS_KEY_ID }}
+      CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY: ${{ secrets.CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY }}
       DOCS_PUBLISH_MODE: ${{ inputs.mode || 'publish' }}
       DOCS_ROLLBACK_RELEASE: ${{ inputs.release }}
     steps:
@@ -71,4 +74,4 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - if: env.DOCS_PUBLISH_MODE == 'publish'
         run: npm run docs:build
-      - run: node scripts/with-secrets.mjs publish
+      - run: node scripts/publish.mjs

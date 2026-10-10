@@ -1,8 +1,6 @@
-# 内容契约
+# 内容契约 v2
 
-本文件定义项目内容契约 v1。全部正文在 docs 中维护，CMS 保存可重建的索引；frontend 读取已发布的结构化内容。发布侧校验已实现于 scripts/compile.mjs，精确类型由 contracts/schema.ts 提供；frontend 的运行时适配由其 AI 实施。
-
-Tina GraphQL 保留 `id` 字段，实际样例验证后将页面稳定标识定为 `docId`。不能直接登记同名 `id` 字段。
+精确契约位于 `contracts/schema.ts`，导出 `BundleV2`、`PageV2`、`BodyNode`、`PointerV1`，保持 `zod/v3` 兼容入口。Git 是正文来源，前端只读取通过契约验证的 R2 纯数据包。
 
 ## 页面格式
 
@@ -33,39 +31,34 @@ sources:
 
 页面路径与 ID 分离，移动页面保留 docId 并添加重定向。项目来源由 sources 关联 baselines/；不能把一次 SHA 更新当成所有相关页面已自动复核。
 
-## MDX 组件边界
+## 编译与正文边界
 
-docs 发布器使用 TinaCMS 的解析器把固定 Git SHA 的正文编译为结构化节点。它要求组件在 schema 中登记为 template，并在 frontend 的渲染映射中提供实现。
+解析使用 unified 11 / remark-parse 11 / remark-gfm 4 / remark-mdx 3；Fumadocs 16.7.9 的 remarkHeading 与 remarkStructure 生成 TOC、标题 ID 和 structuredData。Shiki 4.2.0 在编译时使用 github-light / github-dark 双主题高亮，不把高亮工作留给前端请求。
 
-允许的内容是基本 Markdown、表格、代码块及登记组件，首版从已验证的 Callout 开始；Steps、FeeExample 等在加入 schema 和渲染器并验证后启用。组件名称、属性类型和默认值属于版本化契约。
+Bundle 的 `schemaVersion` 与 `rendererContract` 均为 2；compiler 记录 `version`、实际依赖版本 `toolchain` 和 `themes`，它们是信息字段，不作为前端兼容闸门。Pointer 与 Published 的 schemaVersion 仍为 1。
 
-正文不写 import / export、事件处理器、任意 JavaScript 函数或 frontend 内部路径。不从 CMS 获取 JavaScript 字符串后在 Worker 请求中执行。
+正文树只允许四种节点：
 
-| 变化 | 是否需要 frontend 部署 |
-| --- | --- |
-| 修改文字、翻译、顺序、已有页面 | 否 |
-| 新增、移动或删除内容页 | 否，动态路由和导航必须支持 |
-| 使用已注册组件、修改其合法属性 | 否 |
-| 新增组件实现或改变属性契约 | 是，先部署兼容实现再发布内容 |
-| 纯 CMS 配置或索引维护 | 视 schema 兼容性决定，不承诺永远无需应用变更 |
+- Text：`{ type: 'text', value }`。
+- Element：受限 hast 形状，允许基本 Markdown、h2–h6、列表和表格。属性按标签严格校验；标题必须有 id，链接只有 href/title，图片只有 src/alt/title。
+- CodeBlock：语言、可选 title、最多 64 项双主题颜色调色板及 `[文本, 颜色下标]` 行 token；`-1` 代表无色，拼接后保留原始代码文本。未知语言作为 text 输出并记录 warning。
+- Component：仅 Callout，属性只允许字面量 type（info / warning）和可选 title；内容位于 children，不重复存储。
 
-Tina 的 MDX 模型与任意可执行 MDX 不等价。内容初始化前用实际解析器验证表格、代码块、链接、标题、嵌套列表和组件能往返保存。
+节点最大深度 64；不保留 position、空 properties 或块元素间的纯空白。颜色严格限定十六进制值，任意标签、事件、style/className、外部图片均拒绝。ESM、MDX 表达式、原始 HTML、H1、任务列表、脚注、数学语法同样拒绝。
 
-## Fumadocs 适配
+代码围栏只支持 `title="…"` 元数据。标题 ID 直接使用 Fumadocs 的 github-slugger 结果，包括重复标题编号；自定义 `[#id]` 必须合法且唯一。TOC 来自同一插件结果。
 
-保留 DocsLayout、DocsPage、侧栏及外层网站导航；替换本地 docs.toFumadocsSource() 的内容依赖。
+每页 `structuredData` 包含 `headings: {id, content}[]` 和 `contents: {heading?, content}[]`，由 remarkStructure 默认选项生成。没有顶层 search 数据副本；frontend 按当前包的 structuredData 建立搜索索引。
 
-正文通过 StaticTinaMarkdown 或等价节点适配器渲染；标题与锚点、TOC、页内跳转和搜索文本从同一结构化正文生成。代码高亮、图片和自定义组件统一走 frontend 组件映射。
-
-不要求所有内容都通过 Fumadocs 的本地 MDX 编译器。客户 API 参考可由固定 OpenAPI 数据和已登记 API 组件显示，不直接把含 ESM import 的生成 MDX 当成 Tina 正文。
+新增组件、节点或不兼容属性变化需先部署 frontend；正文或已注册属性变化无需应用部署。前端用节点白名单映射至现有 React 组件，绝不执行内容中的代码或 HTML 字符串。
 
 ## 链接与资源
 
-内部文档链接使用 /docs/<slug>，渲染器统一添加当前 locale。页面真实地址保持 /{locale}/docs/...。跨页锚点使用稳定规则，TOC 与标题渲染共用相同算法。
+源码内部链接使用 `/docs/<slug>` 或显式语言路径。编译期校验目标和锚点并输出最终 `/{locale}/docs[/slug][#id]`；目标缺译或过期时直接写入英文路径。同页 `#id` 必须命中 TOC；介绍页规范路径是 `/{locale}/docs`，前端不再改写文档链接。
 
-资源在 Git 的 assets/ 中保存，以 `/assets/<filename>` 引用。首版文件名只允许字母、数字、点、下划线和短横线，支持 JSON、PNG、JPEG、WebP；SVG 和远程图片暂不接受。编译器仅把有效发布页面引用的资源加入 allowlist，发布到摘要对象键，由前端按 releaseId 读取。不复制到 frontend/public，也不依赖 CMS 媒体 CDN。首批只有三个 OpenAPI JSON 下载文件。
+资源在 Git 的 assets/ 中保存，以 `/assets/<filename>` 引用。首版文件名只允许字母、数字、点、下划线和短横线，支持 JSON、PNG、JPEG、WebP；SVG 和远程图片暂不接受。编译器仅把有效发布页面引用的资源加入 allowlist，发布到摘要对象键，由前端按 releaseId 读取。不复制到 frontend/public。首批只有三个 OpenAPI JSON 下载文件。
 
-“编辑此页”指向 docs 原始文件。模板与维护设计不作为 CMS 用户正文集合。
+资源逻辑路径保留 `/assets/<file>`，前端按当前 releaseId 改写为 `/api/docs/assets/<releaseId>/<file>`；只能读取包中登记的资源。“编辑此页”指向 docs 原始文件，模板和维护设计不进入用户正文。
 
 ## 多语言
 
@@ -85,4 +78,4 @@ API 字段和结构来自 baselines/api.json 锁定 SHA 的公开导出。在初
 
 正文状态、导航和来源复核共同决定可发布集合。草稿不进入正文 API 的公开投影、导航、搜索或 sitemap，不能仅靠侧栏隐藏。
 
-正文、TOC、页面树、搜索、语言映射与基线信息需要共同版本标识；发布一致性不是 CMS 存在就自动满足，具体流程见 publishing.md。
+正文、TOC、页面树、搜索、语言映射与基线信息需要共同版本标识；包原始 UTF-8 字节的 SHA256 是 releaseId；指针 16 KiB、单页 256 KiB、包 8 MiB、资源 5 MiB 的硬上限保持不变，具体流程见 publishing.md。

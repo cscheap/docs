@@ -1,5 +1,7 @@
 # Git 正文与 CMS 动态读取
 
+TinaCMS 相关部分已由 [0004](0004-drop-tina-fumadocs-toolchain.md) 取代，以下正文保留历史决策。
+
 状态：Git/CMS 方向保留；直接内容 API 与双仓接入候选已由 [0003](0003-cms-editor-and-immutable-publication.md) 根据本地验证结果细化替代。以下保留当时的候选评估，不作为当前实施要求。
 
 ## 用户约束

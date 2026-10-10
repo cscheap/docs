@@ -1,46 +1,36 @@
 # 文档架构
 
-用户已确定：由一个 AI 统一读取四个项目并维护 docs 正文；保留 frontend 文档页面，接受前端改造，以 CMS 内容更新实现免整站重建发布。英文为主，中文和俄文翻译。
-
-技术方向为 **Git + TinaCMS 编辑 + R2 版本化发布 + Fumadocs 展示层**。本地解析与 workerd 渲染/发布切换已验证；TinaCloud 登录与 Git 写回、完整 Next/OpenNext 集成仍待实际接入。
+由一个 AI 读取四个项目的固定代码版本并维护 docs 正文。英文为主，中文和俄文为翻译。Git 保存权威正文，R2 保存版本化产物，frontend 保留 Fumadocs 文档页面并动态读取。
 
 ```mermaid
 flowchart LR
-    A[一个 AI 读取四项目固定代码版本] --> B[docs 正文与项目 SHA]
-    B --> C[固定 SHA 编译与发布检查]
-    C --> D[R2 不可变内容包与发布指针]
-    D --> E[frontend 动态读取]
-    E --> F[现有 Fumadocs 文档页面]
+    A[四项目固定 SHA] --> B[AI 编辑 docs MDX 与译文]
+    B --> C[PR 校验及固定 SHA 编译]
+    C --> D[R2 内容包与发布指针]
+    D --> E[frontend v2 reader]
+    E --> F[Fumadocs 页面及搜索]
 ```
-
-## 边界
 
 | 层 | 职责 |
 | --- | --- |
-| 四个业务项目 | 提供已核对的代码事实；首版无自动文档同步任务 |
-| docs | 所有正文、导航、翻译、资源、基线、CMS schema、编译和发布 |
-| CMS | Git 编辑和可视化后台；实时索引不作为生产发布依赖 |
-| frontend | 路由、布局、结构化正文渲染、组件、目录、搜索与缓存 |
+| 业务项目 | 已核对的代码事实，不执行跨仓文档自动合并 |
+| docs | 正文、导航、翻译、资源、基线、Fumadocs/Shiki 编译、发布与回滚 |
+| R2 | 不可变内容包、资源、历史激活记录与 current/previous 指针 |
+| frontend | 请求范围内一致的路由、正文、导航、搜索、SEO 和缓存 |
 
-保留 /{locale}/docs/... 与现有 introduction 地址。法律页、博客、白皮书和产品 changelog 不纳入本次 CMS 迁移。
+保留 `/{locale}/docs/...`，介绍页规范地址为 `/{locale}/docs`。法律页、博客、白皮书和产品 changelog 继续使用现有内容来源。
 
-前端需要一次内容接入改造；文字、导航、译文、已有组件参数变化之后无需重新构建前端。新增组件、修改其代码或不兼容的内容模型仍需部署应用。
+v2 的受限正文树、编译期代码高亮和 structuredData 是一份可校验的纯数据包。前端读取不依赖在线内容索引，不在 Worker 请求中编译 Markdown 或执行 JavaScript。
 
-## 文件
+普通文字、导航、译文和已有组件参数变更无需重新构建 frontend。新增组件、改变属性契约或升级 rendererContract 需要先部署应用。
 
 - [首版范围](v1-scope.md)
 - [仓库目录](repository-layout.md)
 - [用户目录](information-architecture.md)
-- [内容契约](content-contract.md)
-- [CMS 与发布](publishing.md)
-- [CMS 初始化与凭证配置](cms-setup.md)
-- [当前决策](../decisions/0003-cms-editor-and-immutable-publication.md)
-- [官方参考](../references/2026-10-09.md)
+- [内容契约 v2](content-contract.md)
+- [编辑流程](editing.md)
+- [内容发布](publishing.md)
+- [发布操作](release-operations.md)
+- [当前决策](../decisions/0004-drop-tina-fumadocs-toolchain.md)
 
-## 当前进度
-
-已完成 49 个主题的三语正文、四项目事实复核、固定 API 导出、编译与发布/回滚实现。`npm run check` 验证正文、类型、生成一致性和发布合同，详见 [验证记录](../references/validation-2026-10-09.md)。
-
-Tina 初始化已推送 master（234884d），云端集合及字段查询通过。正文与 CI 已纳入本仓，发布开关尚未启用；CMS 登录/写回、R2 staging/prod、frontend 代码接入仍待线上实施。凭证与步骤见 [发布操作](release-operations.md)。
-
-前端计划第 2 轮评审通过；本地交接证据新增实际 schema、完整内容包样例与 writer 验证记录，原 19 个前端验收用例仍需前端 AI 完成。本地 watcher 曾未通过，因此正式编译始终读取固定 Git 文件字节，不依赖移动 CMS 索引。
+147 页正文及其业务 SHA 基线保留。两桶和 S3 读写已验证；完整 Actions 发布与 frontend 接入需要在线验收。历史验证报告保留原时间点事实，不作为 v2 已上线的证明。

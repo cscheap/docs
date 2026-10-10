@@ -60,7 +60,7 @@ test('corrupt immutable object is never overwritten and pointer is untouched',as
 test('preview commits, unknown schemas and changed bytes cannot be published',()=>{
   assert.throws(()=>verifyBundle(source.bytes,source.releaseId),/preview/);
   const r=release(1);assert.throws(()=>verifyBundle(Buffer.concat([r.bytes,Buffer.from(' ')]),r.releaseId),/digest/);
-  const bytes=encode({...r.bundle,schemaVersion:2});assert.throws(()=>verifyBundle(bytes,digest(bytes)));
+  for(const version of [1,3]){const bytes=encode({...r.bundle,schemaVersion:version});assert.throws(()=>verifyBundle(bytes,digest(bytes)));}
 });
 test('oversized pointer is rejected before JSON parsing',()=>assert.throws(()=>decode(Buffer.alloc(LIMITS.pointer+1),Pointer,LIMITS.pointer),/oversized/));
 test('missing asset blocks rollback and cannot silently mix assets from another release',async()=>{

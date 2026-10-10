@@ -34,12 +34,10 @@
 - 图片写 alt，代码块标语言，示例使用占位凭据。
 - 使用[页面模板](templates/page.mdx)，语法见[内容契约](docs/architecture/content-contract.md)。
 
-## CMS 与编辑入口
+## 编辑入口
 
-首版 AI 直接编辑 Git 文件；引入 CMS 不强制人工使用可视化编辑器。以后从 CMS 编辑时，也必须落回同一 docs 仓库的分支与评审流程。
+AI 直接编辑 MDX 并通过 docs PR 评审。“编辑此页”链接本仓原始正文。生成的 API 参考改其 schema / 生成配置，不编辑生成结果；R2 包与前端缓存都不是正文权威源。
 
-“编辑此页”链接本仓原始正文。生成的 API 参考改其 schema / 生成配置，不编辑生成结果。CMS 索引和前端缓存都不是正文权威源。
-
-修改后运行 `npm run check`。源码与生成结果的维护步骤见[发布操作](docs/architecture/release-operations.md)。TinaCloud schema 查询已验证；编辑器登录和写回仍需线上验收。CI 配置已实现，凭证配置完成后才启用发布。
+修改后运行 `npm run check`。维护步骤见[编辑流程](docs/architecture/editing.md)与[发布操作](docs/architecture/release-operations.md)。不需要可视化后台或内容索引服务。
 
 译文修改不能只机械更新 sourceDigest。必须先按新英文复核语义，再计算整份英文 UTF-8/LF 文件摘要并写入对应译文。过期译文在构建中排除并报告，不以失败的翻译阻止其他已复核语言发布。

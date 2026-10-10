@@ -1,6 +1,6 @@
 # 仓库目录
 
-正文集中在 docs。以下为首版已建立的布局。dist 和 public/admin 是生成结果，.cache 是本地证据与临时输入；均不提交。
+正文集中在 docs。以下为首版已建立的布局。dist 是生成结果，.cache 是本地证据与临时输入；均不提交。
 
 ```text
 docs/
@@ -30,13 +30,11 @@ docs/
 ├── contracts/schema.ts           # 严格 Zod AST、内容包与指针契约
 ├── tests/                        # 编译、渲染、发布失败/乱序/回滚合同测试
 ├── dist/                         # 编译预览/正式发布产物，不提交
-├── tina/                         # CMS schema 与已提交的 tina-lock.json
-├── package.json                  # CMS/内容编译工具，锁定实际验证版本
-├── public/admin/                 # 生成的独立管理后台，不提交构建产物
+├── package.json                  # 内容编译工具，锁定实际验证版本
 ├── templates/page.mdx
 ├── scripts/                      # 校验、导出和发布检查
 ├── .github/workflows/            # PR 校验与 master 内容发布
-└── docs/                         # 维护设计；CMS 不作为用户正文加载
+└── docs/                         # 维护设计，不作为用户正文加载
     ├── architecture/
     ├── decisions/
     └── references/
@@ -44,11 +42,11 @@ docs/
 
 早期 sources.lock.json / 上游正文缓存 / frontend 内容包锁不再属于首版方案。baselines 保存代码事实来源，不驱动跨仓内容拉取。
 
-## TinaCMS 与 frontend
+## 编译器与 frontend
 
-小规模验证后的首版选择：CMS 配置、管理后台与内容编译器均放在 docs；TinaCloud 默认只绑定 docs 一个仓库。前端仅保存 reader、Zod 契约和组件实现，不承担 CMS schema 生成或编辑后台构建。管理后台可独立托管，不是第二个对外文档站。
+`content/` 是唯一正文目录。`scripts/mdx.mjs` 使用 Fumadocs 的标题/搜索插件及 Shiki 编译正文，`scripts/compile.mjs` 校验来源、翻译、导航、链接和资源并组装发布包。`docs/`、`baselines/` 与模板不作为正文加载。
 
-`content/` 是 Tina 正文集合，`docs/`、`baselines/` 与模板不作为正文加载。CMS 中应登记所有需要往返保存的正文元数据。仅正文变化执行数据编译发布；CMS 配置变化才构建后台，frontend renderer 变化才部署应用。
+frontend 仅保存 reader、同一 Zod v2 契约与组件实现，不在请求中编译 MDX 或运行 Shiki。内容修改只编译数据包，renderer 代码或契约变化才部署应用。
 
 frontend 目标变化范围：
 

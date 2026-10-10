@@ -2,11 +2,8 @@ import { readFile, readdir, lstat } from 'node:fs/promises';
 import { resolve, basename, extname } from 'node:path';
 import { createHash } from 'node:crypto';
 import { parseDocument } from 'yaml';
-import { parseMDX } from '@tinacms/mdx';
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
-import remarkMdx from 'remark-mdx';
-import remarkGfm from 'remark-gfm';
+import { compileBody, syntaxCheck, visit, toolchain, themes } from './mdx.mjs';
+export { syntaxCheck };
 import { Baseline, Bundle, Frontmatter, LIMITS, Slug, safeUrl } from '../contracts/schema.ts';
 
 export const locales=['en','zh-CN','ru'];
@@ -17,53 +14,8 @@ export function stable(value) {
   return value;
 }
 export const encode = value => Buffer.from(JSON.stringify(stable(value))+'\n');
-export function plain(node) {
-  if (Array.isArray(node)) return node.map(plain).join(' ');
-  if (!node) return '';
-  if (typeof node.text==='string') return node.text;
-  if (node.type==='code_block') return node.value;
-  return [plain(node.children),plain(node.props?.children)].filter(Boolean).join(' ');
-}
-export function walk(node,fn,depth=0) {
-  if(depth>64) throw new Error('AST nesting exceeds 64');
-  fn(node);
-  for(const child of node.children??[]) walk(child,fn,depth+1);
-  if(node.props?.children) walk(node.props.children,fn,depth+1);
-}
+export const walk=visit;
 export function pageUrl(locale,slug) { return `/${locale}/docs${slug==='get-started/introduction'?'':`/${slug}`}`; }
-const processor=unified().use(remarkParse).use(remarkGfm).use(remarkMdx);
-const allowedSyntax=new Set(['root','paragraph','text','heading','emphasis','strong','delete','inlineCode','code','blockquote','list','listItem','thematicBreak','break','link','image','definition','linkReference','imageReference','table','tableRow','tableCell','mdxJsxFlowElement']);
-export function syntaxCheck(body) {
-  const tree=processor.parse(body);
-  function visit(node,depth=0) {
-    if(depth>64 || !allowedSyntax.has(node.type)) throw new Error(`Unsupported MDX syntax: ${node.type}`);
-    if(node.type==='heading' && node.depth===1) throw new Error('H1 comes from frontmatter');
-    if(node.type==='listItem' && node.checked!=null) throw new Error('Task lists are not in renderer contract 1');
-    if(node.url && !safeUrl(node.url)) throw new Error('Unsafe URL');
-    if(node.type==='image' && !node.url.startsWith('/assets/')) throw new Error('Images must use repository assets');
-    if(node.type==='mdxJsxFlowElement') {
-      if(node.name!=='Callout' || node.attributes.length!==1) throw new Error('Unknown component or props');
-      const attr=node.attributes[0];
-      if(attr.type!=='mdxJsxAttribute' || attr.name!=='type' || !['info','warning'].includes(attr.value)) throw new Error('Callout requires a literal info/warning type');
-    }
-    for(const child of node.children??[]) visit(child,depth+1);
-  }
-  visit(tree);
-}
-function headings(body) {
-  const used=new Set(),toc=[];
-  walk(body,node=>{
-    // Tina omits the discriminator on code-line leaves. Normalize it once for
-    // an O(n) discriminated runtime validator instead of backtracking unions.
-    if(typeof node.text==='string' && node.type===undefined)node.type='text';
-    if(!/^h[2-6]$/.test(node.type??'')) return;
-    const title=plain(node.children).trim();
-    const base=title.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu,'').trim().replace(/\s+/gu,'-')||'section';
-    let id=base,n=0;while(used.has(id))id=`${base}-${++n}`;used.add(id);node.id=id;
-    toc.push({title,url:`#${id}`,depth:Number(node.type[1])});
-  });
-  return toc;
-}
 async function files(dir) {
   const found=[];
   for(const entry of (await readdir(dir,{withFileTypes:true})).sort((a,b)=>a.name<b.name?-1:1)) {
@@ -82,8 +34,6 @@ async function textFile(path,limit=LIMITS.page) {
 }
 export async function compile({root=process.cwd(),docsCommit='0'.repeat(40)}={}) {
   const json=async path=>JSON.parse(await textFile(resolve(root,path),LIMITS.bundle));
-  const lock=await json('tina/tina-lock.json');
-  const bodyField=lock.schema.collections[0].fields.find(f=>f.name==='body');
   const baselines={};
   for(const project of ['spider','refinery','api','frontend']) {
     const base=Baseline.parse(await json(`baselines/${project}.json`));
@@ -101,9 +51,8 @@ export async function compile({root=process.cwd(),docsCommit='0'.repeat(40)}={})
     const meta=Frontmatter.parse(yaml.toJS({maxAliasCount:0}));
     if(locale==='en'&&(meta.translationOf||meta.sourceDigest))throw new Error('English cannot be a translation');
     if(locale!=='en'&&(!meta.translationOf||!meta.sourceDigest))throw new Error('Translation provenance required');
-    syntaxCheck(match[2]);
-    const body=parseMDX(match[2],bodyField,value=>value),toc=headings(body);
-    all.push({locale,slug,raw,meta,body,toc});
+    const {body,toc,structuredData}=await compileBody(match[2],warnings);
+    all.push({locale,slug,raw,meta,body,toc,structuredData});
   }
   const seen=new Set(),canonical=new Map();
   for(const p of all) {
@@ -121,14 +70,14 @@ export async function compile({root=process.cwd(),docsCommit='0'.repeat(40)}={})
       if(JSON.stringify([...en.meta.sources].sort())!==JSON.stringify([...p.meta.sources].sort()))throw new Error('Translation sources differ');
     }
     const {docId,title,description,status,sources,sourceDigest}=p.meta;
-    const page={docId,locale:p.locale,slug:p.slug,title,description,status,sources,body:p.body,toc:p.toc,...(sourceDigest?{sourceDigest}:{})};
+    const page={docId,locale:p.locale,slug:p.slug,title,description,status,sources,body:p.body,toc:p.toc,structuredData:p.structuredData,...(sourceDigest?{sourceDigest}:{})};
     if(encode(page).length>LIMITS.page)throw new Error(`Page exceeds byte limit: ${p.slug}`);
     pages.push(page);
   }
   pages.sort((a,b)=>`${a.locale}/${a.slug}`<`${b.locale}/${b.slug}`?-1:1);
   const byKey=new Map(pages.map(p=>[`${p.locale}:${p.slug}`,p]));
   const translations=Object.create(null);for(const p of pages)(translations[p.docId]??={})[p.locale]=p.slug;
-  const navigation=await json('navigation.json'),trees={},search={},redirects=[];
+  const navigation=await json('navigation.json'),trees={},redirects=[];
   if(navigation.schemaVersion!==1)throw new Error('Unknown navigation schema');
   const navSlugs=navigation.groups.flatMap(g=>g.pages);
   if(new Set(navSlugs).size!==navSlugs.length)throw new Error('Duplicate navigation entry');
@@ -138,12 +87,6 @@ export async function compile({root=process.cwd(),docsCommit='0'.repeat(40)}={})
     trees[locale]=navigation.groups.map(g=>({type:'folder',name:g.title[locale],children:g.pages.flatMap(slug=>{
       const p=byKey.get(`${locale}:${slug}`);return p?[{type:'page',key:`${locale}:${slug}`,name:p.title,url:pageUrl(locale,slug)}]:[];
     })})).filter(g=>g.children.length);
-    search[locale]=pages.filter(p=>p.locale===locale).flatMap(p=>{
-      const base={docId:p.docId,slug:p.slug,title:p.title};
-      const records=[{...base,url:pageUrl(locale,p.slug),text:plain(p.body),anchor:''}];
-      for(const h of p.toc) records.push({...base,title:`${p.title} — ${h.title}`,url:pageUrl(locale,p.slug)+h.url,text:h.title,anchor:h.url.slice(1)});
-      return records;
-    });
     const hasIntro=byKey.has(`${locale}:get-started/introduction`);
     redirects.push({locale,from:'get-started/introduction',to:'',toLocale:hasIntro?locale:'en',status:hasIntro?308:307});
     if(locale!=='en')for(const p of pages.filter(p=>p.locale==='en'&&p.slug!=='get-started/introduction'))if(!byKey.has(`${locale}:${p.slug}`))redirects.push({locale,from:p.slug,to:p.slug,toLocale:'en',status:307});
@@ -159,12 +102,15 @@ export async function compile({root=process.cwd(),docsCommit='0'.repeat(40)}={})
   if(assetDirectory.isSymbolicLink()||!assetDirectory.isDirectory())throw new Error('Assets must be a repository directory');
   for(const p of pages) {
     const links=[];walk(p.body,node=>{
-      // Check the resolved AST too: reference-style Markdown images have no
-      // URL on their syntax node and otherwise bypass the source-image rule.
-      if(node.type==='img'&&(!node.url.startsWith('/assets/')||!node.alt?.trim()))throw new Error('Images require repository assets and non-empty alt text');
-      if(node.url)links.push(node.url);
+      if(node.type!=='element')return;
+      const prop=node.tagName==='img'?'src':node.tagName==='a'?'href':null;
+      if(!prop)return;
+      const url=node.properties[prop];
+      if(!safeUrl(url))throw new Error('Unsafe URL');
+      if(node.tagName==='img'&&(!url.startsWith('/assets/')||!node.properties.alt?.trim()))throw new Error('Images require repository assets and non-empty alt text');
+      links.push({node,prop,url});
     });
-    for(const url of links) {
+    for(const {node,prop,url} of links) {
       if(url.startsWith('/assets/')) {
         if(!/^\/assets\/[a-zA-Z0-9._-]+$/.test(url))throw new Error('Invalid asset path');
         if(assets[url])continue;
@@ -184,12 +130,13 @@ export async function compile({root=process.cwd(),docsCommit='0'.repeat(40)}={})
         const locale=m?.[1]||p.locale,slug=m?(m[2]||'get-started/introduction'):p.slug;
         const linked=byKey.get(`${locale}:${slug}`)||byKey.get(`en:${slug}`);
         if(!linked)throw new Error(`Broken link ${p.locale}/${p.slug}: ${url}`);
-        if(target.hash&&!linked.toc.some(h=>h.url===decodeURI(target.hash)))throw new Error(`Broken anchor: ${url}`);
+        const anchor=target.hash?decodeURI(target.hash):'';
+        if(anchor&&!linked.toc.some(h=>h.url===anchor))throw new Error(`Broken anchor: ${url}`);
+        node.properties[prop]=url.startsWith('#')?anchor:pageUrl(linked.locale,linked.slug)+anchor;
       }
     }
   }
-  const schemaSource=await textFile(resolve(root,'contracts/schema.ts'),LIMITS.bundle);
-  const bundle=Bundle.parse({schemaVersion:1,rendererContract:1,docsCommit,compiler:{version:'1.0.0',parserVersion:'2.3.0',schemaDigest:digest(schemaSource+JSON.stringify(stable(bodyField)))},baselines,pages,trees,search,translations,redirects,assets});
+  const bundle=Bundle.parse({schemaVersion:2,rendererContract:2,docsCommit,compiler:{version:'2.0.0',toolchain,themes},baselines,pages,trees,translations,redirects,assets});
   const bytes=encode(bundle);if(bytes.length>LIMITS.bundle)throw new Error('Bundle exceeds byte limit');
   return {bundle,bytes,releaseId:digest(bytes),assetBytes,warnings};
 }

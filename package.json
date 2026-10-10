@@ -6,33 +6,27 @@
     "node": ">=22 <23"
   },
   "scripts": {
-    "cms:dev": "node scripts/tina.mjs dev --noTelemetry",
-    "cms:build": "node scripts/tina.mjs build --noTelemetry",
-    "cms:build:local": "node scripts/tina.mjs build --local --skip-cloud-checks --noTelemetry",
-    "cms:check": "tsc --noEmit",
     "api:generate": "node scripts/api-reference.mjs",
     "api:check": "node scripts/api-reference.mjs --check",
     "docs:check": "npm run api:check && node scripts/build.mjs",
     "docs:build": "node scripts/build.mjs --release",
     "test": "node --test tests/*.test.mjs",
-    "check": "npm run cms:check && npm run docs:check && npm test"
-  },
-  "dependencies": {
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "tinacms": "3.14.3"
+    "check": "npm run typecheck && npm run docs:check && npm test",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "3.1148.0",
-    "@tinacms/cli": "4.0.1",
-    "@tinacms/mdx": "2.3.0",
     "@types/node": "22.20.5",
-    "remark-gfm": "2.0.0",
-    "remark-mdx": "2.3.0",
-    "remark-parse": "10.0.2",
+    "remark-gfm": "4.0.1",
+    "remark-mdx": "3.1.1",
+    "remark-parse": "11.0.0",
     "typescript": "5.9.3",
-    "unified": "10.1.2",
+    "unified": "11.0.5",
     "yaml": "2.9.1",
-    "zod": "3.25.76"
+    "zod": "4.4.3",
+    "fumadocs-core": "16.7.9",
+    "shiki": "4.2.0",
+    "remark-rehype": "11.1.2",
+    "remark-math": "6.0.0"
   }
 }

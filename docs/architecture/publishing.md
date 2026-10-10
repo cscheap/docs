@@ -1,21 +1,19 @@
-# CMS 与内容发布
+# 内容发布
 
-首版流程为 **TinaCMS/AI → docs Git → 固定 SHA 内容编译 → R2 发布 → frontend 动态读取**。生产地址保持 `/{locale}/docs/...`，内容更新不触发 frontend 构建。
+首版流程为 **AI → docs Git → 固定 SHA 内容编译 → R2 发布 → frontend 动态读取**。生产地址保持 `/{locale}/docs/...`，内容更新不触发 frontend 构建。
 
-## CMS 的位置
+## 编辑与分支
 
-Tina 配置、schema 和独立管理后台位于 docs，默认一个 TinaCloud 项目绑定 `cscheap/docs`。正文集合仅包括 content；维护设计和模板不进入正文。CMS 把修改保存回 Git，生产阅读不直接依赖 CMS 的移动分支索引。
+正文通过 Git 分支和 PR 编辑，master 是唯一发布来源；staging / production 是 GitHub Environments，不需要额外 preview 分支。两环境分别写 preview-cscheap-docs / cscheap-docs。
 
-管理后台只在 schema 或编辑器代码变化时构建；它不是对外文档网站。首版由当前 AI 编辑文件的流程继续有效，线上 CMS 登录、Git 写回和权限需要实际账号验证。不得把本地 API 验证当作托管功能已经开通。
-
-## CI 流程（已实现，待接入凭证）
+## CI 流程
 
 ```text
 独立 docs PR
   → 校验元数据、MDX、翻译摘要、导航、链接、资源、来源 SHA、公开 API 范围
   → 合入 master
   → checkout 本次事件完整 SHA
-  → 离线解析/生成正文 AST + TOC + 树 + 搜索 + 有效语言 + 基线
+  → 离线解析/生成正文树 + 编译期高亮 + TOC + 树 + structuredData + 有效语言 + 基线
   → 上传不可变资源及内容包，读回并验证摘要/schema
   → 串行激活一个发布指针
   → frontend 后续请求读取已发布版本
@@ -27,7 +25,7 @@ PR 校验不拿生产写凭证。独立变化保持独立 PR，不自动把不�
 
 ## 版本契约
 
-内容包记录 schemaVersion、rendererContract、docsCommit、编译器/schema 版本、四项目 baselines，以及发布集合。包外 SHA256 为 releaseId，避免正文版本依赖 CMS 的索引时间。
+内容包记录 schemaVersion、rendererContract、docsCommit、编译器和实际工具链版本、四项目 baselines，以及发布集合。包外 SHA256 为 releaseId，直接关联包的确定字节。
 
 正文、导航、TOC、搜索、语言映射、重定向和资源索引由同一输入快照产生。ready/deprecated 且事实复核通过的页面可以发布；草稿、过期译文及未公开 API 不进入公共包。baselines 的 pending 不能因捕获 SHA 自动变成 reviewed。
 
@@ -41,7 +39,7 @@ R2 是 last-writer-wins，不能把对象存储当成自动去除乱序事件的
 
 ## frontend 读取
 
-前端通过 R2 binding 读取，不持有 docs CI 的上传 key 或 CMS 管理凭证。current 指针不走公共 CDN 缓存，每次服务端渲染在请求范围内选一次完整包，metadata/正文/页面树共用该快照；搜索与资源请求携带 releaseId。
+前端通过 R2 binding 读取，不持有 docs CI 的上传 key 。current 指针不走公共 CDN 缓存，每次服务端渲染在请求范围内选一次完整包，metadata/正文/页面树共用该快照；搜索与资源请求携带 releaseId。
 
 新增路由不能仅依赖 generateStaticParams。共享布局在客户端导航可能不刷新，因此可变树/provider/外壳与正文统一由叶子 page 输出同一快照，并做完整 Next E2E 验证。法律页、web3、changelog 与其他页面保持现有内容源及缓存。
 
@@ -51,6 +49,6 @@ R2 是 last-writer-wins，不能把对象存储当成自动去除乱序事件的
 
 本地 PoC 已完成，完整前端改造 plan、接口和原始输出在 frontend `.ai/2026-10-09/docs-cms-runtime-poc/`。
 
-线上验证需 TinaCloud Client ID/只读 token、GitHub App 对 docs 的授权；发布需专用 R2 桶和限定该桶 Object Read & Write 的 S3 key。前端用原生 binding，不接收上传凭证。所有 secret 通过现有 secret 管理渠道提供，不入 Git。
+发布所需四个 R2 键在 Infisical 对应环境 `/cscheap/docs`。frontend 用原生 binding，不接收上传凭证。staging 与生产暂共用用户提供的对象读写凭证，桶名仍分离。
 
-前端源码改造交由用户安排的前端 AI。本仓正文、CMS 配置、编译器、CI 和发布/回滚逻辑已完成本地实现；线上端到端发布仍待凭证、身份和 frontend 接入。操作见 [发布操作](release-operations.md)。参见 [当前决策](../decisions/0003-cms-editor-and-immutable-publication.md)。
+前端改造交由用户安排的前端 AI。本仓 v2 编译器、CI、发布/回滚保持独立；GitHub 环境配置、正式激活及 frontend 接入仍需联调。操作见[发布操作](release-operations.md)，设计见[当前决策](../decisions/0004-drop-tina-fumadocs-toolchain.md)。
