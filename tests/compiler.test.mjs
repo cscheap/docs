@@ -58,6 +58,7 @@ test('full 147-page trilingual corpus compiles deterministically and fits releas
       const block=blocks[i];codeBlocks++;languages[block.lang]=(languages[block.lang]??0)+1;
       assert.equal(block.lines.map(line=>line.map(([v])=>v).join('')).join('\n'),original[i].value);
       for(const line of block.lines)for(const [,color] of line)assert.ok(color>=-1&&color<block.colors.length);
+      assert.ok(block.colors.length>0&&block.lines.some(line=>line.some(([,color])=>color>=0)),`${page.locale}/${page.slug}: code block ${i} has no highlighting`);
     }
   }
   assert.equal(codeBlocks,171);assert.deepEqual(languages,{bash:9,json:162});
@@ -111,7 +112,8 @@ test('compact json and bash tokens match direct Shiki output, including exact wh
     const {body}=await compileBody('```'+lang+' title="Example"\n'+value+'\n```',[]);
     const block=body.children[0];assert.equal(block.title,'Example');
     const raw=await codeToTokens(value,{lang,themes,defaultColor:false});
-    assert.deepEqual(block.lines.map(line=>line.map(([content,index])=>({content,...(index===-1?{}:block.colors[index])}))),raw.tokens.map(line=>line.map(t=>({content:t.content,...(t.variants?{light:t.variants.light.color,dark:t.variants.dark.color}:{})}))));
+    assert.ok(block.colors.length>0,`${lang}: highlighted palette must not be empty`);
+    assert.deepEqual(block.lines.map(line=>line.map(([content,index])=>({content,...(index===-1?{}:block.colors[index])}))),raw.tokens.map(line=>line.map(t=>({content:t.content,...(t.htmlStyle?.['--shiki-light']?{light:t.htmlStyle['--shiki-light'],dark:t.htmlStyle['--shiki-dark']}:{})}))));
   }
   const warnings=[];const {body}=await compileBody('```unknown-language\nplain text\n```',warnings);
   assert.equal(body.children[0].lang,'text');assert.equal(warnings.length,1);

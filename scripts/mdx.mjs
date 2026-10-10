@@ -52,7 +52,8 @@ export async function highlight(node,warnings){
   const result=await codeToTokens(node.value,{lang,themes,defaultColor:false});
   const colors=[],indices=new Map();
   const lines=result.tokens.map(line=>line.map(token=>{
-    const light=token.variants?.light?.color,dark=token.variants?.dark?.color;
+    // Shiki 4 places dual-theme colours on htmlStyle (CSS variables), not on token.variants.
+    const light=token.htmlStyle?.['--shiki-light'],dark=token.htmlStyle?.['--shiki-dark'];
     if(!light&&!dark)return [token.content,-1];
     if(!light||!dark)throw new Error('Incomplete highlighted token colors');
     const key=`${light}/${dark}`;
