@@ -4,7 +4,7 @@ cs.cheap 的对外文档权威仓库。正文集中在 `content/`，英文为主
 
 内容流程：**AI 编辑 Git MDX → docs CI 编译 v2 内容包 → R2 不可变发布 → frontend 动态读取**。网站继续使用 `cscheap-frontend` 的 Fumadocs 页面。正文、翻译与导航更新无需重新构建 frontend；新组件或不兼容契约变化需要先部署前端。
 
-当前正文为 **49 个主题 × 3 种语言 = 147 页**，包含固定 API 版本的 13 个公开/用户接口。Fumadocs 工具链统一生成标题 ID、目录和搜索结构，Shiki 在编译时生成双主题代码高亮；前端不执行 MDX。
+当前正文为 **50 个主题 × 3 种语言 = 150 页**，包含固定 API 版本的 13 个公开/用户接口。Fumadocs 工具链统一生成标题 ID、目录和搜索结构，Shiki 在编译时生成双主题代码高亮；前端不执行 MDX。
 
 ## 本地命令
 
@@ -12,7 +12,7 @@ Node 22.22.3，依赖版本由 package-lock.json 锁定。
 
 ```bash
 npm ci
-npm run check          # 类型、API 生成一致性、147 页编译、合同测试
+npm run check          # 类型、API 生成一致性、150 页编译、合同测试
 npm run docs:build     # 干净的已提交 checkout，生成真实 SHA 的正式包
 ```
 

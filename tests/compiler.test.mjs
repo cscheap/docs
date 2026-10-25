@@ -34,11 +34,11 @@ async function fixture(run) {
   }finally{await rm(dir,{recursive:true,force:true});}
 }
 
-test('full 147-page trilingual corpus compiles deterministically and fits release limits',async()=>{
+test('full 150-page trilingual corpus compiles deterministically and fits release limits',async()=>{
   const a=await compile(),b=await compile();
-  assert.equal(a.bundle.pages.length,147);assert.equal(a.assetBytes.size,3);
+  assert.equal(a.bundle.pages.length,150);assert.equal(a.assetBytes.size,3);
   assert.ok(a.bytes.equals(b.bytes));assert.equal(a.warnings.length,0);Bundle.parse(a.bundle);
-  for(const locale of ['en','zh-CN','ru'])assert.equal(a.bundle.pages.filter(p=>p.locale===locale).length,49);
+  for(const locale of ['en','zh-CN','ru'])assert.equal(a.bundle.pages.filter(p=>p.locale===locale).length,50);
   const independent=unified().use(remarkParse).use(remarkGfm).use(remarkMdx).use(remarkHeading).use(remarkStructure);
   let codeBlocks=0;const languages={};
   for(const page of a.bundle.pages){

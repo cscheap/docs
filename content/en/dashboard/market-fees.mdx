@@ -1,0 +1,44 @@
+---
+docId: "dashboard.market-fees"
+title: "Market fees"
+description: "See what 100 USD becomes after each marketplace's fees and keep your own fee chains for the market purposes you use."
+kind: "how-to"
+status: "ready"
+sources: ["frontend"]
+---
+
+## Before you start
+
+Market fees unlocks at 12 USD in lifetime spend. Completed product orders and eligible redemption codes count toward it; adding funds to the wallet alone does not. Until then the sidebar entry is locked and shows the threshold.
+
+With the unlock you can read the official fees of every market. Creating, editing, saving and applying your own fees also needs an active subscription. Without one, your custom fees are read-only: you can still view and copy them and export them as JSON for your own calculations.
+
+## Read the market matrix
+
+Each row is a marketplace and each column a market purpose: Purchase cost, Sale proceeds and Withdrawal proceeds. A cell shows what 100 USD becomes after that purpose's fees and whether it follows the official fee or a chain of your own. Open Calculation breakdown to see every step.
+
+Not filled in yet means no fee chain is published for that purpose: the fee is unknown, which is not the same as free. Official rates apply by default; applying a chain of your own overrides only that market purpose, and only for you.
+
+## Edit a calculation chain
+
+Open a cell to work on its calculation chain, an ordered list of steps: fee operators, currency conversions and conversion groups. Opening an official chain or another user's chain starts a new chain of your own based on it; the original is never changed.
+
+Add steps from the operator search or create a new operator, then reorder or remove steps on the canvas. A draft is kept in this browser only and is not uploaded, so other devices and browsers do not see it.
+
+## Save, apply and restore
+
+Save as a new revision publishes the chain without changing any market purpose. Apply to a market purpose makes a purpose use it; unsaved changes are published first. Both ask you to confirm and to enter a change note. Restore official removes your override so the purpose follows the official fee again.
+
+If the chain or the market purpose changed in another tab or on another device, you are asked to load the latest version and retry. Your edits are kept until you do.
+
+## History, sharing and copies
+
+Chain history lists every revision and what happened to the chain. You can open an earlier revision read-only, or use it as the base for a new revision.
+
+Find chains lists official, public and your own chains. From there you can use a chain, create a copy, copy it to a local draft or export it as JSON. Mark an operator as searchable to let other users find and reference it.
+
+Deprecating a chain cannot be undone, and it is blocked while a market purpose still uses the chain. A deprecated chain can still be copied.
+
+## Currencies
+
+Currency conversions use each currency's reference rate to USD. Official currencies are read-only and maintained from the crawler catalogue; with an active subscription you can create your own currencies for your own conversions. See [marketplace fees](/docs/concepts/marketplace-fees) for how fee schedules and calculation chains are defined.

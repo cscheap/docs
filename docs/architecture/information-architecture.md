@@ -117,10 +117,10 @@ API 维护 consume 的规则，frontend 维护 grant、购买与订阅操作。�
 | `dashboard/api-keys` | 创建、查看与吊销 API Key | frontend | 首批，按实际支持的动作编写 |
 | `dashboard/billing` | 购买、充值、订阅与支付状态 | frontend | 首批 |
 | `dashboard/settings` | 个人资料与偏好 | frontend | 首批 |
-| `dashboard/fee-editor` | 自定义费率编辑器 | frontend | 暂缓 |
+| `dashboard/market-fees` | 市场费率工作区：市场矩阵、计算链编辑、本地草稿、保存与适用、历史与副本、订阅期外只读 | frontend；API 侧的费率口径由 `concepts/marketplace-fees` 说明 | 2026-10-25 加入（原规划 `dashboard/fee-editor`） |
 | `dashboard/profit-table` | 商品利润表 | frontend | 暂缓 |
 
-客服工单、邮箱、通知、独立 API playground 等未开放能力同样不进入正式导航。管理员功能不属于这里的普通用户控制台说明。
+邮箱、通知（提醒）、独立 API playground 等未开放能力同样不进入正式导航；客服工单已开放（2026-10-14），入口与规则写在 `support/contact`。管理员功能不属于这里的普通用户控制台说明。
 
 ## 问题排查
 

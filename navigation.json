@@ -96,6 +96,7 @@
         "dashboard/account",
         "dashboard/api-keys",
         "dashboard/billing",
+        "dashboard/market-fees",
         "dashboard/settings"
       ]
     },
