@@ -1,0 +1,1109 @@
+---
+docId: "api.reference.fees.get-fee-workspace"
+title: "获取费率工作台"
+description: "GET /fee-workspace — 获取费率工作台"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.fees.get-fee-workspace"
+sourceDigest: "sha256:2701b22726f1510201b0ac34d68134fba8ab1508e99f7d604ff817f9ebbd1d72"
+---
+
+## 操作
+
+`GET /fee-workspace`
+
+## 行为
+
+一次请求返回费率工作台展示的全部内容：你的基准货币、你能否保存、你可以使用的货币，以及每个市场在每种用途上所应用的计算链。
+
+- 每个槽位包含平台的绑定（`official`）和你的绑定（`personal`），各自按其绑定的修订展开；`applied`：在你有个人绑定且订阅有效时为 `personal`，否则平台有绑定时为 `official`，否则为 `none`。
+- 无法应用的绑定（`available: false`，`reason` 为 `deprecated` 或 `missing`）会如实报告，绝不会被悄悄替换为平台的绑定。
+- `official_sequence` 和 `personal_sequence` 是修改这些槽位时要传回的槽位 `sequence`。
+- 没有有效订阅时 `personal_writable` 为 `false`；读取始终可用。
+
+
+## 用量
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": null,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_WorkspaceOut_"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "缺少认证信息或认证无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "凭证有效，但无权调用此操作",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "参数或请求体无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "429": {
+    "description": "对此端点的请求过多；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "服务暂时不可用；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "ConvertOperatorGroupOut": {
+    "properties": {
+      "kind": {
+        "type": "string",
+        "const": "convert_operator_group",
+        "title": "Kind",
+        "description": "记录类型：始终为 `convert_operator_group`。"
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "组的唯一 ID。"
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "显示名称。"
+      },
+      "rule": {
+        "type": "string",
+        "enum": [
+          "min",
+          "max",
+          "avg"
+        ],
+        "title": "Rule",
+        "description": "如何从换算成功的成员中选出结果：`min`、`max` 或 `avg`。"
+      },
+      "members": {
+        "items": {
+          "$ref": "#/components/schemas/ConvertOperatorOut"
+        },
+        "type": "array",
+        "title": "Members",
+        "description": "成员换币算子，按顺序排列并完整展开。"
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "所有者用户的 ID；平台所有的记录（包括所有官方记录）为 `null`。"
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "是否为平台发布的官方组。官方记录对用户只读。"
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "所有者是否共享了该组，使其他用户能够找到、引用和 Fork 它。"
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "该组被引用（通过计算链步骤）或被 Fork 的次数。仅供参考。"
+      },
+      "forked_from": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Forked From",
+        "description": "该组 Fork 自哪个组的 ID；从零创建时为 `null`。"
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "组是否已删除。已删除的记录不会再被返回，因此只有在删除操作的响应中才为 `true`。"
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "组的当前修订：创建时为 1，每保存一次变更加一。仅内联记录为 `null`。"
+      },
+      "sequence": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sequence",
+        "description": "组的变更计数：每保存一个修订、每次修改共享状态或生命周期都会增加。把它作为 `expected_sequence` 传回以检测并发修改。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "kind",
+      "id",
+      "name",
+      "rule",
+      "members",
+      "owner_user_id",
+      "is_official",
+      "is_searchable",
+      "ref_count",
+      "forked_from",
+      "is_deleted",
+      "revision",
+      "sequence"
+    ],
+    "title": "ConvertOperatorGroupOut",
+    "description": "换币算子组：针对同一货币对的备选换算，按规则组合。"
+  },
+  "ConvertOperatorOut": {
+    "properties": {
+      "kind": {
+        "type": "string",
+        "const": "convert",
+        "title": "Kind",
+        "description": "记录类型：始终为 `convert`。"
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "换币算子的唯一 ID。"
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "显示名称。"
+      },
+      "from": {
+        "$ref": "#/components/schemas/CurrencyOut",
+        "description": "源货币（创建时确定）。"
+      },
+      "to": {
+        "$ref": "#/components/schemas/CurrencyOut",
+        "description": "目标货币（创建时确定）。"
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "fixed"
+        ],
+        "title": "Mode",
+        "description": "`auto` 通过两种货币各自的 `usd_rate` 换算；`fixed` 乘以 `rate`。"
+      },
+      "rate": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Rate",
+        "description": "每一单位源货币对应的目标货币数量，以十进制字符串表示；用于 `fixed` 模式。"
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "所有者用户的 ID；平台所有的记录（包括所有官方记录）为 `null`。"
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "是否为平台发布的官方换币算子。官方记录对用户只读。"
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "所有者是否共享了该换币算子，使其他用户能够找到、引用和 Fork 它。"
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "该换币算子被引用（通过计算链步骤和组成员关系）或被 Fork 的次数。仅供参考。"
+      },
+      "forked_from": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Forked From",
+        "description": "该换币算子 Fork 自哪个换币算子的 ID；从零创建时为 `null`。"
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "换币算子是否已删除。已删除的记录不会再被返回，因此只有在删除操作的响应中才为 `true`。"
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "换币算子的当前修订：创建时为 1，每保存一次变更加一。仅内联记录为 `null`。"
+      },
+      "sequence": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sequence",
+        "description": "换币算子的变更计数：每保存一个修订、每次修改共享状态或生命周期都会增加。把它作为 `expected_sequence` 传回以检测并发修改。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "kind",
+      "id",
+      "name",
+      "from",
+      "to",
+      "mode",
+      "rate",
+      "owner_user_id",
+      "is_official",
+      "is_searchable",
+      "ref_count",
+      "forked_from",
+      "is_deleted",
+      "revision",
+      "sequence"
+    ],
+    "title": "ConvertOperatorOut",
+    "description": "换币算子：将当前金额从一种货币换算为另一种货币。"
+  },
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "本次请求花费的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "计费请求的点数结算信息。"
+  },
+  "CurrencyOut": {
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "货币的唯一 ID。"
+      },
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "货币代码，例如 `USD`。"
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "显示名称。"
+      },
+      "kind": {
+        "type": "string",
+        "title": "Kind",
+        "description": "货币种类，例如 `fiat`。"
+      },
+      "usd_rate": {
+        "type": "string",
+        "title": "Usd Rate",
+        "description": "一单位该货币对应的美元价值，以十进制字符串表示。用于 `auto` 换算。"
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "所有者用户的 ID；平台货币（包括所有官方货币）为 `null`。"
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "该货币是否属于平台维护的官方目录。"
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "使用该货币的换币算子数量。"
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "货币是否已删除。已删除的货币不会被列出，因此只有在删除操作的响应中才为 `true`。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "id",
+      "code",
+      "name",
+      "kind",
+      "usd_rate",
+      "owner_user_id",
+      "is_official",
+      "ref_count",
+      "is_deleted"
+    ],
+    "title": "CurrencyOut",
+    "description": "一种货币及其美元价值。"
+  },
+  "Envelope_WorkspaceOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/WorkspaceOut",
+        "description": "端点返回的数据。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[WorkspaceOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "稳定的机器可读错误代码。请根据此值进行分支处理，而不是 `message`。"
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "面向人类阅读的说明。措辞可能变化。"
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "可选的结构化上下文，例如校验错误列表；对于 `credit_insufficient`，则为所需点数和剩余点数。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "失败请求的详细信息。"
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "出了什么问题。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "错误响应：`error` 中为错误信息，`meta` 中为请求元数据。"
+  },
+  "FeeOperatorOut": {
+    "properties": {
+      "kind": {
+        "type": "string",
+        "const": "fee",
+        "title": "Kind",
+        "description": "记录类型：始终为 `fee`。"
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "费用算子的唯一 ID。"
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "显示名称。"
+      },
+      "operator": {
+        "type": "string",
+        "enum": [
+          "add",
+          "sub",
+          "mul",
+          "div"
+        ],
+        "title": "Operator",
+        "description": "作用于当前金额的算术运算：`add`、`sub`、`mul` 或 `div`。"
+      },
+      "value": {
+        "type": "string",
+        "title": "Value",
+        "description": "算术运算的操作数，以十进制字符串表示。"
+      },
+      "currency_code": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Currency Code",
+        "description": "`add` 和 `sub` 金额的货币；`mul` 和 `div` 时为 `null`。"
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "所有者用户的 ID；平台所有的记录（包括所有官方记录）为 `null`。"
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "是否为平台发布的官方费用算子。官方记录对用户只读。"
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "所有者是否共享了该费用算子，使其他用户能够找到、引用和 Fork 它。"
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "该费用算子被引用（通过计算链步骤）或被 Fork 的次数。仅供参考。"
+      },
+      "forked_from": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Forked From",
+        "description": "该费用算子 Fork 自哪个费用算子的 ID；从零创建时为 `null`。"
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "费用算子是否已删除。已删除的记录不会再被返回，因此只有在删除操作的响应中才为 `true`。"
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "费用算子的当前修订：创建时为 1，每保存一次变更加一。仅内联记录为 `null`。"
+      },
+      "sequence": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sequence",
+        "description": "费用算子的变更计数：每保存一个修订、每次修改共享状态或生命周期都会增加。把它作为 `expected_sequence` 传回以检测并发修改。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "kind",
+      "id",
+      "name",
+      "operator",
+      "value",
+      "currency_code",
+      "owner_user_id",
+      "is_official",
+      "is_searchable",
+      "ref_count",
+      "forked_from",
+      "is_deleted",
+      "revision",
+      "sequence"
+    ],
+    "title": "FeeOperatorOut",
+    "description": "费用算子：作用于当前金额的一个算术步骤。"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
+  },
+  "WorkspaceChainOut": {
+    "properties": {
+      "calculation_chain_id": {
+        "type": "integer",
+        "title": "Calculation Chain Id",
+        "description": "所绑定计算链的 ID。"
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "所绑定的修订。"
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "该修订中的显示名称。"
+      },
+      "input_auto": {
+        "type": "boolean",
+        "title": "Input Auto",
+        "description": "该修订的 `input_auto`。"
+      },
+      "output_auto": {
+        "type": "boolean",
+        "title": "Output Auto",
+        "description": "该修订的 `output_auto`。"
+      },
+      "start_currency": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Start Currency",
+        "description": "该修订期望输入所采用的货币（如有）。"
+      },
+      "available": {
+        "type": "boolean",
+        "title": "Available",
+        "description": "该绑定能否应用。无法应用的绑定保持原样：会被如实报告，绝不会被悄悄替换。"
+      },
+      "reason": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "deprecated",
+              "missing"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Reason",
+        "description": "绑定无法应用的原因：`deprecated` 或 `missing`；`available` 时为 `null`。"
+      },
+      "steps": {
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/FeeOperatorOut"
+            },
+            {
+              "$ref": "#/components/schemas/ConvertOperatorOut"
+            },
+            {
+              "$ref": "#/components/schemas/ConvertOperatorGroupOut"
+            }
+          ],
+          "discriminator": {
+            "propertyName": "kind",
+            "mapping": {
+              "convert": "#/components/schemas/ConvertOperatorOut",
+              "convert_operator_group": "#/components/schemas/ConvertOperatorGroupOut",
+              "fee": "#/components/schemas/FeeOperatorOut"
+            }
+          }
+        },
+        "type": "array",
+        "title": "Steps",
+        "description": "该修订的步骤，每个都展开为其算子的当前修订（带 `id` 和 `revision`）。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "calculation_chain_id",
+      "revision",
+      "name",
+      "input_auto",
+      "output_auto",
+      "start_currency",
+      "available",
+      "reason",
+      "steps"
+    ],
+    "title": "WorkspaceChainOut",
+    "description": "绑定到某个槽位的计算链，取所绑定的修订。"
+  },
+  "WorkspaceOut": {
+    "properties": {
+      "home_currency": {
+        "type": "string",
+        "title": "Home Currency",
+        "description": "结果所显示的货币代码：你账户的基准货币，默认为 USD。"
+      },
+      "personal_writable": {
+        "type": "boolean",
+        "title": "Personal Writable",
+        "description": "你能否保存：有有效订阅时为 `true`。"
+      },
+      "currencies": {
+        "items": {
+          "$ref": "#/components/schemas/CurrencyOut"
+        },
+        "type": "array",
+        "title": "Currencies",
+        "description": "官方货币加上你自己的货币。"
+      },
+      "websites": {
+        "items": {
+          "$ref": "#/components/schemas/WorkspaceWebsiteOut"
+        },
+        "type": "array",
+        "title": "Websites",
+        "description": "每个市场及其槽位，按代码排列。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "home_currency",
+      "personal_writable",
+      "currencies",
+      "websites"
+    ],
+    "title": "WorkspaceOut",
+    "description": "费率工作台展示的全部内容，在一个响应中。"
+  },
+  "WorkspaceSlotOut": {
+    "properties": {
+      "official": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/WorkspaceChainOut"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "平台的绑定；没有则为 `null`。"
+      },
+      "personal": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/WorkspaceChainOut"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "你自己的绑定，在你的订阅有效时覆盖平台的绑定；没有则为 `null`。"
+      },
+      "applied": {
+        "type": "string",
+        "enum": [
+          "official",
+          "personal",
+          "none"
+        ],
+        "title": "Applied",
+        "description": "你的价格使用哪个绑定：你有个人绑定且订阅有效时为 `personal`，否则平台有绑定时为 `official`，否则为 `none`。"
+      },
+      "official_sequence": {
+        "type": "integer",
+        "title": "Official Sequence",
+        "description": "平台槽位的 `sequence`（从未写过时为 0）。"
+      },
+      "personal_sequence": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Personal Sequence",
+        "description": "你的槽位 `sequence`（从未写过时为 0）。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "official",
+      "personal",
+      "applied",
+      "official_sequence"
+    ],
+    "title": "WorkspaceSlotOut",
+    "description": "某个市场的一种用途：两个绑定以及实际应用的那个。"
+  },
+  "WorkspaceSlotsOut": {
+    "properties": {
+      "deposit": {
+        "$ref": "#/components/schemas/WorkspaceSlotOut",
+        "description": "充值。"
+      },
+      "sale": {
+        "$ref": "#/components/schemas/WorkspaceSlotOut",
+        "description": "出售。"
+      },
+      "withdraw": {
+        "$ref": "#/components/schemas/WorkspaceSlotOut",
+        "description": "提现。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "deposit",
+      "sale",
+      "withdraw"
+    ],
+    "title": "WorkspaceSlotsOut",
+    "description": "某个市场的三种用途。"
+  },
+  "WorkspaceWebsiteOut": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "市场代码。"
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "显示名称。"
+      },
+      "url": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Url",
+        "description": "市场主页（如已知）。"
+      },
+      "category": {
+        "type": "string",
+        "title": "Category",
+        "description": "市场类别。"
+      },
+      "countryCode": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Countrycode",
+        "description": "运营该市场的公司的两字母国家代码；未注明时为 `null`。"
+      },
+      "is_deprecated": {
+        "type": "boolean",
+        "title": "Is Deprecated",
+        "description": "该市场是否已不再支持。"
+      },
+      "slots": {
+        "$ref": "#/components/schemas/WorkspaceSlotsOut",
+        "description": "每种用途的槽位。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "code",
+      "name",
+      "url",
+      "category",
+      "countryCode",
+      "is_deprecated",
+      "slots"
+    ],
+    "title": "WorkspaceWebsiteOut",
+    "description": "一个市场及其三个槽位。"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

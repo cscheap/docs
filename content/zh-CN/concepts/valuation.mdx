@@ -1,17 +1,17 @@
 ---
 docId: "concepts.valuation"
 title: "CSCP 估值"
-description: "估值行的 market_code 与 provider_code 均为 CSCP，side=mid，币种为 CNY，数量为空。"
+description: "估值行的 market_code 与 provider_code 均为 CSCP，side=mid，金额使用响应币种，数量为空。"
 kind: "explanation"
 status: "ready"
 sources: ["spider", "refinery", "api"]
 translationOf: "concepts.valuation"
-sourceDigest: "sha256:f402619192e1854d870e1668720e6f488686596c08df8b0ea9e67a6c641aec47"
+sourceDigest: "sha256:6f5d781d5936218e60bc9c56ad0158f359a79956a3e42c422214b5513abf3266"
 ---
 
 ## 识别估值
 
-估值行的 `market_code` 与 `provider_code` 均为 `CSCP`，`side=mid`，币种为 `CNY`，数量为空。嵌套的 `valuation` 对象有值，普通报价则为 null。
+估值行的 `market_code` 与 `provider_code` 均为 `CSCP`，`side=mid`，金额使用响应币种，数量为空。嵌套的 `valuation` 对象有值，普通报价则为 null。
 
 每日估值使用此前七天的每日收盘报价。在售共识使用含费现金购买成本；求购共识使用扣费后现金收入，并排除高于相应市场在售价的交叉求购。双边都有数据时取几何中间值；只有在售数据时，使用可比饰品的典型半价差调整在售共识。
 

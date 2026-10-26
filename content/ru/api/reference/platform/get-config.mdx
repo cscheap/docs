@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.platform.get-config"
-sourceDigest: "sha256:cc119451b3e646d810037e815150a8312abe9348608e26f1fee27f4a7239fd0f"
+sourceDigest: "sha256:634e318148b262184bb8bb7a8b050522e87ad1204edd0187f5eda30a5fc8c128"
 ---
 
 ## Операция
@@ -145,6 +145,17 @@ sourceDigest: "sha256:cc119451b3e646d810037e815150a8312abe9348608e26f1fee27f4a72
           }
         ],
         "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Состояние постраничного вывода. Присутствует только в ответах, возвращающих страницу списка."
       }
     },
     "type": "object",
@@ -153,6 +164,40 @@ sourceDigest: "sha256:cc119451b3e646d810037e815150a8312abe9348608e26f1fee27f4a72
     ],
     "title": "Meta",
     "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Размер страницы, фактически применённый к этому запросу."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Есть ли следующая страница."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Передайте его без изменений как `cursor`, чтобы получить следующую страницу; `null`, когда список получен целиком."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Положение постраничного списка после этой страницы."
   }
 }
 ```

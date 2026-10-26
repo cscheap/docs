@@ -1,0 +1,67 @@
+---
+docId: "guides.customize-fees"
+title: "Свои тарифы через API"
+description: "Как вести свои цепочки комиссий через API: прочитать рабочее пространство тарифов, найти или собрать цепочку, выполнить предварительный расчёт, привязать её к назначению площадки и вернуть официальный тариф."
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+translationOf: "guides.customize-fees"
+sourceDigest: "sha256:d8e5cf2ee3d2f70623e302753b1dc2f5bb9c5e528a3cdf759d964fd0840733a7"
+---
+
+## Перед началом
+
+Чтобы сохранять свои операторы комиссий, валюты, цепочки и привязки, нужна активная подписка; без неё такие запросы возвращают `403 subscription_required`, а чтение, проверка и предварительный расчёт остаются доступными. Операции с тарифами не расходуют кредиты. Ваши записи приватны, пока вы ими не поделитесь. Свои цепочки меняют только рабочее пространство тарифов и предварительные расчёты, но никогда не котировки цен: см. [комиссии площадок](/docs/concepts/marketplace-fees).
+
+## Рабочее пространство тарифов
+
+Вызовите [получение рабочего пространства тарифов](/docs/api/reference/fees/get-fee-workspace). Ответ содержит вашу базовую валюту, можно ли сохранять (`personal_writable`), доступные валюты и для каждой площадки три слота: `deposit`, `sale` и `withdraw`. В каждом слоте — официальная привязка, ваша, признак того, какая из них применяется (`applied`), и значения `official_sequence` и `personal_sequence`, которые нужно передать при изменении слота.
+
+## Найти или собрать цепочку
+
+[Поиск цепочек](/docs/api/reference/calculation-chains/search-chains) показывает официальные, общие и ваши цепочки, самые используемые — первыми, у каждой есть читаемая `formula`. Чтобы взять одну из них за основу, [скопируйте её (fork)](/docs/api/reference/calculation-chains/fork-chain): копия принадлежит вам, начинается с версии 1 и ссылается на те же операторы.
+
+Чтобы собрать цепочку с нуля, [создайте операторы комиссий](/docs/api/reference/fee-operators/create-fee-operator), а там, где меняется валюта, — операторы конвертации, затем [создайте цепочку](/docs/api/reference/calculation-chains/create-chain) с шагами по порядку. Сначала можно [проверить](/docs/api/reference/calculation-chains/validate-chain) встроенную цепочку на структурные ошибки и [выполнить предварительный расчёт](/docs/api/reference/calculation-chains/preview-chain) для суммы:
+
+```bash
+curl 'https://api.cs.cheap/calculation-chains/preview' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{"calculation_chain_id": 42, "start_amount": "100", "start_currency": "USD"}'
+```
+
+Если шаг не удаётся вычислить, ответ всё равно `200`: `final` равен `null`, а ошибочная запись журнала содержит `error`.
+
+## Привязать к назначению площадки
+
+[Задайте привязку](/docs/api/reference/bindings/set-binding) для одной площадки и назначения. Передайте `personal_sequence` этого слота из рабочего пространства как `expected_sequence` (`0` для слота, в который вы ещё не записывали); если слот с тех пор изменился, запрос вернёт `409 conflict` и ничего не изменит. Без `calculation_chain_revision` привязывается текущая версия цепочки.
+
+```bash
+curl --request PUT 'https://api.cs.cheap/website-calculation-chain-bindings/BUFF/sale' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{"calculation_chain_id": 42, "expected_sequence": 0}'
+```
+
+Слоты можно привязать и при создании или изменении цепочки через `apply_to`: либо привязываются все указанные слоты, либо ничего не сохраняется.
+
+Чтобы снова следовать официальному тарифу, [удалите свою привязку](/docs/api/reference/bindings/reset-binding), передав оба прочитанных значения, — так вы вернёте именно ту официальную привязку, которую видели:
+
+```bash
+curl --request DELETE --get 'https://api.cs.cheap/website-calculation-chain-bindings/BUFF/sale' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'expected_sequence=1' \
+  --data-urlencode 'expected_official_sequence=3'
+```
+
+## Изменить цепочку позже
+
+[Обновите цепочку](/docs/api/reference/calculation-chains/update-chain), передав последний прочитанный `sequence` как `expected_sequence`. Новое имя, список шагов или настройка конвертации сохраняются новой версией; привязанные слоты сохраняют прежнюю версию, пока вы не привяжете новую, например через `apply_to`. [Список версий](/docs/api/reference/calculation-chains/list-chain-revisions) показывает историю. Когда цепочка больше нигде не используется, её можно [вывести из использования](/docs/api/reference/calculation-chains/deprecate-chain); это необратимо.
+
+## Обработка ошибок
+
+- `400` с `error.details.missing`: шаг ссылается на недоступный вам объект; в каждой записи указаны `kind`, `id` и `reason`.
+- `409 conflict`: слот или цепочка изменились после чтения или цепочка ещё привязана; перечитайте и повторите.
+- `422` с `error.details.issues`: шаги цепочки не согласуются, например шаг ожидает другую валюту, чем валюта суммы.
+
+Общие правила см. в разделе [ошибки](/docs/api/errors).

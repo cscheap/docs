@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.markets.get-fees"
-sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a4ecce6"
+sourceDigest: "sha256:7705273f8986bed7cba1580e6b089df7c63d34a7c110abc6f5167fd023e54ce3"
 ---
 
 ## Операция
@@ -17,10 +17,10 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
 
 Возвращает комиссии, которые платформа сейчас публикует для одной площадки, по одному слоту на каждое назначение: `deposit`, `sale` и `withdraw`.
 
-- Каждый опубликованный слот содержит полностью развёрнутую официальную цепочку расчёта: все операторы комиссий, операторы конвертации и группы операторов конвертации с их значениями и валютами, поэтому одного запроса достаточно, чтобы воспроизвести расчёт платформы.
+- Каждый опубликованный слот содержит полностью развёрнутую официальную цепочку расчёта в той `revision`, которую платформа применяет для этого назначения: все операторы комиссий, операторы конвертации и группы операторов конвертации с их значениями, валютами и текущей `revision`, поэтому одного запроса достаточно, чтобы воспроизвести расчёт платформы. Каждый оператор официальной цепочки сам является официальным.
 - Слот, цепочка которого имеет `id` `0`, явно бесплатен: платформа ничего не взимает за это назначение, а у цепочки нет шагов.
 - Слот равен `null`, если у платформы нет опубликованной официальной цепочки расчёта для этого назначения: комиссия неизвестна или площадка его не предлагает. `null` никогда не означает «бесплатно».
-- Каждая цепочка указывает свою `start_currency`: валюту, в которой должна быть цена, чтобы цепочка применялась (`null`: любая валюта).
+- Каждая цепочка указывает свою `start_currency`: валюту, в которой должна быть цена, чтобы цепочка применялась (`null`: любая валюта); `input_auto` и `output_auto` показывают, нужно ли конвертировать цену в другой валюте и результат до и после цепочки.
 - Поля владения и управления не включаются.
 
 `404` означает, что площадки с таким кодом нет.
@@ -324,6 +324,17 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
           }
         ],
         "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Состояние постраничного вывода. Присутствует только в ответах, возвращающих страницу списка."
       }
     },
     "type": "object",
@@ -332,6 +343,40 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
     ],
     "title": "Meta",
     "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Размер страницы, фактически применённый к этому запросу."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Есть ли следующая страница."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Передайте его без изменений как `cursor`, чтобы получить следующую страницу; `null`, когда список получен целиком."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Положение постраничного списка после этой страницы."
   },
   "PublicCalculationChainOut": {
     "properties": {
@@ -371,6 +416,28 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
         "title": "Start Currency",
         "description": "Валюта, в которой цепочка ожидает цену; `null`, если она применима к любой валюте. На цену в другой валюте цепочка не распространяется."
       },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "Ревизия цепочки, которую платформа применяет для этого назначения; более новая не действует, пока её не применят здесь."
+      },
+      "input_auto": {
+        "type": "boolean",
+        "title": "Input Auto",
+        "description": "Конвертируется ли цена в другой валюте сначала в `start_currency` (через официальные значения в долларах США)."
+      },
+      "output_auto": {
+        "type": "boolean",
+        "title": "Output Auto",
+        "description": "Предполагается ли конвертация результата после последнего шага в домашнюю валюту просматривающего."
+      },
       "steps": {
         "items": {
           "oneOf": [
@@ -404,6 +471,9 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
       "id",
       "name",
       "start_currency",
+      "revision",
+      "input_auto",
+      "output_auto",
       "steps"
     ],
     "title": "PublicCalculationChainOut",
@@ -451,6 +521,18 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
         "type": "array",
         "title": "Members",
         "description": "Конвертации — участники группы, по порядку."
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "Текущая ревизия группы."
       }
     },
     "additionalProperties": false,
@@ -460,7 +542,8 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
       "id",
       "name",
       "rule",
-      "members"
+      "members",
+      "revision"
     ],
     "title": "PublicConvertOperatorGroupOut",
     "description": "Группа альтернативных конвертаций в опубликованном графике комиссий."
@@ -518,6 +601,18 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
         ],
         "title": "Rate",
         "description": "Количество единиц целевой валюты за одну единицу исходной, в виде десятичной строки; используется в режиме `fixed`."
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "Текущая ревизия оператора конвертации."
       }
     },
     "additionalProperties": false,
@@ -529,7 +624,8 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
       "from",
       "to",
       "mode",
-      "rate"
+      "rate",
+      "revision"
     ],
     "title": "PublicConvertOperatorOut",
     "description": "Шаг конвертации валюты в опубликованном графике комиссий."
@@ -640,6 +736,18 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
         ],
         "title": "Currency Code",
         "description": "Валюта суммы для `add` и `sub`; `null` для `mul` и `div`."
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "Текущая ревизия оператора комиссии."
       }
     },
     "additionalProperties": false,
@@ -650,7 +758,8 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
       "name",
       "operator",
       "value",
-      "currency_code"
+      "currency_code",
+      "revision"
     ],
     "title": "PublicFeeOperatorOut",
     "description": "Шаг комиссии в опубликованном графике комиссий."

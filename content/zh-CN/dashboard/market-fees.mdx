@@ -4,9 +4,9 @@ title: "市场费率"
 description: "查看 100 美元经过各市场费率后变成多少，并为常用的市场用途保留自己的费率链。"
 kind: "how-to"
 status: "ready"
-sources: ["frontend"]
+sources: ["frontend", "api"]
 translationOf: "dashboard.market-fees"
-sourceDigest: "sha256:b1b4fd6808733f94486d749f315add3ace5d441016bef823376fccb8e10478f1"
+sourceDigest: "sha256:37cab69f63ad24f054c4c356b637858fcf2777cd8247dd061d3bdca84344eaea"
 ---
 
 ## 开始之前
@@ -43,4 +43,8 @@ sourceDigest: "sha256:b1b4fd6808733f94486d749f315add3ace5d441016bef823376fccb8e1
 
 ## 货币
 
-换汇使用每种货币相对美元的参考汇率。官方货币只读，由爬虫目录维护；有效订阅期间可以新建自己的货币，用于自己的换汇。费率表与计算链的定义见[市场费用](/docs/concepts/marketplace-fees)。
+换汇使用每种货币相对美元的参考汇率。官方货币只读，由爬虫目录维护；有效订阅期间可以新建自己的货币，用于自己的换汇。
+
+## 不会改变什么
+
+自己的链只改变这里和试算中显示的结果。API 的价格金额（`buy_amount`、`sale_amount`、`payout_amount`）始终按官方费率计算。通过 API 管理同样的记录，见[用 API 自定义费率](/docs/guides/customize-fees)。费率表与计算链的定义见[市场手续费](/docs/concepts/marketplace-fees)。

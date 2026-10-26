@@ -1,0 +1,386 @@
+---
+docId: "api.reference.calculation-chains.list-chain-revisions"
+title: "List a calculation chain's revisions"
+description: "GET /calculation-chains/{calculation_chain_id}/revisions — List a calculation chain's revisions"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`GET /calculation-chains/{calculation_chain_id}/revisions`
+
+## Behavior
+
+Returns every saved revision of a calculation chain you can read, newest first: name, both automatic conversions, step count, `reason`, `actor` (`user`, or `platform` for automated updates) and time.
+
+A `404` means the chain is not visible to you.
+
+
+## Usage
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": null,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{
+  "parameters": [
+    {
+      "name": "calculation_chain_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+        "type": "integer",
+        "description": "ID of the calculation chain.",
+        "title": "Calculation Chain Id"
+      },
+      "description": "ID of the calculation chain."
+    }
+  ]
+}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_list_CalculationChainRevisionOut__"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "Authentication is missing or invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "The credential is valid but not allowed to call this operation",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "404": {
+    "description": "The requested resource does not exist",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "A parameter or the request body is invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "429": {
+    "description": "Too many requests to this endpoint; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "The service is temporarily unavailable; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "CalculationChainRevisionOut": {
+    "properties": {
+      "revision": {
+        "type": "integer",
+        "title": "Revision",
+        "description": "Revision number, from 1."
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "Display name in this revision."
+      },
+      "input_auto": {
+        "type": "boolean",
+        "title": "Input Auto",
+        "description": "`input_auto` in this revision."
+      },
+      "output_auto": {
+        "type": "boolean",
+        "title": "Output Auto",
+        "description": "`output_auto` in this revision."
+      },
+      "step_count": {
+        "type": "integer",
+        "title": "Step Count",
+        "description": "Number of steps in this revision."
+      },
+      "reason": {
+        "type": "string",
+        "title": "Reason",
+        "description": "The note saved with this revision; empty if none."
+      },
+      "actor": {
+        "type": "string",
+        "enum": [
+          "user",
+          "platform"
+        ],
+        "title": "Actor",
+        "description": "Who saved it: `user` (a person's API key) or `platform` (an automated platform update, such as a refreshed exchange rate)."
+      },
+      "created_at": {
+        "type": "string",
+        "title": "Created At",
+        "description": "When the revision was saved (ISO 8601, UTC)."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "revision",
+      "name",
+      "input_auto",
+      "output_auto",
+      "step_count",
+      "reason",
+      "actor",
+      "created_at"
+    ],
+    "title": "CalculationChainRevisionOut",
+    "description": "One saved revision of a calculation chain."
+  },
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Credits this request costs."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Credit accounting for a billable request."
+  },
+  "Envelope_list_CalculationChainRevisionOut__": {
+    "properties": {
+      "data": {
+        "items": {
+          "$ref": "#/components/schemas/CalculationChainRevisionOut"
+        },
+        "type": "array",
+        "title": "Data",
+        "description": "The endpoint payload."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[list[CalculationChainRevisionOut]]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Stable machine-readable error code. Branch on this value, not on `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Human-readable explanation. The wording may change."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Optional structured context, such as the list of validation errors or, for `credit_insufficient`, the required and remaining credits."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Details of a failed request."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "What went wrong."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Error response: the error in `error` plus request metadata in `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Paging state. Present only on a response that lists a page."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Request metadata included in every enveloped response."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Page size actually applied to this request."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Whether another page follows."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Pass it back unchanged as `cursor` to get the next page; `null` once the list is complete."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Where a paged list stands after this page."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

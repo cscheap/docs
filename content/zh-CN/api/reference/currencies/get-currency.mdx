@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.currencies.get-currency"
-sourceDigest: "sha256:9a5b7f2e2f3045dcbb6a677a08c6a87948b0a45e85e7aa83697c153b9f52e943"
+sourceDigest: "sha256:5a068b06a8c7562e154788d126d215e2a262f734e85de401e0426b473588f73d"
 ---
 
 ## 操作
@@ -310,6 +310,17 @@ sourceDigest: "sha256:9a5b7f2e2f3045dcbb6a677a08c6a87948b0a45e85e7aa83697c153b9f
           }
         ],
         "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
       }
     },
     "type": "object",
@@ -318,6 +329,40 @@ sourceDigest: "sha256:9a5b7f2e2f3045dcbb6a677a08c6a87948b0a45e85e7aa83697c153b9f
     ],
     "title": "Meta",
     "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
   }
 }
 ```

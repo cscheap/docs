@@ -9,7 +9,7 @@ sources: ["api"]
 
 ## Choose filters
 
-Call `GET /prices` with `market_hash_name`. Set `app_id` when querying a game other than the default `730`. Optional `markets` is a comma-separated list of uppercase codes such as `BUFF,UUYP`. Optional `side` is `ask`, `bid`, `mid` or `all`; the default is `all`.
+Call `GET /prices` with `market_hash_name`. Set `app_id` when querying a game other than the default `730`. Optional `markets` is a comma-separated list of uppercase codes such as `BUFF,UUYP`. Optional `side` is `ask`, `bid`, `mid` or `all`; the default is `all`. Optional `currency` sets the currency of the converted amounts (`buy_amount`, `sale_amount`, `payout_amount`) and of the `CSCP` valuation: any official currency code, defaulting to your account's base currency, else USD. Marketplace prices themselves stay in each marketplace's currency.
 
 Use URL encoding for the item name. Authenticate with your API key in the Authorization header. See the [first request](/docs/get-started/first-request) for a runnable example and the [reference](/docs/api/reference/prices/get-price) for all constraints.
 

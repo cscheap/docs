@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.responses"
-sourceDigest: "sha256:8f10abba003b5b121311bd3df45e1ce33930f85b98207c057a285e5d9ee1c0c8"
+sourceDigest: "sha256:f6b99c80128065c3a21f42d18e6d5c912c15de859a49ef2e0b3039bd25914a9a"
 ---
 
 ## JSON-обёртка
@@ -27,6 +27,6 @@ sourceDigest: "sha256:8f10abba003b5b121311bd3df45e1ce33930f85b98207c057a285e5d9e
 
 ## Оплата и исключения
 
-`meta.billable` сообщает о применении кредитной оплаты. Оплаченный ответ может содержать `meta.credit.cost` и `remaining`; при параллельных запросах остаток приблизителен. Итоги аккаунта в `GET /me` находятся в `data.credit`.
+`meta.billable` сообщает о применении кредитной оплаты. Оплаченный ответ может содержать `meta.credit.cost` и `remaining`; при параллельных запросах остаток приблизителен. Итоги аккаунта в `GET /me` находятся в `data.credit`. Ответ со страницей списка также содержит `meta.page`: `limit`, `has_next` и `next_cursor`.
 
 Тело выгрузки — сам документ; оплата указана в `X-Billable`, `X-Credit-Cost`, `X-Credit-Remaining`. Ответ `304` не содержит тела. Для проверки здоровья и других исключений смотрите схему операции.

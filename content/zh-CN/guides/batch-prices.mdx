@@ -6,12 +6,12 @@ kind: "how-to"
 status: "ready"
 sources: ["api"]
 translationOf: "guides.batch-prices"
-sourceDigest: "sha256:3f8ad2bad55ec404491b8a4afd7ba8a267b9a4e8bff3f7eade305651b18510ac"
+sourceDigest: "sha256:7e097529d20c96902b0bf5c3fa275431910250a30cdef77d76b64de098c949d9"
 ---
 
 ## 发送批量请求
 
-`market_hash_names` 接受 1–1000 个名称。一次请求使用同一个 `app_id` 与方向筛选。与单品查询的 CSV 参数不同，批量请求的 `markets` 是市场代码 JSON 数组。
+`market_hash_names` 接受 1–1000 个名称。一次请求使用同一个 `app_id`、方向筛选与可选的 `currency`，`currency` 的用法与单品查询相同。与单品查询的 CSV 参数不同，批量请求的 `markets` 是市场代码 JSON 数组。请求体中的未知字段会以 `422` 拒绝。
 
 ```bash
 curl 'https://api.cs.cheap/prices/batch' \
@@ -25,3 +25,9 @@ curl 'https://api.cs.cheap/prices/batch' \
 `data.items` 保留请求顺序。未知名称返回 `markets` 为空的条目，不会导致整批失败。重复名称仍在输出中重复，并计入费用。
 
 没有有效订阅时，每开始一组 100 个名称消耗 1 点：100 个为 1 点，101 个为 2 点。如果无需重复条目，应在发送前去重。更大的集合分批提交，并遵守[速率限制](/docs/api/rate-limits)。
+
+## 逐页读取全部饰品
+
+省略 `market_hash_names` 即可逐页读取 `app_id` 下全部有报价的饰品。`limit` 设定每页条数（默认 100，最多 1000）。把 `meta.page.next_cursor` 原样作为 `cursor` 传回以获取下一页，`next_cursor` 为 `null` 时结束。饰品顺序与导出一致，每轮遍历中每个饰品至多出现一次；价格在请求每一页时读取，遍历期间新增的饰品可能要到下一轮才出现。
+
+每一页按 `limit` 个名称的批量请求计费，最后一页不足也一样。需要一次取得全部数据时，[导出](/docs/guides/export-prices)更便宜。

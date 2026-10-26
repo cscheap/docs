@@ -1,12 +1,12 @@
 ---
 docId: "api.reference.prices.batch-prices"
-title: "批量获取饰品价格"
-description: "POST /prices/batch — 批量获取饰品价格"
+title: "批量或全量获取饰品价格"
+description: "POST /prices/batch — 批量或全量获取饰品价格"
 kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.prices.batch-prices"
-sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1abb7ca"
+sourceDigest: "sha256:13e6bfb1aa798fc98ca8ea4370091cfcbbff9a2c19829a530ae947df5416d3c7"
 ---
 
 ## 操作
@@ -15,16 +15,29 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
 
 ## 行为
 
-一次调用返回一组饰品的当前报价。每个饰品的报价遵循与 `GET /prices` 相同的规则：每个市场的每个方向最多一条，仍在售的报价优先于已下架的报价，其次直接取自市场的数据优先于聚合平台的数据，再次取最新的报价；饰品有估值时另附其 `CSCP` 估值（`side` 为 `mid`）。
+一次调用返回一组饰品的当前报价，或按页返回全部有报价的饰品。每个饰品的报价遵循与 `GET /prices` 相同的规则：每个市场的每个方向最多一条，仍在售的报价优先于已下架的报价，其次直接取自市场的数据优先于聚合平台的数据，再次取最新的报价；饰品有估值时另附其 `CSCP` 估值（`side` 为 `mid`）。
+
+传入 `market_hash_names` 时，只返回你指定的饰品：
 
 - `items` 中每个请求的名称对应一条记录，顺序与请求一致。
 - 未知名称不算错误：它们会以空的 `markets` 列表返回。此端点从不返回 `404`。
 - 重复的名称会被保留，每次出现都有各自的记录。
-- `markets` 和 `side` 以同样的方式过滤每个饰品。
+
+不传 `market_hash_names` 时，按页列出 `app_id` 下所有有匹配报价的饰品：
+
+1. 省略 `market_hash_names`；`limit` 设置每页条数（默认 100，最多 1000）。
+2. 把 `meta.page.next_cursor` 原样作为 `cursor` 传回，即可获取下一页。
+3. `next_cursor` 为 `null` 时，你已拿到全部饰品。
+
+饰品的顺序与 `GET /prices/export` 相同，每轮翻页中每个饰品至多出现一次。价格在请求每一页时读取，因此翻页期间新增的饰品可能要到下一轮才出现。
+
+两种方式通用：
+
+- `markets` 和 `side` 以同样的方式过滤每个饰品，`currency` 按与 `GET /prices` 相同的方式换算每个饰品。
 - 请求体中的未知字段会以 `422` 拒绝。
 
 > [!note]
-> 按饰品名称块计费，不足一块按一块计，计数基于完整的 `market_hash_names` 列表（包括重复项）。费用会在查询前检查（余额不足时返回 `402`），且仅在请求成功时扣费。
+> 每 100 个饰品为一块计费，不足一块按一块计：计数基于完整的 `market_hash_names` 列表（包括重复项），或分页时的 `limit`（最后一页不足 `limit` 也按 `limit` 计）。如需一次获取全部数据，`GET /prices/export` 更便宜。费用会在查询前检查（余额不足时返回 `402`），且仅在请求成功时扣费。
 
 
 ## 用量
@@ -42,7 +55,8 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
   "unit_pricing": {
     "unit_size": 100,
     "units_body_field": "market_hash_names",
-    "max_units": 1000
+    "max_units": 1000,
+    "page_size_field": "limit"
   }
 }
 ```
@@ -74,6 +88,16 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
       "application/json": {
         "schema": {
           "$ref": "#/components/schemas/Envelope_BatchPricesOut_"
+        }
+      }
+    }
+  },
+  "400": {
+    "description": "请求引用了不存在的资源，或携带了无效的游标",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
         }
       }
     }
@@ -150,7 +174,7 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
       "market_hash_name": {
         "type": "string",
         "title": "Market Hash Name",
-        "description": "饰品的 market hash name，与请求中的完全一致。"
+        "description": "饰品的 market hash name，与请求中的完全一致；分页列出时为列出的名称。"
       },
       "markets": {
         "items": {
@@ -158,7 +182,7 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
         },
         "type": "array",
         "title": "Markets",
-        "description": "该饰品的报价，每个市场的每个方向最多一条，先按市场代码、再按方向排序。饰品未知或所有报价都被过滤条件排除时为空。"
+        "description": "该饰品的报价，每个市场的每个方向最多一条，先按市场代码、再按方向排序。饰品未知或所有报价都被过滤条件排除时为空；分页列出时从不为空。"
       }
     },
     "type": "object",
@@ -180,16 +204,23 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
         "default": "730"
       },
       "market_hash_names": {
-        "items": {
-          "type": "string",
-          "maxLength": 255,
-          "minLength": 1
-        },
-        "type": "array",
-        "maxItems": 1000,
-        "minItems": 1,
+        "anyOf": [
+          {
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
         "title": "Market Hash Names",
-        "description": "要查询的 Steam market hash name 列表（精确匹配，区分大小写）。允许重复：每次出现都有各自的结果条目，并计入计费的饰品数量。"
+        "description": "要查询的 Steam market hash name 列表（精确匹配，区分大小写）。允许重复：每次出现都有各自的结果条目，并计入计费的饰品数量。省略此字段则改为按页列出全部有报价的饰品；空列表会被拒绝。"
       },
       "markets": {
         "anyOf": [
@@ -219,13 +250,50 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
         "title": "Side",
         "description": "返回市场的哪一方向：`ask` 为在售挂单，`bid` 为求购订单，`mid` 为 CSCP 估值，`all` 为全部。默认为 `all`。",
         "default": "all"
+      },
+      "currency": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{1,32}$"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Currency",
+        "description": "换算后金额（`buy_amount`、`sale_amount`、`payout_amount`）以及 `CSCP` 估值所用的货币，取官方货币代码（见 `GET /currencies`），例如 `EUR`；不区分大小写。优先于你账户的本位币；两者都未设置时使用 `USD`。市场价格从不换算。"
+      },
+      "limit": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "minimum": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Limit",
+        "description": "仅在省略 `market_hash_names` 时使用：每页包含的饰品数。默认为 100；大于 1000 的值按 1000 处理。"
+      },
+      "cursor": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Cursor",
+        "description": "仅在省略 `market_hash_names` 时使用：上一页的 `next_cursor`，原样传回。请求第一页时省略。"
       }
     },
     "additionalProperties": false,
     "type": "object",
-    "required": [
-      "market_hash_names"
-    ],
     "title": "BatchPricesIn",
     "description": "批量价格查询的请求体。"
   },
@@ -247,23 +315,29 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
         "title": "Side",
         "description": "所应用的方向过滤条件，原样回显请求中的值。"
       },
+      "currency": {
+        "type": "string",
+        "title": "Currency",
+        "description": "`buy_amount`、`sale_amount`、`payout_amount` 以及 `CSCP` 报价所用的货币：`currency` 参数，否则为你账户的本位币，否则为 `USD`。"
+      },
       "items": {
         "items": {
           "$ref": "#/components/schemas/BatchItemOut"
         },
         "type": "array",
         "title": "Items",
-        "description": "每个请求的名称对应一条记录，顺序与请求一致，包括重复项。"
+        "description": "每个请求的名称对应一条记录，顺序与请求一致，包括重复项。分页列出时为本页的饰品，每个至多一次，顺序与导出相同。"
       }
     },
     "type": "object",
     "required": [
       "app_id",
       "side",
+      "currency",
       "items"
     ],
     "title": "BatchPricesOut",
-    "description": "每个请求饰品的市场报价，顺序与请求一致。"
+    "description": "每个请求饰品的市场报价，或全部饰品中一页的市场报价。"
   },
   "CreditMeta": {
     "properties": {
@@ -362,7 +436,7 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
       "market_code": {
         "type": "string",
         "title": "Market Code",
-        "description": "该报价所属市场的代码，例如 `BUFF`。`CSCP` 表示 cs.cheap 对该饰品的估值：跨市场的人民币加权共识，每天更新，没有数量，`changed_at` 与 `fresh_at` 为其计算时间，详情见 `valuation`。它是估算值，不是任何人都能成交的报价。"
+        "description": "该报价所属市场的代码，例如 `BUFF`。`CSCP` 表示 cs.cheap 对该饰品的估值：以响应的 `currency` 计的跨市场加权共识，每天更新，没有数量，`changed_at` 与 `fresh_at` 为其计算时间，详情见 `valuation`。它是估算值，不是任何人都能成交的报价。"
       },
       "provider_code": {
         "type": "string",
@@ -382,7 +456,7 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
       "market_currency_code": {
         "type": "string",
         "title": "Market Currency Code",
-        "description": "`market_price_amount` 的货币，例如 `CNY`。价格以该市场自身的货币返回，不做换算。"
+        "description": "`market_price_amount` 的货币，例如 `CNY`。市场价格以该市场自身的货币返回，不做换算；只有 `CSCP` 报价以响应的 `currency` 给出。"
       },
       "market_price_amount": {
         "anyOf": [
@@ -395,6 +469,42 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
         ],
         "title": "Market Price Amount",
         "description": "以 `market_currency_code` 计的价格，为十进制字符串（普通记数法，去除末尾的零，从不使用科学记数法）；来源未报告价格时为 `null`。已下架的报价保留最后已知的价格。"
+      },
+      "buy_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Buy Amount",
+        "description": "按此价格买入实际需要支付的现金（含市场费用），换算为响应的 `currency`，为十进制字符串。费用未知或尚未按当前价格计算时为 `null`；`CSCP` 报价上恒为 `null`。"
+      },
+      "sale_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sale Amount",
+        "description": "按此价格卖出、扣除出售费用后记入你在该市场余额的金额，换算为响应的 `currency`，为十进制字符串。出售费用未知、该市场不支持出售，或费用尚未按当前价格计算时为 `null`；`CSCP` 报价上恒为 `null`。"
+      },
+      "payout_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Payout Amount",
+        "description": "按此价格卖出并提现、扣除出售与提现费用后到手的现金，换算为响应的 `currency`，为十进制字符串。相关费用未知、该市场不支持出售或提现，或费用尚未按当前价格计算时为 `null`；`CSCP` 报价上恒为 `null`。"
       },
       "quantity": {
         "anyOf": [
@@ -485,6 +595,9 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
       "side",
       "market_currency_code",
       "market_price_amount",
+      "buy_amount",
+      "sale_amount",
+      "payout_amount",
       "quantity",
       "is_quantity_minimum",
       "is_all_items_same_price",
@@ -526,6 +639,17 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
           }
         ],
         "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
       }
     },
     "type": "object",
@@ -534,6 +658,40 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
     ],
     "title": "Meta",
     "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
   },
   "ValuationOut": {
     "properties": {
@@ -560,7 +718,7 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
       "ask_amount": {
         "type": "string",
         "title": "Ask Amount",
-        "description": "各市场在售挂单的加权共识，按人民币现金买入成本计（含费用），为十进制字符串。"
+        "description": "各市场在售挂单的加权共识，按现金买入成本计（含费用），以响应的 `currency` 计，为十进制字符串。"
       },
       "bid_amount": {
         "anyOf": [
@@ -572,7 +730,7 @@ sourceDigest: "sha256:3b1918529aee4ab11e9f7d6d78836f5e516c3250bda7fd57accd09cca1
           }
         ],
         "title": "Bid Amount",
-        "description": "各市场求购订单的加权共识，按扣除费用后到手的人民币现金计，为十进制字符串；价格高于该市场在售挂单的求购订单已被剔除。`is_two_sided` 为 `false` 时为 `null`。"
+        "description": "各市场求购订单的加权共识，按扣除费用后到手的现金计，以响应的 `currency` 计，为十进制字符串；价格高于该市场在售挂单的求购订单已被剔除。`is_two_sided` 为 `false` 时为 `null`。"
       },
       "ask_quote_count": {
         "type": "integer",

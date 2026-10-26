@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.prices.get-price"
-sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf3a234b"
+sourceDigest: "sha256:70ec02d6c1c6a8291fe1dc1989a57f8fc02552248aae6187bf15c865b8c94983"
 ---
 
 ## Операция
@@ -19,10 +19,12 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
 
 - В результате не больше одной котировки на каждую пару площадки и стороны рынка, отсортированных по `market_code`, затем по `side`. Если одну и ту же площадку сообщают несколько источников, котировка, которая всё ещё выставлена, имеет приоритет над снятой, затем данные, полученные напрямую с площадки, — над агрегаторами, а затем выбирается котировка, подтверждённая последней (`fresh_at`).
 - Площадка возвращается как снятая с продажи (`delisted_at` задано, `quantity` равно `0`, последняя известная цена сохраняется), только если предмет сняли все её источники.
-- Предметы с достаточными рыночными данными получают ещё одну котировку `CSCP` со `side` `mid`: оценку cs.cheap — взвешенный консенсус лотов на продажу и заявок на покупку площадок в CNY, который обновляется раз в день. Её объект `valuation` содержит уверенность (`credibility`, `uncertainty`) и обе консенсусные цены; у всех остальных котировок `valuation` равно `null`. Это оценка, а не предложение для сделки.
+- Предметы с достаточными рыночными данными получают ещё одну котировку `CSCP` со `side` `mid`: оценку cs.cheap — взвешенный консенсус лотов на продажу и заявок на покупку площадок, который обновляется раз в день и указывается в `currency` ответа. Её объект `valuation` содержит уверенность (`credibility`, `uncertainty`) и обе консенсусные цены; у всех остальных котировок `valuation` равно `null`. Это оценка, а не предложение для сделки.
 - Сузить результат можно параметрами `markets` (коды площадок через запятую; `CSCP` выбирает оценку) и `side` (`ask`, `bid`, `mid` или `all`).
 - `market_hash_name` должен совпадать точно, включая регистр.
-- Цены — десятичные строки в собственной валюте каждой площадки (`market_currency_code`); ничего не конвертируется.
+- Цены площадок (`market_price_amount`) — десятичные строки в собственной валюте каждой площадки (`market_currency_code`); они никогда не конвертируются.
+- `buy_amount`, `sale_amount` и `payout_amount` показывают, во что обходятся покупка, продажа и продажа с выводом средств по этой цене после комиссий площадки, — все в одной валюте: параметр `currency`, иначе базовая валюта вашего аккаунта, иначе `USD`. Её называет `currency` ответа; котировка `CSCP` тоже указывается в ней.
+- `currency` принимает код любой официальной валюты (см. `GET /currencies`). Любой другой код — в том числе неподдерживаемая базовая валюта — даёт `422 unsupported_currency` и никогда не оплачивается.
 - `404` означает, что у предмета нет ни одной котировки для этого `app_id`. Если все котировки предмета отфильтрованы через `markets` или `side`, возвращается `200` с пустым списком `markets`.
 
 > [!note]
@@ -113,6 +115,25 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
         "title": "Side"
       },
       "description": "Какую сторону рынка вернуть: `ask` — лоты на продажу, `bid` — заявки на покупку, `mid` — оценка CSCP, `all` — всё. По умолчанию `all`."
+    },
+    {
+      "name": "currency",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{1,32}$"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Валюта конвертированных сумм (`buy_amount`, `sale_amount`, `payout_amount`) и оценки `CSCP` — код официальной валюты (см. `GET /currencies`), например `EUR`; регистр не важен. Имеет приоритет над базовой валютой вашего аккаунта; если не задано ни то, ни другое, используется `USD`. Цены площадок никогда не конвертируются.",
+        "title": "Currency"
+      },
+      "description": "Валюта конвертированных сумм (`buy_amount`, `sale_amount`, `payout_amount`) и оценки `CSCP` — код официальной валюты (см. `GET /currencies`), например `EUR`; регистр не важен. Имеет приоритет над базовой валютой вашего аккаунта; если не задано ни то, ни другое, используется `USD`. Цены площадок никогда не конвертируются."
     }
   ]
 }
@@ -313,6 +334,11 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
         "title": "Market Hash Name",
         "description": "Market hash name предмета, повторённый из запроса."
       },
+      "currency": {
+        "type": "string",
+        "title": "Currency",
+        "description": "Валюта `buy_amount`, `sale_amount`, `payout_amount` и котировки `CSCP`: параметр `currency`, иначе базовая валюта вашего аккаунта, иначе `USD`."
+      },
       "markets": {
         "items": {
           "$ref": "#/components/schemas/MarketQuoteOut"
@@ -326,6 +352,7 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
     "required": [
       "app_id",
       "market_hash_name",
+      "currency",
       "markets"
     ],
     "title": "ItemPricesOut",
@@ -336,7 +363,7 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
       "market_code": {
         "type": "string",
         "title": "Market Code",
-        "description": "Код площадки, к которой относится котировка, например `BUFF`. `CSCP` обозначает оценку предмета cs.cheap: взвешенный консенсус площадок в CNY, обновляемый ежедневно, без количества; время расчёта — в `changed_at` и `fresh_at`, подробности — в `valuation`. Это оценка, а не предложение, по которому можно совершить сделку."
+        "description": "Код площадки, к которой относится котировка, например `BUFF`. `CSCP` обозначает оценку предмета cs.cheap: взвешенный консенсус площадок в `currency` ответа, обновляемый ежедневно, без количества; время расчёта — в `changed_at` и `fresh_at`, подробности — в `valuation`. Это оценка, а не предложение, по которому можно совершить сделку."
       },
       "provider_code": {
         "type": "string",
@@ -356,7 +383,7 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
       "market_currency_code": {
         "type": "string",
         "title": "Market Currency Code",
-        "description": "Валюта `market_price_amount`, например `CNY`. Цены возвращаются в собственной валюте площадки, без конвертации."
+        "description": "Валюта `market_price_amount`, например `CNY`. Цены площадок возвращаются в собственной валюте площадки, без конвертации; только котировка `CSCP` указывается в `currency` ответа."
       },
       "market_price_amount": {
         "anyOf": [
@@ -369,6 +396,42 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
         ],
         "title": "Market Price Amount",
         "description": "Цена в `market_currency_code` в виде десятичной строки (обычная запись, без конечных нулей, никогда не в экспоненциальной форме) или `null`, если источник не сообщает цену. Снятая с продажи котировка сохраняет последнюю известную цену."
+      },
+      "buy_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Buy Amount",
+        "description": "Сколько на самом деле стоит покупка по этой цене деньгами, с учётом комиссий площадки, в пересчёте в `currency` ответа, десятичной строкой. `null`, если комиссии неизвестны или ещё не рассчитаны для текущей цены; у котировки `CSCP` всегда `null`."
+      },
+      "sale_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sale Amount",
+        "description": "Сколько продажа по этой цене зачислит на ваш баланс на площадке после комиссий за продажу, в пересчёте в `currency` ответа, десятичной строкой. `null`, если комиссии за продажу неизвестны, продажа там не поддерживается или комиссии ещё не рассчитаны для текущей цены; у котировки `CSCP` всегда `null`."
+      },
+      "payout_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Payout Amount",
+        "description": "Сколько денег останется после продажи по этой цене и вывода средств, за вычетом комиссий за продажу и вывод, в пересчёте в `currency` ответа, десятичной строкой. `null`, если эти комиссии неизвестны, продажа или вывод там не поддерживаются или комиссии ещё не рассчитаны для текущей цены; у котировки `CSCP` всегда `null`."
       },
       "quantity": {
         "anyOf": [
@@ -459,6 +522,9 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
       "side",
       "market_currency_code",
       "market_price_amount",
+      "buy_amount",
+      "sale_amount",
+      "payout_amount",
       "quantity",
       "is_quantity_minimum",
       "is_all_items_same_price",
@@ -500,6 +566,17 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
           }
         ],
         "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Состояние постраничного вывода. Присутствует только в ответах, возвращающих страницу списка."
       }
     },
     "type": "object",
@@ -508,6 +585,40 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
     ],
     "title": "Meta",
     "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Размер страницы, фактически применённый к этому запросу."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Есть ли следующая страница."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Передайте его без изменений как `cursor`, чтобы получить следующую страницу; `null`, когда список получен целиком."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Положение постраничного списка после этой страницы."
   },
   "ValuationOut": {
     "properties": {
@@ -534,7 +645,7 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
       "ask_amount": {
         "type": "string",
         "title": "Ask Amount",
-        "description": "Взвешенный консенсус лотов на продажу по площадкам — денежная стоимость покупки в CNY с учётом комиссий, десятичной строкой."
+        "description": "Взвешенный консенсус лотов на продажу по площадкам — денежная стоимость покупки с учётом комиссий в `currency` ответа, десятичной строкой."
       },
       "bid_amount": {
         "anyOf": [
@@ -546,7 +657,7 @@ sourceDigest: "sha256:0fe851dedbae4569cdfc2d786275bd4d0e69b22ba5271abe2ff73b6cdf
           }
         ],
         "title": "Bid Amount",
-        "description": "Взвешенный консенсус заявок на покупку по площадкам — деньги, получаемые в CNY после комиссий, десятичной строкой; заявки дороже лотов на продажу той же площадки исключены. `null`, если `is_two_sided` равно `false`."
+        "description": "Взвешенный консенсус заявок на покупку по площадкам — деньги, получаемые после комиссий, в `currency` ответа, десятичной строкой; заявки дороже лотов на продажу той же площадки исключены. `null`, если `is_two_sided` равно `false`."
       },
       "ask_quote_count": {
         "type": "integer",

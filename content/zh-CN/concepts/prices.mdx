@@ -6,12 +6,12 @@ kind: "explanation"
 status: "ready"
 sources: ["spider", "refinery", "api"]
 translationOf: "concepts.prices"
-sourceDigest: "sha256:5b31aa4578578e41c8eb29d0521835e55e4f196bc3b8f909345323b23d2f2a59"
+sourceDigest: "sha256:78ab1522dd650f658d3b5d525f1a75d7a505aab84ab67b914b7b1fd95e82f0d5"
 ---
 
 ## 金额、方向与数量
 
-`ask` 表示在售报价，`bid` 表示求购报价。普通报价使用市场币种，不包含另行计算的 CNY 费用档位。金额采用十进制字符串以保留精度。
+`ask` 表示在售报价，`bid` 表示求购报价。市场原价 `market_price_amount` 使用该市场的币种。每条报价还附带按该价格买入（`buy_amount`）、出售（`sale_amount`）以及出售后提现（`payout_amount`）在扣除市场官方费率后的金额，并换算为响应币种。金额采用十进制字符串以保留精度。
 
 `quantity=null` 表示未知，`quantity=0` 表示该行没有可用数量。`is_quantity_minimum=true` 表示数量是下限。`is_all_items_same_price=false` 表示并非每件物品都按该报价出售，`null` 则表示未知。
 

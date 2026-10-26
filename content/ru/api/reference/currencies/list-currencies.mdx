@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.currencies.list-currencies"
-sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5cdada91"
+sourceDigest: "sha256:5ee61b35da17afb6be794921c6e4a41ad764ec0aeba99f6f6706f1dffaadcd6b"
 ---
 
 ## Операция
@@ -17,8 +17,9 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
 
 Возвращает официальные валюты, которые ведёт платформа, с их текущими курсами к USD. Именно между этими валютами выполняются конвертации в официальных графиках комиссий.
 
-- Результаты упорядочены по `code`.
+- Результаты упорядочены по `code`, если `sort` не задаёт иное.
 - `search` оставляет в списке только коды, содержащие заданный текст (без учёта регистра).
+- Без `page` возвращается весь список; с `page` (и `page_size`, не более 100) — одна страница с `total`.
 - `usd_rate` — стоимость одной единицы валюты в долларах США в виде десятичной строки (например, `0.125` для валюты, которая стоит 1/8 USD).
 - В списке только официальные валюты.
 
@@ -58,6 +59,62 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
         "title": "Search"
       },
       "description": "Поиск подстроки в коде валюты без учёта регистра. Не указывайте, чтобы получить все валюты."
+    },
+    {
+      "name": "sort",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "enum": [
+              "name",
+              "ref_count",
+              "updated_at"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Порядок сортировки: `name` (по умолчанию; по коду), `ref_count` (самые используемые первыми) или `updated_at` (недавно изменённые первыми).",
+        "title": "Sort"
+      },
+      "description": "Порядок сортировки: `name` (по умолчанию; по коду), `ref_count` (самые используемые первыми) или `updated_at` (недавно изменённые первыми)."
+    },
+    {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "minimum": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Номер страницы, начиная с 1. Если указан, ответом будет страница (`items`, `total`, `page`, `page_size`), а не весь список.",
+        "title": "Page"
+      },
+      "description": "Номер страницы, начиная с 1. Если указан, ответом будет страница (`items`, `total`, `page`, `page_size`), а не весь список."
+    },
+    {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "type": "integer",
+        "maximum": 100,
+        "minimum": 1,
+        "description": "Записей на странице (от 1 до 100); используется вместе с `page`.",
+        "default": 20,
+        "title": "Page Size"
+      },
+      "description": "Записей на странице (от 1 до 100); используется вместе с `page`."
     }
   ]
 }
@@ -72,7 +129,7 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
     "content": {
       "application/json": {
         "schema": {
-          "$ref": "#/components/schemas/Envelope_list_CurrencyOut__"
+          "$ref": "#/components/schemas/Envelope_Union_list_CurrencyOut___PageOut_CurrencyOut___"
         }
       }
     }
@@ -210,13 +267,20 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
     "title": "CurrencyOut",
     "description": "Валюта и её стоимость в долларах США."
   },
-  "Envelope_list_CurrencyOut__": {
+  "Envelope_Union_list_CurrencyOut___PageOut_CurrencyOut___": {
     "properties": {
       "data": {
-        "items": {
-          "$ref": "#/components/schemas/CurrencyOut"
-        },
-        "type": "array",
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/components/schemas/CurrencyOut"
+            },
+            "type": "array"
+          },
+          {
+            "$ref": "#/components/schemas/PageOut_CurrencyOut_"
+          }
+        ],
         "title": "Data",
         "description": "Полезные данные эндпоинта."
       },
@@ -230,7 +294,7 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
       "data",
       "meta"
     ],
-    "title": "Envelope[list[CurrencyOut]]"
+    "title": "Envelope[Union[list[CurrencyOut], PageOut[CurrencyOut]]]"
   },
   "ErrorBody": {
     "properties": {
@@ -314,6 +378,17 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
           }
         ],
         "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Состояние постраничного вывода. Присутствует только в ответах, возвращающих страницу списка."
       }
     },
     "type": "object",
@@ -322,6 +397,76 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
     ],
     "title": "Meta",
     "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Размер страницы, фактически применённый к этому запросу."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Есть ли следующая страница."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Передайте его без изменений как `cursor`, чтобы получить следующую страницу; `null`, когда список получен целиком."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Положение постраничного списка после этой страницы."
+  },
+  "PageOut_CurrencyOut_": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CurrencyOut"
+        },
+        "type": "array",
+        "title": "Items",
+        "description": "Записи на этой странице."
+      },
+      "total": {
+        "type": "integer",
+        "title": "Total",
+        "description": "Количество подходящих записей на всех страницах."
+      },
+      "page": {
+        "type": "integer",
+        "title": "Page",
+        "description": "Номер этой страницы, начиная с 1."
+      },
+      "page_size": {
+        "type": "integer",
+        "title": "Page Size",
+        "description": "Записей на странице."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "title": "PageOut[CurrencyOut]"
   }
 }
 ```

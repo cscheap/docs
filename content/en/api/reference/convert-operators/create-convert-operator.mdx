@@ -1,0 +1,619 @@
+---
+docId: "api.reference.convert-operators.create-convert-operator"
+title: "Create a convert operator"
+description: "POST /convert-operators — Create a convert operator"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`POST /convert-operators`
+
+## Behavior
+
+Creates a convert operator and returns it as revision 1, with both currencies embedded.
+
+- `from_currency_id` and `to_currency_id` must be your own currencies or official ones (400 otherwise). The pair cannot be changed later.
+- `mode=fixed` requires a positive `rate` with at most 12 decimal places (422 otherwise).
+- It is yours and not official; set `is_searchable` to share it.
+
+
+## Usage
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": null,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{
+  "requestBody": {
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ConvertOperatorCreate"
+        }
+      }
+    }
+  }
+}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_ConvertOperatorOut_"
+        }
+      }
+    }
+  },
+  "400": {
+    "description": "The request references a resource that does not exist, or carries an invalid cursor",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "Authentication is missing or invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "The credential is valid but not allowed to call this operation",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "409": {
+    "description": "The request conflicts with the current state of a resource",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "A parameter or the request body is invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "429": {
+    "description": "Too many requests to this endpoint; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "The service is temporarily unavailable; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "ConvertOperatorCreate": {
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "title": "Name",
+        "description": "Display name, e.g. `usd->cny`."
+      },
+      "from_currency_id": {
+        "type": "integer",
+        "title": "From Currency Id",
+        "description": "ID of the source currency: one of your own currencies or an official one. Cannot be changed later."
+      },
+      "to_currency_id": {
+        "type": "integer",
+        "title": "To Currency Id",
+        "description": "ID of the target currency: one of your own currencies or an official one. Cannot be changed later."
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "fixed"
+        ],
+        "title": "Mode",
+        "description": "`auto` converts through both currencies' US dollar values (`usd_rate`); `fixed` multiplies by `rate`."
+      },
+      "rate": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Rate",
+        "description": "Units of the target currency per one unit of the source currency, as a positive exact decimal with at most 12 decimal places. Required when `mode` is `fixed`; not used by `auto`."
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "Share the convert operator with other users, who can then find, reference and fork it.",
+        "default": false
+      },
+      "reason": {
+        "type": "string",
+        "maxLength": 2000,
+        "title": "Reason",
+        "description": "Optional note saved with the new revision, shown in its history.",
+        "default": ""
+      }
+    },
+    "type": "object",
+    "required": [
+      "name",
+      "from_currency_id",
+      "to_currency_id",
+      "mode"
+    ],
+    "title": "ConvertOperatorCreate",
+    "description": "A new convert operator: converts the running amount from one currency to\nanother."
+  },
+  "ConvertOperatorOut": {
+    "properties": {
+      "kind": {
+        "type": "string",
+        "const": "convert",
+        "title": "Kind",
+        "description": "Record type: always `convert`."
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Unique ID of the convert operator."
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "Display name."
+      },
+      "from": {
+        "$ref": "#/components/schemas/CurrencyOut",
+        "description": "Source currency (fixed at creation)."
+      },
+      "to": {
+        "$ref": "#/components/schemas/CurrencyOut",
+        "description": "Target currency (fixed at creation)."
+      },
+      "mode": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "fixed"
+        ],
+        "title": "Mode",
+        "description": "`auto` converts through both currencies' `usd_rate`; `fixed` multiplies by `rate`."
+      },
+      "rate": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Rate",
+        "description": "Units of the target currency per one unit of the source currency, as a decimal string; used in `fixed` mode."
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "ID of the owning user; `null` for platform-owned records, which include every official record."
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "Whether this is an official convert operator published by the platform. Official records are read-only for users."
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "Whether the owner shares this convert operator, so other users can find, reference and fork it."
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "How many times this convert operator is referenced (by calculation chain steps and group memberships) or has been forked. Informational only."
+      },
+      "forked_from": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Forked From",
+        "description": "ID of the convert operator this one was forked from; `null` if it was created from scratch."
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "Whether the convert operator is deleted. Deleted records are never returned again, so this is `true` only in a delete response."
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "Current revision of the convert operator: 1 when created, one more with every saved change. `null` only for an inline record."
+      },
+      "sequence": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sequence",
+        "description": "Change counter of the convert operator: rises with every saved revision and every change of sharing or lifecycle. Send it back as `expected_sequence` to detect concurrent changes."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "kind",
+      "id",
+      "name",
+      "from",
+      "to",
+      "mode",
+      "rate",
+      "owner_user_id",
+      "is_official",
+      "is_searchable",
+      "ref_count",
+      "forked_from",
+      "is_deleted",
+      "revision",
+      "sequence"
+    ],
+    "title": "ConvertOperatorOut",
+    "description": "A convert operator: converts the running amount from one currency to\nanother."
+  },
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Credits this request costs."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Credit accounting for a billable request."
+  },
+  "CurrencyOut": {
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Unique ID of the currency."
+      },
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Currency code, e.g. `USD`."
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "Display name."
+      },
+      "kind": {
+        "type": "string",
+        "title": "Kind",
+        "description": "Currency kind, e.g. `fiat`."
+      },
+      "usd_rate": {
+        "type": "string",
+        "title": "Usd Rate",
+        "description": "Value of one unit of this currency in US dollars, as a decimal string. Used by `auto` conversions."
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "ID of the owning user; `null` for platform currencies, which include every official currency."
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "Whether the currency belongs to the official catalog maintained by the platform."
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "Number of convert operators that use this currency."
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "Whether the currency is deleted. Deleted currencies are never listed, so this is `true` only in a delete response."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "id",
+      "code",
+      "name",
+      "kind",
+      "usd_rate",
+      "owner_user_id",
+      "is_official",
+      "ref_count",
+      "is_deleted"
+    ],
+    "title": "CurrencyOut",
+    "description": "A currency and its US dollar value."
+  },
+  "Envelope_ConvertOperatorOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/ConvertOperatorOut",
+        "description": "The endpoint payload."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[ConvertOperatorOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Stable machine-readable error code. Branch on this value, not on `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Human-readable explanation. The wording may change."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Optional structured context, such as the list of validation errors or, for `credit_insufficient`, the required and remaining credits."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Details of a failed request."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "What went wrong."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Error response: the error in `error` plus request metadata in `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Paging state. Present only on a response that lists a page."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Request metadata included in every enveloped response."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Page size actually applied to this request."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Whether another page follows."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Pass it back unchanged as `cursor` to get the next page; `null` once the list is complete."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Where a paged list stands after this page."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

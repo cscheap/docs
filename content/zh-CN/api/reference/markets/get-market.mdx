@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.markets.get-market"
-sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157488200"
+sourceDigest: "sha256:348335c2e9d83769459f029b6f6460a887fa480b6c51d01cafac0f137b412924"
 ---
 
 ## 操作
@@ -225,6 +225,17 @@ sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157
           }
         ],
         "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
       }
     },
     "type": "object",
@@ -233,6 +244,40 @@ sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157
     ],
     "title": "Meta",
     "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
   },
   "WebsiteOut": {
     "properties": {
@@ -275,6 +320,18 @@ sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157
         "title": "Subcategory",
         "description": "更细的类别（如有）。"
       },
+      "countryCode": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Countrycode",
+        "description": "运营该市场的公司的两字母国家代码（ISO 3166-1）；未注明时为 `null`。"
+      },
       "is_deprecated": {
         "type": "boolean",
         "title": "Is Deprecated",
@@ -289,6 +346,7 @@ sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157
       "url",
       "category",
       "subCategory",
+      "countryCode",
       "is_deprecated"
     ],
     "title": "WebsiteOut",

@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.markets.get-market"
-sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157488200"
+sourceDigest: "sha256:348335c2e9d83769459f029b6f6460a887fa480b6c51d01cafac0f137b412924"
 ---
 
 ## Операция
@@ -225,6 +225,17 @@ sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157
           }
         ],
         "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Состояние постраничного вывода. Присутствует только в ответах, возвращающих страницу списка."
       }
     },
     "type": "object",
@@ -233,6 +244,40 @@ sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157
     ],
     "title": "Meta",
     "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Размер страницы, фактически применённый к этому запросу."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Есть ли следующая страница."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Передайте его без изменений как `cursor`, чтобы получить следующую страницу; `null`, когда список получен целиком."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Положение постраничного списка после этой страницы."
   },
   "WebsiteOut": {
     "properties": {
@@ -275,6 +320,18 @@ sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157
         "title": "Subcategory",
         "description": "Более точная категория, если есть."
       },
+      "countryCode": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Countrycode",
+        "description": "Двухбуквенный код страны (ISO 3166-1) компании, которая управляет площадкой; `null`, если не указан."
+      },
       "is_deprecated": {
         "type": "boolean",
         "title": "Is Deprecated",
@@ -289,6 +346,7 @@ sourceDigest: "sha256:2c044db92123aadcbb71efd49e2fb76bef0eaf631bdac1bea86ba45157
       "url",
       "category",
       "subCategory",
+      "countryCode",
       "is_deprecated"
     ],
     "title": "WebsiteOut",

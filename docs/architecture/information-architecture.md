@@ -60,6 +60,7 @@ refinery 维护费用应用和数据筛选说明；官方费率定义由 API 维
 | `guides/export-prices` | 下载快照、解压并使用条件请求 | api | 首批 |
 | `guides/polling-and-retries` | 设置轮询、退避与缓存策略 | api | 首批 |
 | `guides/interpret-fees` | 阅读官方费率并解释成本计算 | refinery，api 复核 | 扩展 |
+| `guides/customize-fees` | 用 API 维护自己的费率链：读取费率工作区、查找或搭建链、试算、绑定与恢复官方费率 | api | 第五批（2026-10-26） |
 | `guides/filter-items` | 按商品条件完成筛选 | refinery，spider 复核 | 暂缓 |
 
 这些页面写操作步骤和可验证结果，参数表链接到接口参考。SDK 教程等 SDK 有可维护发布物后再增加；首批采用 HTTP 示例。
@@ -76,7 +77,7 @@ refinery 维护费用应用和数据筛选说明；官方费率定义由 API 维
 | `api/versioning` | 兼容性、弃用与迁移约定 | api | 首批，记录现状，不虚构兼容性承诺 |
 | `api/reference/...` | 下列接口参考，从客户 schema 生成 | api 生成 | 首批 |
 
-目标参考分组如下。方法与路径是 2026-10-09 代码基线的核对清单，不替代后续版本的 schema：
+目标参考分组如下。方法与路径是 2026-10-09 代码基线的核对清单（费率部分为 2026-10-26 基线 `75610b5`），不替代后续版本的 schema：费率部分只收用户可用的操作，管理员专用的 officialize、`scope=official` 提权与 `/sync` 接口不公开，接口说明在「Administrators」小节处截断，`scope` 查询参数由生成器去掉：
 
 | 参考页路径，前缀 `api/reference/` | 方法与路径 |
 | --- | --- |
@@ -93,6 +94,48 @@ refinery 维护费用应用和数据筛选说明；官方费率定义由 API 维
 | `platform/list-endpoints` | `GET /endpoints` |
 | `platform/get-health` | `GET /health` |
 | `platform/get-status` | `GET /status` |
+| `fees/get-fee-workspace` | `GET /fee-workspace` |
+| `calculation-chains/list-chains` | `GET /calculation-chains` |
+| `calculation-chains/create-chain` | `POST /calculation-chains` |
+| `calculation-chains/search-chains` | `GET /calculation-chains/search` |
+| `calculation-chains/validate-chain` | `POST /calculation-chains/validate` |
+| `calculation-chains/preview-chain` | `POST /calculation-chains/preview` |
+| `calculation-chains/get-chain` | `GET /calculation-chains/{calculation_chain_id}` |
+| `calculation-chains/update-chain` | `PUT /calculation-chains/{calculation_chain_id}` |
+| `calculation-chains/deprecate-chain` | `POST /calculation-chains/{calculation_chain_id}/deprecate` |
+| `calculation-chains/list-chain-events` | `GET /calculation-chains/{calculation_chain_id}/events` |
+| `calculation-chains/fork-chain` | `POST /calculation-chains/{calculation_chain_id}/fork` |
+| `calculation-chains/list-chain-revisions` | `GET /calculation-chains/{calculation_chain_id}/revisions` |
+| `calculation-chains/get-chain-revision` | `GET /calculation-chains/{calculation_chain_id}/revisions/{revision}` |
+| `fee-operators/list-fee-operators` | `GET /fee-operators` |
+| `fee-operators/create-fee-operator` | `POST /fee-operators` |
+| `fee-operators/get-fee-operator` | `GET /fee-operators/{op_id}` |
+| `fee-operators/update-fee-operator` | `PUT /fee-operators/{op_id}` |
+| `fee-operators/delete-fee-operator` | `DELETE /fee-operators/{op_id}` |
+| `fee-operators/fork-fee-operator` | `POST /fee-operators/{op_id}/fork` |
+| `fee-operators/list-fee-operator-revisions` | `GET /fee-operators/{op_id}/revisions` |
+| `convert-operators/list-convert-operators` | `GET /convert-operators` |
+| `convert-operators/create-convert-operator` | `POST /convert-operators` |
+| `convert-operators/get-convert-operator` | `GET /convert-operators/{op_id}` |
+| `convert-operators/update-convert-operator` | `PUT /convert-operators/{op_id}` |
+| `convert-operators/delete-convert-operator` | `DELETE /convert-operators/{op_id}` |
+| `convert-operators/fork-convert-operator` | `POST /convert-operators/{op_id}/fork` |
+| `convert-operators/list-convert-operator-revisions` | `GET /convert-operators/{op_id}/revisions` |
+| `convert-groups/list-convert-groups` | `GET /convert-operator-groups` |
+| `convert-groups/create-convert-group` | `POST /convert-operator-groups` |
+| `convert-groups/get-convert-group` | `GET /convert-operator-groups/{op_id}` |
+| `convert-groups/update-convert-group` | `PUT /convert-operator-groups/{op_id}` |
+| `convert-groups/delete-convert-group` | `DELETE /convert-operator-groups/{op_id}` |
+| `convert-groups/fork-convert-group` | `POST /convert-operator-groups/{op_id}/fork` |
+| `convert-groups/list-convert-group-revisions` | `GET /convert-operator-groups/{op_id}/revisions` |
+| `bindings/list-bindings` | `GET /website-calculation-chain-bindings` |
+| `bindings/set-binding` | `PUT /website-calculation-chain-bindings/{website_code}/{purpose}` |
+| `bindings/reset-binding` | `DELETE /website-calculation-chain-bindings/{website_code}/{purpose}` |
+| `my-currencies/list-my-currencies` | `GET /me/currencies` |
+| `my-currencies/create-my-currency` | `POST /me/currencies` |
+| `my-currencies/get-my-currency` | `GET /me/currencies/{code}` |
+| `my-currencies/update-my-currency` | `PUT /me/currencies/{code}` |
+| `my-currencies/delete-my-currency` | `DELETE /me/currencies/{code}` |
 
 API 导出器维护 operation 到文档路径的显式映射，避免函数名、tag 或自动生成的 operationId 变化导致链接变化。`GET /endpoints` 的真实返回范围按 API 行为说明；不能因为文档筛选了接口，就声称该端点也自动采用相同筛选。
 

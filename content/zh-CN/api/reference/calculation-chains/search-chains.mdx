@@ -1,0 +1,563 @@
+---
+docId: "api.reference.calculation-chains.search-chains"
+title: "搜索计算链"
+description: "GET /calculation-chains/search — 搜索计算链"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.calculation-chains.search-chains"
+sourceDigest: "sha256:a04d789b9ff8f7da927c74d4063f40ec4d74f9fff52d04f9b10562120894adbb"
+---
+
+## 操作
+
+`GET /calculation-chains/search`
+
+## 行为
+
+查找可通过绑定或 Fork 来复用的计算链。
+
+- 列出你能看到的所有未弃用计算链：你自己的、官方的以及其他用户共享的。`owner`（`mine`、`official` 或 `public`）和 `search`（名称的子串，不区分大小写）用于缩小范围。
+- `website` 和 `purpose` 只保留在该市场或该用途上被某个绑定使用的计算链。
+- 默认按 `ref_count` 排序，使用最多的在前，除非 `sort` 另有指定；带 `page`（以及 `page_size`，最多 100）时返回一页及 `total`。
+- 每条记录带有一个可读的 `formula`：名义金额 100 流经该计算链的过程；对不固定任何货币的计算链，则是其各步骤作用于符号输入 `x` 的算式（例如 `x × 0.975`）。完整的计算链可通过 `GET /calculation-chains/{calculation_chain_id}` 获取。
+
+
+## 用量
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": null,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{
+  "parameters": [
+    {
+      "name": "website",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "仅返回绑定到此市场的计算链，以市场代码指定。",
+        "title": "Website"
+      },
+      "description": "仅返回绑定到此市场的计算链，以市场代码指定。"
+    },
+    {
+      "name": "purpose",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "仅返回为此用途绑定的计算链：`deposit`、`sale` 或 `withdraw`。",
+        "title": "Purpose"
+      },
+      "description": "仅返回为此用途绑定的计算链：`deposit`、`sale` 或 `withdraw`。"
+    },
+    {
+      "name": "owner",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "enum": [
+              "official",
+              "public",
+              "mine"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "要列出哪些记录。省略则列出你能看到的全部。`official`：平台的官方记录。`public`：用户共享的记录。`mine`：你自己的。",
+        "title": "Owner"
+      },
+      "description": "要列出哪些记录。省略则列出你能看到的全部。`official`：平台的官方记录。`public`：用户共享的记录。`mine`：你自己的。"
+    },
+    {
+      "name": "search",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "与名称匹配的子串（不区分大小写）。",
+        "title": "Search"
+      },
+      "description": "与名称匹配的子串（不区分大小写）。"
+    },
+    {
+      "name": "sort",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "enum": [
+          "ref_count",
+          "name",
+          "updated_at"
+        ],
+        "type": "string",
+        "description": "排序方式：`ref_count`（默认；使用最多的在前）、`name`（官方计算链在前）或 `updated_at`（最近修改的在前）。",
+        "default": "ref_count",
+        "title": "Sort"
+      },
+      "description": "排序方式：`ref_count`（默认；使用最多的在前）、`name`（官方计算链在前）或 `updated_at`（最近修改的在前）。"
+    },
+    {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "minimum": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "页码，从 1 开始。指定后，响应是一页（`items`、`total`、`page`、`page_size`），而不是完整列表。",
+        "title": "Page"
+      },
+      "description": "页码，从 1 开始。指定后，响应是一页（`items`、`total`、`page`、`page_size`），而不是完整列表。"
+    },
+    {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "type": "integer",
+        "maximum": 100,
+        "minimum": 1,
+        "description": "每页记录数（1 到 100）；与 `page` 一起使用。",
+        "default": 20,
+        "title": "Page Size"
+      },
+      "description": "每页记录数（1 到 100）；与 `page` 一起使用。"
+    }
+  ]
+}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_Union_list_CalculationChainSearchOut___PageOut_CalculationChainSearchOut___"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "缺少认证信息或认证无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "凭证有效，但无权调用此操作",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "参数或请求体无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "429": {
+    "description": "对此端点的请求过多；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "服务暂时不可用；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "CalculationChainSearchOut": {
+    "properties": {
+      "calculation_chain_id": {
+        "type": "integer",
+        "title": "Calculation Chain Id",
+        "description": "计算链的 ID。"
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "显示名称（如已设置）。"
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "计算链的当前修订。"
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "所有者用户的 ID；平台计算链为 `null`。"
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "该计算链是否为官方计算链。"
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "所有者是否共享了该计算链。"
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "该计算链被绑定或被 Fork 的次数；除非 `sort` 另有指定，结果按此排序。"
+      },
+      "step_count": {
+        "type": "integer",
+        "title": "Step Count",
+        "description": "计算链中的步骤数。"
+      },
+      "formula": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Formula",
+        "description": "计算链的可读算式。有 `start_currency` 时，以该货币计的名义金额 100 流经各步骤，每步后附其结果，例如 `100.00000000 USD → × 0.975 = 97.50000000 USD`。没有起始货币时（没有任何步骤固定货币，或没有步骤），各步骤按顺序作用于符号输入 `x`，在顺序需要处加括号，例如 `x × 0.975` 或 `x × 0.98 ÷ 1.05`；没有步骤的计算链就是 `x`。仅在无法构造算式时为 `null`，例如没有起始货币的计算链含有一个没有成员的组。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "calculation_chain_id",
+      "name",
+      "revision",
+      "owner_user_id",
+      "is_official",
+      "is_searchable",
+      "ref_count",
+      "step_count",
+      "formula"
+    ],
+    "title": "CalculationChainSearchOut",
+    "description": "通过搜索找到的一条计算链。"
+  },
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "本次请求花费的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "计费请求的点数结算信息。"
+  },
+  "Envelope_Union_list_CalculationChainSearchOut___PageOut_CalculationChainSearchOut___": {
+    "properties": {
+      "data": {
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/components/schemas/CalculationChainSearchOut"
+            },
+            "type": "array"
+          },
+          {
+            "$ref": "#/components/schemas/PageOut_CalculationChainSearchOut_"
+          }
+        ],
+        "title": "Data",
+        "description": "端点返回的数据。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[Union[list[CalculationChainSearchOut], PageOut[CalculationChainSearchOut]]]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "稳定的机器可读错误代码。请根据此值进行分支处理，而不是 `message`。"
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "面向人类阅读的说明。措辞可能变化。"
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "可选的结构化上下文，例如校验错误列表；对于 `credit_insufficient`，则为所需点数和剩余点数。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "失败请求的详细信息。"
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "出了什么问题。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "错误响应：`error` 中为错误信息，`meta` 中为请求元数据。"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
+  },
+  "PageOut_CalculationChainSearchOut_": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CalculationChainSearchOut"
+        },
+        "type": "array",
+        "title": "Items",
+        "description": "本页的记录。"
+      },
+      "total": {
+        "type": "integer",
+        "title": "Total",
+        "description": "所有页中匹配的记录总数。"
+      },
+      "page": {
+        "type": "integer",
+        "title": "Page",
+        "description": "本页的页码，从 1 开始。"
+      },
+      "page_size": {
+        "type": "integer",
+        "title": "Page Size",
+        "description": "每页记录数。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "title": "PageOut[CalculationChainSearchOut]"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

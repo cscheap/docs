@@ -25,6 +25,6 @@ Money and rates are decimal strings; credits are integers. Optional null values 
 
 ## Billing and exceptions
 
-`meta.billable` states whether the request uses credit billing. A charged response can include `meta.credit.cost` and `remaining`; the remaining amount is a concurrent-use estimate. `GET /me` instead returns account totals in `data.credit`.
+`meta.billable` states whether the request uses credit billing. A charged response can include `meta.credit.cost` and `remaining`; the remaining amount is a concurrent-use estimate. `GET /me` instead returns account totals in `data.credit`. A response that lists a page also carries `meta.page`: `limit`, `has_next` and `next_cursor`.
 
 The export body is the document itself; use `X-Billable`, `X-Credit-Cost` and `X-Credit-Remaining`. A `304` has no body. Health and other explicitly documented exceptions follow their operation schema.

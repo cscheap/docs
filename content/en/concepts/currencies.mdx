@@ -1,7 +1,7 @@
 ---
 docId: "concepts.currencies"
 title: "Currencies and precision"
-description: "Ordinary price responses retain market_currency_code; changing a dashboard preference does not convert these API quotes."
+description: "Marketplace prices keep their own currency; converted amounts use one currency per response."
 kind: "explanation"
 status: "ready"
 sources: ["refinery", "api"]
@@ -9,12 +9,12 @@ sources: ["refinery", "api"]
 
 ## Keep the currency with the amount
 
-Ordinary price responses retain `market_currency_code`; changing a dashboard preference does not convert these API quotes. Use [currencies](/docs/api/reference/currencies/list-currencies) to inspect the official currency catalogue and its rate fields.
+Every quote keeps `market_price_amount` in its marketplace's currency, `market_currency_code`, and that amount is never converted. The converted amounts (`buy_amount`, `sale_amount`, `payout_amount`) and the `CSCP` valuation use one currency per response: the `currency` you request, else your account's base currency, else USD. Changing the base currency in the dashboard therefore changes the default currency of these converted amounts, not the marketplace prices. Use [currencies](/docs/api/reference/currencies/list-currencies) to inspect the official currency catalogue and its rate fields.
 
 Money and rates are decimal strings. Use a decimal library for calculations and round only at a defined boundary. Do not parse money into binary floating-point and assume exact results.
 
 ## Different currency contexts
 
-CSCP valuation is in CNY. Fee processing computes CNY purchase, sale and payout amounts internally, while platform configuration describes its own home currency. These are different contexts; the public price schema does not expose all internal fee amounts.
+Fee processing and the CSCP valuation are computed in CNY internally; the API converts them into the response currency with the official reference rates. A converted amount can therefore differ from your own conversion made at another rate or time.
 
 When converting a quote yourself, keep the original amount and currency, record the rate you used and label the result as your conversion. Exchange rates and marketplace fees can change independently.

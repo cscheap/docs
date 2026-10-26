@@ -1,7 +1,7 @@
 ---
 docId: "api.reference.prices.batch-prices"
-title: "Get prices for many items"
-description: "POST /prices/batch — Get prices for many items"
+title: "Get prices for many or all items"
+description: "POST /prices/batch — Get prices for many or all items"
 kind: "reference"
 status: "ready"
 sources: ["api"]
@@ -13,16 +13,29 @@ sources: ["api"]
 
 ## Behavior
 
-Returns the current quotes for a list of items in one call. Each item's quotes follow the same rules as `GET /prices`: at most one per market and side, listed quotes preferred over delisted ones, then marketplace-sourced data over aggregators, then the freshest, plus the item's `CSCP` valuation (`side` `mid`) when it has one.
+Returns the current quotes for a list of items in one call, or for every priced item page by page. Each item's quotes follow the same rules as `GET /prices`: at most one per market and side, listed quotes preferred over delisted ones, then marketplace-sourced data over aggregators, then the freshest, plus the item's `CSCP` valuation (`side` `mid`) when it has one.
+
+With `market_hash_names` you get exactly the items you name:
 
 - `items` has one entry per requested name, in request order.
 - Unknown names are not an error: they come back with an empty `markets` list. This endpoint never returns `404`.
 - Duplicate names are kept, and each occurrence gets its own entry.
-- `markets` and `side` filter every item the same way.
+
+Without `market_hash_names` you page through every item of `app_id` that has a matching quote:
+
+1. Omit `market_hash_names`; `limit` sets the page size (default 100, at most 1000).
+2. Pass `meta.page.next_cursor` back unchanged as `cursor` to get the next page.
+3. When `next_cursor` is `null`, you have every item.
+
+Items come in the same order as `GET /prices/export`, each at most once per pass. Prices are read as each page is requested, so an item added while you page may only show up on your next pass.
+
+In both modes:
+
+- `markets` and `side` filter every item the same way, and `currency` converts every item as on `GET /prices`.
 - Unknown fields in the request body are rejected with `422`.
 
 > [!note]
-> Billed per started block of item names, counted over the full `market_hash_names` list including duplicates. The cost is checked before the lookup (`402` if your balance is too low) and charged only when the request succeeds.
+> Billed per started block of 100 items: the full `market_hash_names` list including duplicates, or the `limit` of a page, even when the last page holds fewer items. To fetch everything at once, `GET /prices/export` is cheaper. The cost is checked before the lookup (`402` if your balance is too low) and charged only when the request succeeds.
 
 
 ## Usage
@@ -40,7 +53,8 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
   "unit_pricing": {
     "unit_size": 100,
     "units_body_field": "market_hash_names",
-    "max_units": 1000
+    "max_units": 1000,
+    "page_size_field": "limit"
   }
 }
 ```
@@ -72,6 +86,16 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
       "application/json": {
         "schema": {
           "$ref": "#/components/schemas/Envelope_BatchPricesOut_"
+        }
+      }
+    }
+  },
+  "400": {
+    "description": "The request references a resource that does not exist, or carries an invalid cursor",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
         }
       }
     }
@@ -148,7 +172,7 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
       "market_hash_name": {
         "type": "string",
         "title": "Market Hash Name",
-        "description": "Market hash name of the item, exactly as requested."
+        "description": "Market hash name of the item, exactly as requested; in list mode, as listed."
       },
       "markets": {
         "items": {
@@ -156,7 +180,7 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
         },
         "type": "array",
         "title": "Markets",
-        "description": "The item's quotes, at most one per market and side, sorted by market code and then side. Empty when the item is unknown or the filters exclude every quote."
+        "description": "The item's quotes, at most one per market and side, sorted by market code and then side. Empty when the item is unknown or the filters exclude every quote; never empty in list mode."
       }
     },
     "type": "object",
@@ -178,16 +202,23 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
         "default": "730"
       },
       "market_hash_names": {
-        "items": {
-          "type": "string",
-          "maxLength": 255,
-          "minLength": 1
-        },
-        "type": "array",
-        "maxItems": 1000,
-        "minItems": 1,
+        "anyOf": [
+          {
+            "items": {
+              "type": "string",
+              "maxLength": 255,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
         "title": "Market Hash Names",
-        "description": "Steam market hash names to look up (exact, case-sensitive). Duplicates are allowed: each occurrence gets its own result entry and counts toward the billed item count."
+        "description": "Steam market hash names to look up (exact, case-sensitive). Duplicates are allowed: each occurrence gets its own result entry and counts toward the billed item count. Omit it to page through every priced item instead; an empty list is rejected."
       },
       "markets": {
         "anyOf": [
@@ -217,13 +248,50 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
         "title": "Side",
         "description": "Which side of the market to return: `ask` for sell listings, `bid` for buy orders, `mid` for the CSCP valuation, `all` for everything. Defaults to `all`.",
         "default": "all"
+      },
+      "currency": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{1,32}$"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Currency",
+        "description": "Currency of the converted amounts (`buy_amount`, `sale_amount`, `payout_amount`) and of the `CSCP` valuation, as an official currency code (see `GET /currencies`), for example `EUR`; case-insensitive. Takes precedence over your account's base currency; when neither is set, `USD` is used. Marketplace prices are never converted."
+      },
+      "limit": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "minimum": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Limit",
+        "description": "Only when `market_hash_names` is omitted: how many items one page holds. Defaults to 100; larger values than 1000 are treated as 1000."
+      },
+      "cursor": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Cursor",
+        "description": "Only when `market_hash_names` is omitted: the `next_cursor` of the previous page, passed back unchanged. Omit it for the first page."
       }
     },
     "additionalProperties": false,
     "type": "object",
-    "required": [
-      "market_hash_names"
-    ],
     "title": "BatchPricesIn",
     "description": "Request body of a batch price lookup."
   },
@@ -245,23 +313,29 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
         "title": "Side",
         "description": "Side filter applied, echoed from the request."
       },
+      "currency": {
+        "type": "string",
+        "title": "Currency",
+        "description": "Currency of `buy_amount`, `sale_amount`, `payout_amount` and of the `CSCP` quote: the `currency` parameter, else your account's base currency, else `USD`."
+      },
       "items": {
         "items": {
           "$ref": "#/components/schemas/BatchItemOut"
         },
         "type": "array",
         "title": "Items",
-        "description": "One entry per requested name, in request order, duplicates included."
+        "description": "One entry per requested name, in request order, duplicates included. In list mode: the items of this page, each at most once, in the same order as the export."
       }
     },
     "type": "object",
     "required": [
       "app_id",
       "side",
+      "currency",
       "items"
     ],
     "title": "BatchPricesOut",
-    "description": "Market quotes for each requested item, in request order."
+    "description": "Market quotes for each requested item, or for one page of all items."
   },
   "CreditMeta": {
     "properties": {
@@ -360,7 +434,7 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
       "market_code": {
         "type": "string",
         "title": "Market Code",
-        "description": "Code of the marketplace this quote is for, for example `BUFF`. `CSCP` marks the cs.cheap valuation of the item: a weighted consensus across marketplaces in CNY, refreshed daily, with no quantity, its computation time in `changed_at` and `fresh_at`, and its details in `valuation`. It is an estimate, not an offer anyone can trade on."
+        "description": "Code of the marketplace this quote is for, for example `BUFF`. `CSCP` marks the cs.cheap valuation of the item: a weighted consensus across marketplaces in the response `currency`, refreshed daily, with no quantity, its computation time in `changed_at` and `fresh_at`, and its details in `valuation`. It is an estimate, not an offer anyone can trade on."
       },
       "provider_code": {
         "type": "string",
@@ -380,7 +454,7 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
       "market_currency_code": {
         "type": "string",
         "title": "Market Currency Code",
-        "description": "Currency of `market_price_amount`, for example `CNY`. Prices are returned in the marketplace's own currency, without conversion."
+        "description": "Currency of `market_price_amount`, for example `CNY`. Marketplace prices are returned in the marketplace's own currency, without conversion; only the `CSCP` quote is given in the response `currency`."
       },
       "market_price_amount": {
         "anyOf": [
@@ -393,6 +467,42 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
         ],
         "title": "Market Price Amount",
         "description": "Price in `market_currency_code` as a decimal string (plain notation, trailing zeros trimmed, never scientific notation), or `null` when the source reports no price. A delisted quote keeps its last known price."
+      },
+      "buy_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Buy Amount",
+        "description": "What buying at this price actually costs in cash, the marketplace's fees included, converted into the response `currency`, as a decimal string. `null` when the fees are unknown or not yet computed for the current price, and always `null` on the `CSCP` quote."
+      },
+      "sale_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sale Amount",
+        "description": "What selling at this price credits to your marketplace balance after the sale fees, converted into the response `currency`, as a decimal string. `null` when the sale fees are unknown, selling there is not supported, or the fees are not yet computed for the current price; always `null` on the `CSCP` quote."
+      },
+      "payout_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Payout Amount",
+        "description": "What selling at this price leaves you in cash after the sale and withdrawal fees, converted into the response `currency`, as a decimal string. `null` when those fees are unknown, selling or withdrawing there is not supported, or the fees are not yet computed for the current price; always `null` on the `CSCP` quote."
       },
       "quantity": {
         "anyOf": [
@@ -483,6 +593,9 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
       "side",
       "market_currency_code",
       "market_price_amount",
+      "buy_amount",
+      "sale_amount",
+      "payout_amount",
       "quantity",
       "is_quantity_minimum",
       "is_all_items_same_price",
@@ -524,6 +637,17 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
           }
         ],
         "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Paging state. Present only on a response that lists a page."
       }
     },
     "type": "object",
@@ -532,6 +656,40 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
     ],
     "title": "Meta",
     "description": "Request metadata included in every enveloped response."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Page size actually applied to this request."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Whether another page follows."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Pass it back unchanged as `cursor` to get the next page; `null` once the list is complete."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Where a paged list stands after this page."
   },
   "ValuationOut": {
     "properties": {
@@ -558,7 +716,7 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
       "ask_amount": {
         "type": "string",
         "title": "Ask Amount",
-        "description": "Weighted consensus of sell listings across marketplaces, as the cash cost of buying in CNY (fees included), as a decimal string."
+        "description": "Weighted consensus of sell listings across marketplaces, as the cash cost of buying (fees included), in the response `currency`, as a decimal string."
       },
       "bid_amount": {
         "anyOf": [
@@ -570,7 +728,7 @@ Returns the current quotes for a list of items in one call. Each item's quotes f
           }
         ],
         "title": "Bid Amount",
-        "description": "Weighted consensus of buy orders across marketplaces, as the cash received in CNY after fees, as a decimal string; buy orders priced above the market's sell listings are excluded. `null` when `is_two_sided` is `false`."
+        "description": "Weighted consensus of buy orders across marketplaces, as the cash received after fees, in the response `currency`, as a decimal string; buy orders priced above the market's sell listings are excluded. `null` when `is_two_sided` is `false`."
       },
       "ask_quote_count": {
         "type": "integer",

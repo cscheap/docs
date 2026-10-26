@@ -143,7 +143,12 @@ Returns machine-readable metadata for every documented operation of this API, so
         },
         "type": "array",
         "title": "Roles",
-        "description": "Who may call it: `user` (an API key), `admin` (an administrator credential) or `machine` (a service token). Only `user` requests are rate limited and charged. Empty means public."
+        "description": "Who may call it: `user` (an API key), `admin` (reserved for the platform) or `machine` (a service token). Only `user` requests are rate limited and charged. Empty means public."
+      },
+      "scoped": {
+        "type": "boolean",
+        "title": "Scoped",
+        "description": "Whether the operation also has a mode reserved for the platform; it changes nothing for your API key's requests."
       }
     },
     "additionalProperties": false,
@@ -156,7 +161,8 @@ Returns machine-readable metadata for every documented operation of this API, so
       "recommended_interval_seconds",
       "rate_limit",
       "unit_pricing",
-      "roles"
+      "roles",
+      "scoped"
     ],
     "title": "EndpointInfoOut",
     "description": "Access rules, cost and limits of one API operation."
@@ -212,6 +218,17 @@ Returns machine-readable metadata for every documented operation of this API, so
           }
         ],
         "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Paging state. Present only on a response that lists a page."
       }
     },
     "type": "object",
@@ -220,6 +237,40 @@ Returns machine-readable metadata for every documented operation of this API, so
     ],
     "title": "Meta",
     "description": "Request metadata included in every enveloped response."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Page size actually applied to this request."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Whether another page follows."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Pass it back unchanged as `cursor` to get the next page; `null` once the list is complete."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Where a paged list stands after this page."
   },
   "RateLimitSpec": {
     "properties": {
@@ -263,6 +314,18 @@ Returns machine-readable metadata for every documented operation of this API, so
         "exclusiveMinimum": 0,
         "title": "Max Units",
         "description": "Maximum number of items accepted per request."
+      },
+      "page_size_field": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Page Size Field",
+        "description": "The request-body page size that is counted instead when `units_body_field` is omitted; `null` if the list is required."
       }
     },
     "additionalProperties": false,
@@ -273,7 +336,7 @@ Returns machine-readable metadata for every documented operation of this API, so
       "max_units"
     ],
     "title": "UnitPricingSpec",
-    "description": "Volume pricing: the request costs `credit_cost` per started block of\n`unit_size` items of the request-body list `units_body_field`."
+    "description": "Volume pricing: the request costs `credit_cost` per started block of\n`unit_size` items of the request-body list `units_body_field`, or, when\nthat list is omitted, of the page size `page_size_field`."
   }
 }
 ```

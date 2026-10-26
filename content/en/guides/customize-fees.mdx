@@ -1,0 +1,65 @@
+---
+docId: "guides.customize-fees"
+title: "Customize fees with the API"
+description: "Keep your own fee chains through the API: read the fee workspace, find or build a chain, preview it, bind it to a marketplace purpose and restore the official fee."
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+---
+
+## Before you start
+
+Saving your own fee operators, currencies, chains and bindings needs an active subscription; without one these writes return `403 subscription_required`, while reading, validating and previewing stay available. Fee operations cost no credits. Your records are private unless you share them. Your own chains change the fee workspace and previews, never the price quotes: see [marketplace fees](/docs/concepts/marketplace-fees).
+
+## Read the fee workspace
+
+Call [get the fee workspace](/docs/api/reference/fees/get-fee-workspace). It returns your home currency, whether you can save (`personal_writable`), the currencies you can use, and every marketplace with three slots: `deposit`, `sale` and `withdraw`. Each slot holds the official binding, yours, which one is `applied`, and the `official_sequence` and `personal_sequence` values to send back when you change the slot.
+
+## Find or build a chain
+
+[Search chains](/docs/api/reference/calculation-chains/search-chains) lists official, shared and your own chains, most used first, each with a readable `formula`. To start from one of them, [fork it](/docs/api/reference/calculation-chains/fork-chain): the copy is yours, starts at revision 1 and references the same operators.
+
+To build from scratch, [create fee operators](/docs/api/reference/fee-operators/create-fee-operator) and, where you change currency, convert operators, then [create the chain](/docs/api/reference/calculation-chains/create-chain) with its steps in order. [Validate](/docs/api/reference/calculation-chains/validate-chain) an inline chain first to see structural issues, and [preview](/docs/api/reference/calculation-chains/preview-chain) an amount through it:
+
+```bash
+curl 'https://api.cs.cheap/calculation-chains/preview' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{"calculation_chain_id": 42, "start_amount": "100", "start_currency": "USD"}'
+```
+
+A step that cannot compute still returns `200`: `final` is `null` and the failing ledger entry carries an `error`.
+
+## Bind it to a marketplace purpose
+
+[Set the binding](/docs/api/reference/bindings/set-binding) for one marketplace and purpose. Send the slot's `personal_sequence` from the workspace as `expected_sequence` (`0` for a slot you never wrote); if the slot changed since, the request returns `409 conflict` and nothing changes. Without `calculation_chain_revision` the chain's current revision is bound.
+
+```bash
+curl --request PUT 'https://api.cs.cheap/website-calculation-chain-bindings/BUFF/sale' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{"calculation_chain_id": 42, "expected_sequence": 0}'
+```
+
+You can also bind slots when you create or update a chain with `apply_to`: either every listed slot is bound or nothing is saved.
+
+To follow the official fee again, [remove your binding](/docs/api/reference/bindings/reset-binding) with both sequences you read, so that you restore the official binding you saw:
+
+```bash
+curl --request DELETE --get 'https://api.cs.cheap/website-calculation-chain-bindings/BUFF/sale' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'expected_sequence=1' \
+  --data-urlencode 'expected_official_sequence=3'
+```
+
+## Change a chain later
+
+[Update the chain](/docs/api/reference/calculation-chains/update-chain) with the `sequence` you last read as `expected_sequence`. A new name, step list or conversion setting is saved as a new revision; bound slots keep their revision until you bind the new one, for example with `apply_to`. [List the revisions](/docs/api/reference/calculation-chains/list-chain-revisions) to see the history. When nothing uses a chain any more you can [deprecate it](/docs/api/reference/calculation-chains/deprecate-chain); deprecation is final.
+
+## Handle errors
+
+- `400` with `error.details.missing`: a step references something you cannot use; each entry names its `kind`, `id` and `reason`.
+- `409 conflict`: a slot or chain changed since you read it, or a chain is still bound; read it again, then retry.
+- `422` with `error.details.issues`: the chain's steps do not line up, for example a step expecting a different currency than the amount is in.
+
+See [errors](/docs/api/errors) for the general rules.

@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.platform.list-endpoints"
-sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47c4422c"
+sourceDigest: "sha256:bcfc0e6661fa952d2d6c374c0494da610b132f04c76f89a035e6ca4d87afef68"
 ---
 
 ## Операция
@@ -145,7 +145,12 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
         },
         "type": "array",
         "title": "Roles",
-        "description": "Кто может вызывать: `user` (API-ключ), `admin` (учётные данные администратора) или `machine` (сервисный токен). Лимиты и списание кредитов применяются только к запросам `user`. Пустой список означает публичный доступ."
+        "description": "Кто может вызывать: `user` (API-ключ), `admin` (только для платформы) или `machine` (сервисный токен). Лимиты и списание кредитов применяются только к запросам `user`. Пустой список означает публичный доступ."
+      },
+      "scoped": {
+        "type": "boolean",
+        "title": "Scoped",
+        "description": "Есть ли у операции дополнительный режим только для платформы; на запросы с вашим API-ключом это никак не влияет."
       }
     },
     "additionalProperties": false,
@@ -158,7 +163,8 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
       "recommended_interval_seconds",
       "rate_limit",
       "unit_pricing",
-      "roles"
+      "roles",
+      "scoped"
     ],
     "title": "EndpointInfoOut",
     "description": "Правила доступа, стоимость и лимиты одной операции API."
@@ -214,6 +220,17 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
           }
         ],
         "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Состояние постраничного вывода. Присутствует только в ответах, возвращающих страницу списка."
       }
     },
     "type": "object",
@@ -222,6 +239,40 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
     ],
     "title": "Meta",
     "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Размер страницы, фактически применённый к этому запросу."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Есть ли следующая страница."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Передайте его без изменений как `cursor`, чтобы получить следующую страницу; `null`, когда список получен целиком."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Положение постраничного списка после этой страницы."
   },
   "RateLimitSpec": {
     "properties": {
@@ -265,6 +316,18 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
         "exclusiveMinimum": 0,
         "title": "Max Units",
         "description": "Максимальное количество предметов в одном запросе."
+      },
+      "page_size_field": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Page Size Field",
+        "description": "Поле размера страницы в теле запроса, которое учитывается вместо списка, если `units_body_field` не указан; `null`, если список обязателен."
       }
     },
     "additionalProperties": false,
@@ -275,7 +338,7 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
       "max_units"
     ],
     "title": "UnitPricingSpec",
-    "description": "Тарификация по объёму: запрос стоит `credit_cost` за каждый начатый блок из\n`unit_size` элементов списка `units_body_field` в теле запроса."
+    "description": "Тарификация по объёму: запрос стоит `credit_cost` за каждый начатый блок из `unit_size` элементов списка `units_body_field` в теле запроса, а если список не указан — по размеру страницы `page_size_field`."
   }
 }
 ```

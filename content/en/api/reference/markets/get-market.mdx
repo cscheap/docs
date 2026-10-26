@@ -223,6 +223,17 @@ A `404` means no marketplace has this code.
           }
         ],
         "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Paging state. Present only on a response that lists a page."
       }
     },
     "type": "object",
@@ -231,6 +242,40 @@ A `404` means no marketplace has this code.
     ],
     "title": "Meta",
     "description": "Request metadata included in every enveloped response."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Page size actually applied to this request."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Whether another page follows."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Pass it back unchanged as `cursor` to get the next page; `null` once the list is complete."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Where a paged list stands after this page."
   },
   "WebsiteOut": {
     "properties": {
@@ -273,6 +318,18 @@ A `404` means no marketplace has this code.
         "title": "Subcategory",
         "description": "Finer category, if any."
       },
+      "countryCode": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Countrycode",
+        "description": "Two-letter country code (ISO 3166-1) of the company operating the marketplace; `null` when not stated."
+      },
       "is_deprecated": {
         "type": "boolean",
         "title": "Is Deprecated",
@@ -287,6 +344,7 @@ A `404` means no marketplace has this code.
       "url",
       "category",
       "subCategory",
+      "countryCode",
       "is_deprecated"
     ],
     "title": "WebsiteOut",

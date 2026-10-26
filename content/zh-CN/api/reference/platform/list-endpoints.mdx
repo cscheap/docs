@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.platform.list-endpoints"
-sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47c4422c"
+sourceDigest: "sha256:bcfc0e6661fa952d2d6c374c0494da610b132f04c76f89a035e6ca4d87afef68"
 ---
 
 ## 操作
@@ -145,7 +145,12 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
         },
         "type": "array",
         "title": "Roles",
-        "description": "谁可以调用：`user`（API 密钥）、`admin`（管理员凭证）或 `machine`（服务令牌）。只有 `user` 请求会被限流和扣费。为空表示公开。"
+        "description": "谁可以调用：`user`（API 密钥）、`admin`（仅供平台使用）或 `machine`（服务令牌）。只有 `user` 请求会被限流和扣费。为空表示公开。"
+      },
+      "scoped": {
+        "type": "boolean",
+        "title": "Scoped",
+        "description": "该操作是否另有仅供平台使用的模式；对你的 API 密钥的请求没有任何影响。"
       }
     },
     "additionalProperties": false,
@@ -158,7 +163,8 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
       "recommended_interval_seconds",
       "rate_limit",
       "unit_pricing",
-      "roles"
+      "roles",
+      "scoped"
     ],
     "title": "EndpointInfoOut",
     "description": "单个 API 操作的访问规则、费用和限制。"
@@ -214,6 +220,17 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
           }
         ],
         "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
       }
     },
     "type": "object",
@@ -222,6 +239,40 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
     ],
     "title": "Meta",
     "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
   },
   "RateLimitSpec": {
     "properties": {
@@ -265,6 +316,18 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
         "exclusiveMinimum": 0,
         "title": "Max Units",
         "description": "每次请求最多接受的条目数。"
+      },
+      "page_size_field": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Page Size Field",
+        "description": "省略 `units_body_field` 时改为计数的请求体每页条数字段；该列表为必填时为 `null`。"
       }
     },
     "additionalProperties": false,
@@ -275,7 +338,7 @@ sourceDigest: "sha256:d886fb600938a8d77f21baeade1573af917623e97c971c58af8263fc47
       "max_units"
     ],
     "title": "UnitPricingSpec",
-    "description": "按量计价：请求体列表 `units_body_field` 中每 `unit_size` 项为一块，不足一块按一块计，每块花费 `credit_cost` 点数。"
+    "description": "按量计价：请求体列表 `units_body_field` 中每 `unit_size` 项为一块，不足一块按一块计，每块花费 `credit_cost` 点数；省略该列表时，按每页条数字段 `page_size_field` 计数。"
   }
 }
 ```

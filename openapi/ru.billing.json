@@ -22,7 +22,8 @@
     "unit_pricing": {
       "unit_size": 100,
       "units_body_field": "market_hash_names",
-      "max_units": 1000
+      "max_units": 1000,
+      "page_size_field": "limit"
     }
   },
   "GET /prices/export": {
@@ -113,6 +114,342 @@
     "credit_cost": 0,
     "premium": false,
     "recommended_interval_seconds": 60,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /fee-workspace": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /calculation-chains": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /calculation-chains": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /calculation-chains/search": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /calculation-chains/validate": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /calculation-chains/preview": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /calculation-chains/{calculation_chain_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "PUT /calculation-chains/{calculation_chain_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /calculation-chains/{calculation_chain_id}/deprecate": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /calculation-chains/{calculation_chain_id}/events": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /calculation-chains/{calculation_chain_id}/fork": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /calculation-chains/{calculation_chain_id}/revisions": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /calculation-chains/{calculation_chain_id}/revisions/{revision}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /fee-operators": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /fee-operators": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /fee-operators/{op_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "PUT /fee-operators/{op_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "DELETE /fee-operators/{op_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /fee-operators/{op_id}/fork": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /fee-operators/{op_id}/revisions": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /convert-operators": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /convert-operators": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /convert-operators/{op_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "PUT /convert-operators/{op_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "DELETE /convert-operators/{op_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /convert-operators/{op_id}/fork": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /convert-operators/{op_id}/revisions": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /convert-operator-groups": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /convert-operator-groups": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /convert-operator-groups/{op_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "PUT /convert-operator-groups/{op_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "DELETE /convert-operator-groups/{op_id}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /convert-operator-groups/{op_id}/fork": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /convert-operator-groups/{op_id}/revisions": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /website-calculation-chain-bindings": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "PUT /website-calculation-chain-bindings/{website_code}/{purpose}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "DELETE /website-calculation-chain-bindings/{website_code}/{purpose}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /me/currencies": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "POST /me/currencies": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "GET /me/currencies/{code}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "PUT /me/currencies/{code}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
+    "rate_limit": null,
+    "unit_pricing": null
+  },
+  "DELETE /me/currencies/{code}": {
+    "authentication": "user-api-key",
+    "credit_cost": 0,
+    "premium": false,
+    "recommended_interval_seconds": null,
     "rate_limit": null,
     "unit_pricing": null
   }

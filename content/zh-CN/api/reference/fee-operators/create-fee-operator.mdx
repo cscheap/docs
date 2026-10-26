@@ -1,0 +1,537 @@
+---
+docId: "api.reference.fee-operators.create-fee-operator"
+title: "创建费用算子"
+description: "POST /fee-operators — 创建费用算子"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.fee-operators.create-fee-operator"
+sourceDigest: "sha256:e30ef856c0cc6671c2268cd7b08c817b39484e7444c967489aa92db0a94ca51f"
+---
+
+## 操作
+
+`POST /fee-operators`
+
+## 行为
+
+创建一个费用算子，并以修订 1 返回。
+
+- 它归你所有且不是官方记录；设置 `is_searchable` 即可共享，让其他用户能够找到、引用和 Fork 它。
+- `value` 是最多 12 位小数的精确小数；请以字符串形式发送（例如 `"0.975"`），以避免浮点舍入误差。`div` 算子的值不能为零（422）。
+- `add` 和 `sub` 加上或减去一个固定金额，因此必须提供该金额的 `currency_code`；计算链只能在金额处于该货币时应用它们。`mul` 和 `div` 是比率，不接受 `currency_code`（否则返回 422）。
+- `reason` 随该修订一起保存。
+
+
+## 用量
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": null,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{
+  "requestBody": {
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/FeeOperatorCreate"
+        }
+      }
+    }
+  }
+}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_FeeOperatorOut_"
+        }
+      }
+    }
+  },
+  "400": {
+    "description": "请求引用了不存在的资源，或携带了无效的游标",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "缺少认证信息或认证无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "凭证有效，但无权调用此操作",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "409": {
+    "description": "请求与资源的当前状态冲突",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "参数或请求体无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "429": {
+    "description": "对此端点的请求过多；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "服务暂时不可用；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "本次请求花费的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "计费请求的点数结算信息。"
+  },
+  "Envelope_FeeOperatorOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/FeeOperatorOut",
+        "description": "端点返回的数据。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[FeeOperatorOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "稳定的机器可读错误代码。请根据此值进行分支处理，而不是 `message`。"
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "面向人类阅读的说明。措辞可能变化。"
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "可选的结构化上下文，例如校验错误列表；对于 `credit_insufficient`，则为所需点数和剩余点数。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "失败请求的详细信息。"
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "出了什么问题。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "错误响应：`error` 中为错误信息，`meta` 中为请求元数据。"
+  },
+  "FeeOperatorCreate": {
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "title": "Name",
+        "description": "显示名称，例如 `steam fee`。"
+      },
+      "operator": {
+        "type": "string",
+        "enum": [
+          "add",
+          "sub",
+          "mul",
+          "div"
+        ],
+        "title": "Operator",
+        "description": "作用于当前金额的算术运算：`add`（加）、`sub`（减）、`mul`（乘）或 `div`（除）。"
+      },
+      "value": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+          }
+        ],
+        "title": "Value",
+        "description": "算术运算的操作数，以最多 12 位小数的精确小数表示（建议使用字符串，例如 `\"0.975\"`）。`div` 时不能为零。"
+      },
+      "currency_code": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Currency Code",
+        "description": "`add` 和 `sub` 金额的货币，例如 `USD`：这两种运算必填，`mul` 和 `div` 不允许提供。加上或减去该金额的计算链在该步骤时必须处于该货币。之后不可修改。"
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "与其他用户共享该费用算子，共享后他们可以找到、引用和 Fork 它。",
+        "default": false
+      },
+      "reason": {
+        "type": "string",
+        "maxLength": 2000,
+        "title": "Reason",
+        "description": "可选的备注，随新修订保存，显示在其历史中。",
+        "default": ""
+      }
+    },
+    "type": "object",
+    "required": [
+      "name",
+      "operator",
+      "value"
+    ],
+    "title": "FeeOperatorCreate",
+    "description": "新费用算子：作用于当前金额的一个算术步骤。"
+  },
+  "FeeOperatorOut": {
+    "properties": {
+      "kind": {
+        "type": "string",
+        "const": "fee",
+        "title": "Kind",
+        "description": "记录类型：始终为 `fee`。"
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "费用算子的唯一 ID。"
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "显示名称。"
+      },
+      "operator": {
+        "type": "string",
+        "enum": [
+          "add",
+          "sub",
+          "mul",
+          "div"
+        ],
+        "title": "Operator",
+        "description": "作用于当前金额的算术运算：`add`、`sub`、`mul` 或 `div`。"
+      },
+      "value": {
+        "type": "string",
+        "title": "Value",
+        "description": "算术运算的操作数，以十进制字符串表示。"
+      },
+      "currency_code": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Currency Code",
+        "description": "`add` 和 `sub` 金额的货币；`mul` 和 `div` 时为 `null`。"
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "所有者用户的 ID；平台所有的记录（包括所有官方记录）为 `null`。"
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "是否为平台发布的官方费用算子。官方记录对用户只读。"
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "所有者是否共享了该费用算子，使其他用户能够找到、引用和 Fork 它。"
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "该费用算子被引用（通过计算链步骤）或被 Fork 的次数。仅供参考。"
+      },
+      "forked_from": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Forked From",
+        "description": "该费用算子 Fork 自哪个费用算子的 ID；从零创建时为 `null`。"
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "费用算子是否已删除。已删除的记录不会再被返回，因此只有在删除操作的响应中才为 `true`。"
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "费用算子的当前修订：创建时为 1，每保存一次变更加一。仅内联记录为 `null`。"
+      },
+      "sequence": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sequence",
+        "description": "费用算子的变更计数：每保存一个修订、每次修改共享状态或生命周期都会增加。把它作为 `expected_sequence` 传回以检测并发修改。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "kind",
+      "id",
+      "name",
+      "operator",
+      "value",
+      "currency_code",
+      "owner_user_id",
+      "is_official",
+      "is_searchable",
+      "ref_count",
+      "forked_from",
+      "is_deleted",
+      "revision",
+      "sequence"
+    ],
+    "title": "FeeOperatorOut",
+    "description": "费用算子：作用于当前金额的一个算术步骤。"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

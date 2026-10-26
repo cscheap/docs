@@ -1,0 +1,439 @@
+---
+docId: "api.reference.my-currencies.create-my-currency"
+title: "Create a currency"
+description: "POST /me/currencies — Create a currency"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`POST /me/currencies`
+
+## Behavior
+
+Creates a private currency owned by you, for use in your own convert operators. Nobody else can see it.
+
+- `code` is required; `name` is optional; `kind` defaults to `fiat`.
+- `usd_rate` is the value of one unit in US dollars. It is required and must be positive, with at most 12 decimal places (`422` otherwise).
+- The new currency is never official, whatever the request contains.
+
+Returns `409` when you already have a live currency with the same `code`. Codes only need to be unique among your own currencies: an official currency with the same code does not conflict, and the code of a deleted currency can be reused.
+
+Requires an active subscription (`403 subscription_required`).
+
+
+## Usage
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": null,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{
+  "requestBody": {
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/CurrencyCreate"
+        }
+      }
+    }
+  }
+}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_CurrencyOut_"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "Authentication is missing or invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "The credential is valid but not allowed to call this operation",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "409": {
+    "description": "The request conflicts with the current state of a resource",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "A parameter or the request body is invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "The service is temporarily unavailable; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Credits this request costs."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Credit accounting for a billable request."
+  },
+  "CurrencyCreate": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "minLength": 1,
+        "title": "Code",
+        "description": "Currency code, e.g. `EUR`. Must be unique among your live currencies."
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "Display name, e.g. `Euro`."
+      },
+      "kind": {
+        "type": "string",
+        "title": "Kind",
+        "description": "Currency kind, e.g. `fiat`.",
+        "default": "fiat"
+      },
+      "usd_rate": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+          }
+        ],
+        "title": "Usd Rate",
+        "description": "Value of one unit of this currency in US dollars, as a positive exact decimal with at most 12 decimal places (a string such as `\"1.08\"` is recommended). Used by `auto` conversions."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "usd_rate"
+    ],
+    "title": "CurrencyCreate",
+    "description": "A new currency of your own."
+  },
+  "CurrencyOut": {
+    "properties": {
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Unique ID of the currency."
+      },
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Currency code, e.g. `USD`."
+      },
+      "name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Name",
+        "description": "Display name."
+      },
+      "kind": {
+        "type": "string",
+        "title": "Kind",
+        "description": "Currency kind, e.g. `fiat`."
+      },
+      "usd_rate": {
+        "type": "string",
+        "title": "Usd Rate",
+        "description": "Value of one unit of this currency in US dollars, as a decimal string. Used by `auto` conversions."
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "ID of the owning user; `null` for platform currencies, which include every official currency."
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "Whether the currency belongs to the official catalog maintained by the platform."
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "Number of convert operators that use this currency."
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "Whether the currency is deleted. Deleted currencies are never listed, so this is `true` only in a delete response."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "id",
+      "code",
+      "name",
+      "kind",
+      "usd_rate",
+      "owner_user_id",
+      "is_official",
+      "ref_count",
+      "is_deleted"
+    ],
+    "title": "CurrencyOut",
+    "description": "A currency and its US dollar value."
+  },
+  "Envelope_CurrencyOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/CurrencyOut",
+        "description": "The endpoint payload."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[CurrencyOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Stable machine-readable error code. Branch on this value, not on `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Human-readable explanation. The wording may change."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Optional structured context, such as the list of validation errors or, for `credit_insufficient`, the required and remaining credits."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Details of a failed request."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "What went wrong."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Error response: the error in `error` plus request metadata in `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Paging state. Present only on a response that lists a page."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Request metadata included in every enveloped response."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Page size actually applied to this request."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Whether another page follows."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Pass it back unchanged as `cursor` to get the next page; `null` once the list is complete."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Where a paged list stands after this page."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

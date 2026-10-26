@@ -15,10 +15,10 @@ sources: ["api"]
 
 Returns the fees the platform currently publishes for one marketplace, one slot per purpose: `deposit`, `sale` and `withdraw`.
 
-- Each published slot carries the fully expanded official calculation chain: every fee operator, convert operator and convert operator group with its values and currencies, so one request is enough to reproduce the platform's calculation.
+- Each published slot carries the fully expanded official calculation chain at the `revision` the platform applies for that purpose: every fee operator, convert operator and convert operator group with its values, currencies and current `revision`, so one request is enough to reproduce the platform's calculation. Every operator of an official chain is itself official.
 - A slot whose chain has `id` `0` is explicitly free: the platform charges nothing for that purpose, and the chain has no steps.
 - A slot is `null` when the platform has no official calculation chain published for that purpose: the fee is unknown, or the marketplace does not offer it. `null` never means free.
-- Each chain states its `start_currency`: the currency a price must be in for the chain to apply (`null`: any currency).
+- Each chain states its `start_currency`: the currency a price must be in for the chain to apply (`null`: any currency); `input_auto` and `output_auto` say whether a price in another currency, and the result, are meant to be converted around it.
 - Ownership and management fields are not included.
 
 A `404` means no marketplace has this code.
@@ -322,6 +322,17 @@ A `404` means no marketplace has this code.
           }
         ],
         "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Paging state. Present only on a response that lists a page."
       }
     },
     "type": "object",
@@ -330,6 +341,40 @@ A `404` means no marketplace has this code.
     ],
     "title": "Meta",
     "description": "Request metadata included in every enveloped response."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Page size actually applied to this request."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Whether another page follows."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Pass it back unchanged as `cursor` to get the next page; `null` once the list is complete."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Where a paged list stands after this page."
   },
   "PublicCalculationChainOut": {
     "properties": {
@@ -369,6 +414,28 @@ A `404` means no marketplace has this code.
         "title": "Start Currency",
         "description": "Currency the chain expects the price in; `null` when it applies to any currency. A price in another currency is not covered by it."
       },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "The revision of the chain the platform applies for this purpose; a newer one is not in effect until it is applied here."
+      },
+      "input_auto": {
+        "type": "boolean",
+        "title": "Input Auto",
+        "description": "Whether a price in another currency is first converted into `start_currency` (through the official US dollar values)."
+      },
+      "output_auto": {
+        "type": "boolean",
+        "title": "Output Auto",
+        "description": "Whether the result is meant to be converted into the viewer's home currency after the last step."
+      },
       "steps": {
         "items": {
           "oneOf": [
@@ -402,6 +469,9 @@ A `404` means no marketplace has this code.
       "id",
       "name",
       "start_currency",
+      "revision",
+      "input_auto",
+      "output_auto",
       "steps"
     ],
     "title": "PublicCalculationChainOut",
@@ -449,6 +519,18 @@ A `404` means no marketplace has this code.
         "type": "array",
         "title": "Members",
         "description": "The member conversions, in order."
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "Current revision of the group."
       }
     },
     "additionalProperties": false,
@@ -458,7 +540,8 @@ A `404` means no marketplace has this code.
       "id",
       "name",
       "rule",
-      "members"
+      "members",
+      "revision"
     ],
     "title": "PublicConvertOperatorGroupOut",
     "description": "A group of alternative conversions in a published fee schedule."
@@ -516,6 +599,18 @@ A `404` means no marketplace has this code.
         ],
         "title": "Rate",
         "description": "Units of the target currency per one unit of the source currency, as a decimal string; used in `fixed` mode."
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "Current revision of the convert operator."
       }
     },
     "additionalProperties": false,
@@ -527,7 +622,8 @@ A `404` means no marketplace has this code.
       "from",
       "to",
       "mode",
-      "rate"
+      "rate",
+      "revision"
     ],
     "title": "PublicConvertOperatorOut",
     "description": "A currency conversion step of a published fee schedule."
@@ -638,6 +734,18 @@ A `404` means no marketplace has this code.
         ],
         "title": "Currency Code",
         "description": "Currency of the amount for `add` and `sub`; `null` for `mul` and `div`."
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "Current revision of the fee operator."
       }
     },
     "additionalProperties": false,
@@ -648,7 +756,8 @@ A `404` means no marketplace has this code.
       "name",
       "operator",
       "value",
-      "currency_code"
+      "currency_code",
+      "revision"
     ],
     "title": "PublicFeeOperatorOut",
     "description": "A fee step of a published fee schedule."

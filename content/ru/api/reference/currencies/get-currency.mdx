@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.currencies.get-currency"
-sourceDigest: "sha256:9a5b7f2e2f3045dcbb6a677a08c6a87948b0a45e85e7aa83697c153b9f52e943"
+sourceDigest: "sha256:5a068b06a8c7562e154788d126d215e2a262f734e85de401e0426b473588f73d"
 ---
 
 ## Операция
@@ -310,6 +310,17 @@ sourceDigest: "sha256:9a5b7f2e2f3045dcbb6a677a08c6a87948b0a45e85e7aa83697c153b9f
           }
         ],
         "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Состояние постраничного вывода. Присутствует только в ответах, возвращающих страницу списка."
       }
     },
     "type": "object",
@@ -318,6 +329,40 @@ sourceDigest: "sha256:9a5b7f2e2f3045dcbb6a677a08c6a87948b0a45e85e7aa83697c153b9f
     ],
     "title": "Meta",
     "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Размер страницы, фактически применённый к этому запросу."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Есть ли следующая страница."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Передайте его без изменений как `cursor`, чтобы получить следующую страницу; `null`, когда список получен целиком."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Положение постраничного списка после этой страницы."
   }
 }
 ```

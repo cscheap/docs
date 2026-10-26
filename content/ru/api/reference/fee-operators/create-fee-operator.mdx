@@ -1,0 +1,537 @@
+---
+docId: "api.reference.fee-operators.create-fee-operator"
+title: "Создать оператор комиссии"
+description: "POST /fee-operators — Создать оператор комиссии"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.fee-operators.create-fee-operator"
+sourceDigest: "sha256:e30ef856c0cc6671c2268cd7b08c817b39484e7444c967489aa92db0a94ca51f"
+---
+
+## Операция
+
+`POST /fee-operators`
+
+## Поведение
+
+Создаёт оператор комиссии и возвращает его как ревизию 1.
+
+- Он принадлежит вам и не является официальным; задайте `is_searchable`, чтобы открыть к нему доступ: тогда другие пользователи смогут находить его, ссылаться на него и делать его форк.
+- `value` — точное десятичное число, не более 12 знаков после запятой; передавайте его строкой (например, `"0.975"`), чтобы избежать округления чисел с плавающей точкой. У оператора `div` значение не может быть нулевым (422).
+- `add` и `sub` прибавляют или вычитают фиксированную сумму, поэтому для них обязателен её `currency_code`; цепочка может применять их, только пока сумма находится в этой валюте. `mul` и `div` — это коэффициенты, и `currency_code` для них не передаётся (иначе 422).
+- `reason` сохраняется вместе с ревизией.
+
+
+## Использование
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": null,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Запрос
+
+```json
+{
+  "requestBody": {
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/FeeOperatorCreate"
+        }
+      }
+    }
+  }
+}
+```
+
+## Ответы
+
+```json
+{
+  "200": {
+    "description": "Успешный ответ",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_FeeOperatorOut_"
+        }
+      }
+    }
+  },
+  "400": {
+    "description": "Запрос ссылается на несуществующий ресурс или содержит недействительный курсор",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "Аутентификационные данные отсутствуют или недействительны",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "Учётные данные действительны, но не дают права вызывать эту операцию",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "409": {
+    "description": "Запрос конфликтует с текущим состоянием ресурса",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "Параметр или тело запроса некорректны",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "429": {
+    "description": "Слишком много запросов к этому эндпоинту; повторите позже",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "Сервис временно недоступен; повторите позже",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Модели
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Сколько кредитов стоит этот запрос."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Расчётный остаток кредитов после этого запроса. Это ориентир, а не данные учёта: из-за параллельных запросов значение может немного отличаться."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Учёт кредитов для платного запроса."
+  },
+  "Envelope_FeeOperatorOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/FeeOperatorOut",
+        "description": "Полезные данные эндпоинта."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[FeeOperatorOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Стабильный машиночитаемый код ошибки. Ориентируйтесь на это значение, а не на `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Пояснение для человека. Формулировка может меняться."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Необязательный структурированный контекст, например список ошибок валидации или, для `credit_insufficient`, требуемое и оставшееся количество кредитов."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Подробности неудачного запроса."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "Что пошло не так."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Метаданные запроса."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Ответ с ошибкой: ошибка в `error` и метаданные запроса в `meta`."
+  },
+  "FeeOperatorCreate": {
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "title": "Name",
+        "description": "Отображаемое название, например `steam fee`."
+      },
+      "operator": {
+        "type": "string",
+        "enum": [
+          "add",
+          "sub",
+          "mul",
+          "div"
+        ],
+        "title": "Operator",
+        "description": "Арифметическое действие над текущей суммой: `add` (сложение), `sub` (вычитание), `mul` (умножение) или `div` (деление)."
+      },
+      "value": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+          }
+        ],
+        "title": "Value",
+        "description": "Операнд арифметического действия в виде точного десятичного числа с не более чем 12 знаками после запятой (рекомендуется строка, например `\"0.975\"`). Для `div` не может быть нулём."
+      },
+      "currency_code": {
+        "anyOf": [
+          {
+            "type": "string",
+            "maxLength": 32,
+            "minLength": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Currency Code",
+        "description": "Валюта суммы для `add` и `sub`, например `USD`: обязательна для этих двух и не допускается для `mul` и `div`. Цепочка, которая прибавляет или вычитает эту сумму, на этом шаге должна находиться в этой валюте. Позже изменить нельзя."
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "Открыть оператор комиссии для других пользователей: тогда они смогут находить его, ссылаться на него и делать его форк.",
+        "default": false
+      },
+      "reason": {
+        "type": "string",
+        "maxLength": 2000,
+        "title": "Reason",
+        "description": "Необязательная заметка, сохраняемая с новой ревизией и видимая в её истории.",
+        "default": ""
+      }
+    },
+    "type": "object",
+    "required": [
+      "name",
+      "operator",
+      "value"
+    ],
+    "title": "FeeOperatorCreate",
+    "description": "Новый оператор комиссии: один арифметический шаг, применяемый к текущей сумме."
+  },
+  "FeeOperatorOut": {
+    "properties": {
+      "kind": {
+        "type": "string",
+        "const": "fee",
+        "title": "Kind",
+        "description": "Тип записи: всегда `fee`."
+      },
+      "id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Id",
+        "description": "Уникальный ID оператора комиссии."
+      },
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "Отображаемое название."
+      },
+      "operator": {
+        "type": "string",
+        "enum": [
+          "add",
+          "sub",
+          "mul",
+          "div"
+        ],
+        "title": "Operator",
+        "description": "Арифметическое действие над текущей суммой: `add`, `sub`, `mul` или `div`."
+      },
+      "value": {
+        "type": "string",
+        "title": "Value",
+        "description": "Операнд арифметического действия в виде десятичной строки."
+      },
+      "currency_code": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Currency Code",
+        "description": "Валюта суммы для `add` и `sub`; `null` для `mul` и `div`."
+      },
+      "owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Owner User Id",
+        "description": "ID пользователя-владельца; `null` для записей, принадлежащих платформе, — к ним относятся все официальные записи."
+      },
+      "is_official": {
+        "type": "boolean",
+        "title": "Is Official",
+        "description": "Является ли оператор комиссии официальным, опубликованным платформой. Официальные записи доступны пользователям только для чтения."
+      },
+      "is_searchable": {
+        "type": "boolean",
+        "title": "Is Searchable",
+        "description": "Открыл ли владелец доступ к этому оператору комиссии, чтобы другие пользователи могли находить его, ссылаться на него и делать его форк."
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "Сколько раз на этот оператор комиссии ссылаются (шаги цепочек расчёта) или делали его форк. Только для информации."
+      },
+      "forked_from": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Forked From",
+        "description": "ID оператора комиссии, форком которого является этот; `null`, если он создан с нуля."
+      },
+      "is_deleted": {
+        "type": "boolean",
+        "title": "Is Deleted",
+        "description": "Удалён ли оператор комиссии. Удалённые записи больше никогда не возвращаются, поэтому `true` бывает только в ответе на удаление."
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "Текущая ревизия оператора комиссии: 1 при создании и на единицу больше с каждым сохранённым изменением. `null` только для встроенной записи."
+      },
+      "sequence": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sequence",
+        "description": "Счётчик изменений оператора комиссии: растёт с каждой сохранённой ревизией и каждым изменением доступа или жизненного цикла. Передавайте его обратно как `expected_sequence`, чтобы обнаруживать одновременные изменения."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "kind",
+      "id",
+      "name",
+      "operator",
+      "value",
+      "currency_code",
+      "owner_user_id",
+      "is_official",
+      "is_searchable",
+      "ref_count",
+      "forked_from",
+      "is_deleted",
+      "revision",
+      "sequence"
+    ],
+    "title": "FeeOperatorOut",
+    "description": "Оператор комиссии: один арифметический шаг, применяемый к текущей сумме."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Уникальный идентификатор этого запроса, совпадает с заголовком ответа `X-Request-ID`. Указывайте его при обращении в поддержку."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Оплачивается ли запрос кредитами. Присутствует только у тарифицируемых эндпоинтов; `false` означает, что запрос бесплатен — например, потому что он ничего не стоит или его покрывает ваша подписка."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Стоимость запроса и расчётный остаток вашего баланса. Присутствует, только если `billable` равен `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Состояние постраничного вывода. Присутствует только в ответах, возвращающих страницу списка."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Метаданные запроса, которые есть в каждом ответе в обёртке."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Размер страницы, фактически применённый к этому запросу."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Есть ли следующая страница."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Передайте его без изменений как `cursor`, чтобы получить следующую страницу; `null`, когда список получен целиком."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Положение постраничного списка после этой страницы."
+  }
+}
+```
+
+[Скачать публичную схему OpenAPI](/assets/openapi-ru.json)

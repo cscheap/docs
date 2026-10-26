@@ -12,8 +12,9 @@ sources: ["api"]
 | Operation | Credits without an active subscription |
 | --- | --- |
 | `GET /prices` | 1 per successful request |
-| `POST /prices/batch` | 1 per started block of 100 submitted names |
+| `POST /prices/batch` | 1 per started block of 100 submitted names, or of the page `limit` when paging |
 | `GET /prices/export` | 10 per `200` response |
+| Fee workspace, calculation chain, operator, binding and personal currency operations | 0 |
 | `GET /me` and public catalogue/status reads | 0 |
 
 Batch length includes duplicate and unknown names. A successful empty result is still a successful request. Failed requests do not charge credits. Conditional export `304` responses are unbilled, but count toward rate limiting.

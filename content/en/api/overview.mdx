@@ -16,11 +16,12 @@ Use `https://api.cs.cheap`. Routes in this reference have no version prefix. JSO
 | Task | Operation |
 | --- | --- |
 | One item | `GET /prices` |
-| Up to 1000 names | `POST /prices/batch` |
+| Up to 1000 names, or every item page by page | `POST /prices/batch` |
 | Whole app snapshot | `GET /prices/export` |
 | Your credits and subscription | `GET /me` |
 | Market and fee catalogue | `GET /websites` and its read routes |
 | Currency catalogue | `GET /currencies` and its read route |
+| Your fee workspace, calculation chains and operators | `GET /fee-workspace` and the fee routes; see [customize fees](/docs/guides/customize-fees) |
 | Metadata and health | `GET /config`, `/endpoints`, `/health`, `/status` |
 
-Price and account routes require a user API key. Catalogue, metadata and status reads are public. This reference includes only operations usable anonymously or by ordinary users. The service's own endpoint catalogue can also describe operations intended for other roles; appearance there does not grant permission.
+Price, account and fee routes require a user API key. Catalogue, metadata and status reads are public. This reference includes only operations usable anonymously or by ordinary users. The service's own endpoint catalogue can also describe operations intended for other roles; appearance there does not grant permission.

@@ -1,20 +1,32 @@
 ---
 docId: "concepts.marketplace-fees"
 title: "Marketplace fees"
-description: "Use get fees for a marketplace's published fee schedule."
+description: "How official fee schedules, calculation chains and your own fee chains are defined, and what each one changes."
 kind: "explanation"
 status: "ready"
 sources: ["api", "refinery"]
 ---
 
-## Read the official schedule
+## Official fee schedules
 
-Use [get fees](/docs/api/reference/markets/get-fees) for a marketplace's published fee schedule. Deposit, sale and withdrawal slots describe different steps in the money flow. A slot bound to chain `0` explicitly means no fee; a null slot means unspecified or unsupported, not zero cost.
+Use [get fees](/docs/api/reference/markets/get-fees) to read a marketplace's published fee schedule. It has one slot per purpose: `deposit` (buying), `sale` and `withdraw`. Each published slot carries the fully expanded official calculation chain. A slot bound to chain `0` explicitly means no fee; a `null` slot means the fee is unknown or the purpose is not offered, never that it is free. Reading it needs no API key.
 
-A calculation chain can contain proportional fees, fixed additions or deductions and currency conversion. The order and currency of the steps matter: adding percentages is not a general substitute for applying the chain.
+These official chains are what cs.cheap uses for the fee-adjusted amounts of every price quote (`buy_amount`, `sale_amount`, `payout_amount`) and for the CSCP valuation. See [cost calculation](/docs/concepts/cost-calculation).
+
+## Calculation chains and revisions
+
+A calculation chain is an ordered list of steps. A fee operator multiplies or divides by a ratio (`mul`, `div`) or adds or subtracts a fixed amount in a stated currency (`add`, `sub`). A convert operator changes the currency, either through both currencies' reference rates to USD (`auto`) or at a fixed `rate`. A convert operator group runs several conversions between the same two currencies and keeps the lowest, the highest or the average successful result. The order and currency of the steps matter: adding percentages is not a general substitute for applying the chain. Amounts are decimals rounded half-up to eight places after every step.
+
+Every saved change creates a new revision; earlier revisions stay readable. A binding pins one revision, so changing a chain moves no marketplace purpose until that revision is bound. Chains cannot be deleted. Deprecation is final and is refused while any binding still uses the chain; a deprecated chain stays readable and can be copied.
+
+## Your own fee chains
+
+You can keep your own fee operators, currencies and calculation chains and bind a chain to a marketplace purpose for yourself: in the dashboard with [market fees](/docs/dashboard/market-fees), or through the API as shown in [customize fees](/docs/guides/customize-fees). Saving them needs an active subscription; reading them does not. Your records stay private unless you share them, and anything shared can be referenced or copied by other users.
+
+For each purpose the fee workspace reports which chain applies to you: your own while you have one and an active subscription, otherwise the official one, otherwise none. A binding that cannot be applied, because its chain was deprecated or something it uses is missing, is reported as unavailable; it is never silently replaced by the official chain.
+
+Your own chains change the results you see in the fee workspace and in previews. They never change the API's price quotes: `buy_amount`, `sale_amount`, `payout_amount` and the CSCP valuation always use the official fees.
 
 ## Apply the right scope
 
 These definitions support data processing and estimates. The marketplace's actual checkout, account tier or payment method may affect your transaction. Inspect the current schedule instead of hardcoding a fee from this guide.
-
-The public catalogue is readable without credentials. Keeping your own fee chains in the dashboard is described in [market fees](/docs/dashboard/market-fees). See [cost calculation](/docs/concepts/cost-calculation).

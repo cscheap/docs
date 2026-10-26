@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.overview"
-sourceDigest: "sha256:38b5da25324405b15b32421c1f5203dbb647cacabfb70e2d97a03ceff34fdf99"
+sourceDigest: "sha256:c21ac014ab70d530b67b55f2e582cc1f1beb91edc71fe94b04ab02904c12132d"
 ---
 
 ## 基础地址与格式
@@ -18,11 +18,12 @@ sourceDigest: "sha256:38b5da25324405b15b32421c1f5203dbb647cacabfb70e2d97a03ceff3
 | 任务 | 操作 |
 | --- | --- |
 | 单个饰品 | `GET /prices` |
-| 最多 1000 个名称 | `POST /prices/batch` |
+| 最多 1000 个名称，或逐页读取全部饰品 | `POST /prices/batch` |
 | 游戏全量快照 | `GET /prices/export` |
 | 自己的点数与订阅 | `GET /me` |
 | 市场与费率目录 | `GET /websites` 及其读取路由 |
 | 币种目录 | `GET /currencies` 及其读取路由 |
+| 自己的费率工作区、计算链与算子 | `GET /fee-workspace` 及费率相关路由，见[自定义费率](/docs/guides/customize-fees) |
 | 元数据与健康度 | `GET /config`、`/endpoints`、`/health`、`/status` |
 
-价格与账号路由需要用户 API 密钥，目录、元数据和状态读取公开可用。本参考只包含匿名或普通用户可调用的操作。服务自身的端点目录可能还列出其他角色使用的操作；列出不代表授予调用权限。
+价格、账号与费率路由需要用户 API 密钥，目录、元数据和状态读取公开可用。本参考只包含匿名或普通用户可调用的操作。服务自身的端点目录可能还列出其他角色使用的操作；列出不代表授予调用权限。

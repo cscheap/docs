@@ -1,0 +1,67 @@
+---
+docId: "guides.customize-fees"
+title: "用 API 自定义费率"
+description: "通过 API 维护自己的费率链：读取费率工作区、查找或搭建计算链、试算、绑定到市场用途，以及恢复官方费率。"
+kind: "how-to"
+status: "ready"
+sources: ["api"]
+translationOf: "guides.customize-fees"
+sourceDigest: "sha256:d8e5cf2ee3d2f70623e302753b1dc2f5bb9c5e528a3cdf759d964fd0840733a7"
+---
+
+## 开始之前
+
+保存自己的费用算子、货币、计算链与绑定需要有效订阅；没有有效订阅时，这些写入返回 `403 subscription_required`，读取、校验与试算不受影响。费率相关操作不消耗点数。你的记录默认私有，除非你选择共享。自己的链只改变费率工作区和试算，绝不改变价格报价，见[市场手续费](/docs/concepts/marketplace-fees)。
+
+## 读取费率工作区
+
+调用[获取费率工作区](/docs/api/reference/fees/get-fee-workspace)。它返回你的本位币、是否可以保存（`personal_writable`）、可用的货币，以及每个市场的三个槽位：`deposit`、`sale` 与 `withdraw`。每个槽位包含官方绑定、你的绑定、当前生效的是哪一个（`applied`），以及修改该槽位时需要回传的 `official_sequence` 与 `personal_sequence`。
+
+## 查找或搭建计算链
+
+[搜索计算链](/docs/api/reference/calculation-chains/search-chains)列出官方、共享和你自己的链，使用最多的排在前面，每条都附带可读的 `formula`。想以其中某条为起点时，[复制它（fork）](/docs/api/reference/calculation-chains/fork-chain)：副本归你所有，从版本 1 开始，引用相同的算子。
+
+从零搭建时，先[创建费用算子](/docs/api/reference/fee-operators/create-fee-operator)，需要换币的地方再创建换汇算子，然后按顺序填入步骤[创建计算链](/docs/api/reference/calculation-chains/create-chain)。可以先[校验](/docs/api/reference/calculation-chains/validate-chain)内联链，查看结构问题，再用一个金额[试算](/docs/api/reference/calculation-chains/preview-chain)：
+
+```bash
+curl 'https://api.cs.cheap/calculation-chains/preview' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{"calculation_chain_id": 42, "start_amount": "100", "start_currency": "USD"}'
+```
+
+某一步无法计算时仍返回 `200`：`final` 为 `null`，出错的明细条目带有 `error`。
+
+## 绑定到市场用途
+
+为某个市场和用途[设置绑定](/docs/api/reference/bindings/set-binding)。把工作区中该槽位的 `personal_sequence` 作为 `expected_sequence` 发送（从未写过的槽位为 `0`）；如果槽位在此之后已被修改，请求返回 `409 conflict`，不会做任何更改。未提供 `calculation_chain_revision` 时绑定链的当前版本。
+
+```bash
+curl --request PUT 'https://api.cs.cheap/website-calculation-chain-bindings/BUFF/sale' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --header 'Content-Type: application/json' \
+  --data '{"calculation_chain_id": 42, "expected_sequence": 0}'
+```
+
+也可以在创建或更新链时用 `apply_to` 同时绑定槽位：要么列出的槽位全部绑定成功，要么什么都不保存。
+
+要重新使用官方费率，带上你读到的两个序号[移除你的绑定](/docs/api/reference/bindings/reset-binding)，以确保恢复的是你看到的那个官方绑定：
+
+```bash
+curl --request DELETE --get 'https://api.cs.cheap/website-calculation-chain-bindings/BUFF/sale' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'expected_sequence=1' \
+  --data-urlencode 'expected_official_sequence=3'
+```
+
+## 之后修改链
+
+带上你最后读到的 `sequence` 作为 `expected_sequence` [更新计算链](/docs/api/reference/calculation-chains/update-chain)。新的名称、步骤列表或换算设置会保存为新版本；已绑定的槽位保持原来的版本，直到你绑定新版本，例如使用 `apply_to`。[列出版本](/docs/api/reference/calculation-chains/list-chain-revisions)可以查看历史。当不再有任何地方使用某条链时，可以[废弃它](/docs/api/reference/calculation-chains/deprecate-chain)；废弃不可撤销。
+
+## 处理错误
+
+- `400` 且带 `error.details.missing`：某一步引用了你无法使用的对象，每个条目给出 `kind`、`id` 与 `reason`。
+- `409 conflict`：槽位或链在你读取后已被修改，或链仍被绑定；重新读取后再重试。
+- `422` 且带 `error.details.issues`：链的步骤衔接不上，例如某一步期望的币种与当前金额的币种不同。
+
+通用规则见[错误处理](/docs/api/errors)。

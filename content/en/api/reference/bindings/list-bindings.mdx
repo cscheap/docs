@@ -1,0 +1,492 @@
+---
+docId: "api.reference.bindings.list-bindings"
+title: "Get marketplace chain bindings"
+description: "GET /website-calculation-chain-bindings — Get marketplace chain bindings"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+---
+
+## Operation
+
+`GET /website-calculation-chain-bindings`
+
+## Behavior
+
+Returns which calculation chain revision applies to a marketplace for each purpose: `deposit`, `sale` and `withdraw`.
+
+- For each purpose, your own binding wins over the platform default; `source` says which one you got. A purpose with neither is `null`.
+- Each slot names the bound `calculation_chain_revision` (its name and step count are that revision's), the slot `sequence` (yours) and whether the binding can be applied (`available`, `reason`).
+- 404 if the marketplace code is unknown.
+
+> [!note]
+> The officially published fees of a marketplace are also available without authentication from `GET /websites/{code}/fee-schedule`.
+
+
+## Usage
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": null,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Request
+
+```json
+{
+  "parameters": [
+    {
+      "name": "website",
+      "in": "query",
+      "required": true,
+      "schema": {
+        "type": "string",
+        "description": "Marketplace code whose bindings to return.",
+        "title": "Website"
+      },
+      "description": "Marketplace code whose bindings to return."
+    }
+  ]
+}
+```
+
+## Responses
+
+```json
+{
+  "200": {
+    "description": "Successful Response",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_WebsiteCalculationChainBindingsOut_"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "Authentication is missing or invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "The credential is valid but not allowed to call this operation",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "404": {
+    "description": "The requested resource does not exist",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "A parameter or the request body is invalid",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "429": {
+    "description": "Too many requests to this endpoint; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "The service is temporarily unavailable; retry later",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## Models
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "Credits this request costs."
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "Estimated credit balance left after this request. A hint rather than a ledger: concurrent requests can make it slightly off."
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "Credit accounting for a billable request."
+  },
+  "Envelope_WebsiteCalculationChainBindingsOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/WebsiteCalculationChainBindingsOut",
+        "description": "The endpoint payload."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[WebsiteCalculationChainBindingsOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "Stable machine-readable error code. Branch on this value, not on `message`."
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "Human-readable explanation. The wording may change."
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "Optional structured context, such as the list of validation errors or, for `credit_insufficient`, the required and remaining credits."
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "Details of a failed request."
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "What went wrong."
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "Request metadata."
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "Error response: the error in `error` plus request metadata in `meta`."
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "Unique identifier of this request, identical to the `X-Request-ID` response header. Quote it when contacting support."
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "Whether the request is billed in credits. Present only on metered endpoints; `false` means the request is free, for example because it costs nothing or your subscription covers it."
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Paging state. Present only on a response that lists a page."
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "Request metadata included in every enveloped response."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Page size actually applied to this request."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Whether another page follows."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Pass it back unchanged as `cursor` to get the next page; `null` once the list is complete."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Where a paged list stands after this page."
+  },
+  "WebsiteCalculationChainBindingSlotOut": {
+    "properties": {
+      "purpose": {
+        "type": "string",
+        "enum": [
+          "deposit",
+          "sale",
+          "withdraw"
+        ],
+        "title": "Purpose",
+        "description": "Purpose: `deposit`, `sale` or `withdraw`."
+      },
+      "calculation_chain_id": {
+        "type": "integer",
+        "title": "Calculation Chain Id",
+        "description": "ID of the bound chain."
+      },
+      "calculation_chain_revision": {
+        "type": "integer",
+        "title": "Calculation Chain Revision",
+        "description": "The bound revision of the chain: the one that applies."
+      },
+      "calculation_chain_name": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Calculation Chain Name",
+        "description": "Display name of the bound chain in that revision, if set."
+      },
+      "source": {
+        "type": "string",
+        "enum": [
+          "user",
+          "platform"
+        ],
+        "title": "Source",
+        "description": "`user` if this is your own binding, `platform` if it is the platform default."
+      },
+      "calculation_chain_is_official": {
+        "type": "boolean",
+        "title": "Calculation Chain Is Official",
+        "description": "Whether the bound chain is official."
+      },
+      "calculation_chain_is_searchable": {
+        "type": "boolean",
+        "title": "Calculation Chain Is Searchable",
+        "description": "Whether the bound chain is shared by its owner."
+      },
+      "calculation_chain_owner_user_id": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Calculation Chain Owner User Id",
+        "description": "ID of the bound chain's owner; `null` for a platform chain."
+      },
+      "is_deprecated": {
+        "type": "boolean",
+        "title": "Is Deprecated",
+        "description": "Whether the bound chain is deprecated. Only bindings from before deprecation became final can show `true`; such a slot is `available: false`."
+      },
+      "ref_count": {
+        "type": "integer",
+        "title": "Ref Count",
+        "description": "How many times the bound chain is bound or has been forked."
+      },
+      "step_count": {
+        "type": "integer",
+        "title": "Step Count",
+        "description": "Number of steps in the bound revision of the chain."
+      },
+      "sequence": {
+        "type": "integer",
+        "title": "Sequence",
+        "description": "Your slot's `sequence`: send it back as `expected_sequence`."
+      },
+      "available": {
+        "type": "boolean",
+        "title": "Available",
+        "description": "Whether the binding can be applied; see `reason`."
+      },
+      "reason": {
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "deprecated",
+              "missing"
+            ]
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Reason",
+        "description": "Why the binding cannot be applied: `deprecated` (the chain is deprecated) or `missing` (the chain is gone); `null` when `available`."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "purpose",
+      "calculation_chain_id",
+      "calculation_chain_revision",
+      "calculation_chain_name",
+      "source",
+      "calculation_chain_is_official",
+      "calculation_chain_is_searchable",
+      "calculation_chain_owner_user_id",
+      "is_deprecated",
+      "ref_count",
+      "step_count",
+      "sequence",
+      "available",
+      "reason"
+    ],
+    "title": "WebsiteCalculationChainBindingSlotOut",
+    "description": "The calculation chain that applies to one marketplace and purpose."
+  },
+  "WebsiteCalculationChainBindingsOut": {
+    "properties": {
+      "deposit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/WebsiteCalculationChainBindingSlotOut"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Chain applied to deposits; `null` if nothing is bound."
+      },
+      "sale": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/WebsiteCalculationChainBindingSlotOut"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Chain applied to sales; `null` if nothing is bound."
+      },
+      "withdraw": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/WebsiteCalculationChainBindingSlotOut"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Chain applied to withdrawals; `null` if nothing is bound."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "deposit",
+      "sale",
+      "withdraw"
+    ],
+    "title": "WebsiteCalculationChainBindingsOut",
+    "description": "The effective calculation chain of one marketplace for each purpose."
+  }
+}
+```
+
+[Download the public OpenAPI schema](/assets/openapi-en.json)

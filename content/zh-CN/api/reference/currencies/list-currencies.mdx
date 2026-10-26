@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.currencies.list-currencies"
-sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5cdada91"
+sourceDigest: "sha256:5ee61b35da17afb6be794921c6e4a41ad764ec0aeba99f6f6706f1dffaadcd6b"
 ---
 
 ## 操作
@@ -17,8 +17,9 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
 
 返回平台维护的官方货币及其当前的 USD 汇率。官方费率表中的货币换算使用的就是这些货币。
 
-- 结果按 `code` 排序。
+- 结果按 `code` 排序，除非 `sort` 另有指定。
 - `search` 将列表缩小到包含指定文本的代码（不区分大小写）。
+- 不带 `page` 时返回完整列表；带 `page`（以及 `page_size`，最多 100）时返回一页及 `total`。
 - `usd_rate` 是一单位该货币对应的美元价值，以十进制字符串表示（例如价值 1/8 美元的货币为 `0.125`）。
 - 只列出官方货币。
 
@@ -58,6 +59,62 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
         "title": "Search"
       },
       "description": "对货币代码进行不区分大小写的子串匹配。省略则列出所有货币。"
+    },
+    {
+      "name": "sort",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "enum": [
+              "name",
+              "ref_count",
+              "updated_at"
+            ],
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "排序方式：`name`（默认；按代码）、`ref_count`（使用最多的在前）或 `updated_at`（最近修改的在前）。",
+        "title": "Sort"
+      },
+      "description": "排序方式：`name`（默认；按代码）、`ref_count`（使用最多的在前）或 `updated_at`（最近修改的在前）。"
+    },
+    {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "integer",
+            "minimum": 1
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "页码，从 1 开始。指定后，响应是一页（`items`、`total`、`page`、`page_size`），而不是完整列表。",
+        "title": "Page"
+      },
+      "description": "页码，从 1 开始。指定后，响应是一页（`items`、`total`、`page`、`page_size`），而不是完整列表。"
+    },
+    {
+      "name": "page_size",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "type": "integer",
+        "maximum": 100,
+        "minimum": 1,
+        "description": "每页记录数（1 到 100）；与 `page` 一起使用。",
+        "default": 20,
+        "title": "Page Size"
+      },
+      "description": "每页记录数（1 到 100）；与 `page` 一起使用。"
     }
   ]
 }
@@ -72,7 +129,7 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
     "content": {
       "application/json": {
         "schema": {
-          "$ref": "#/components/schemas/Envelope_list_CurrencyOut__"
+          "$ref": "#/components/schemas/Envelope_Union_list_CurrencyOut___PageOut_CurrencyOut___"
         }
       }
     }
@@ -210,13 +267,20 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
     "title": "CurrencyOut",
     "description": "一种货币及其美元价值。"
   },
-  "Envelope_list_CurrencyOut__": {
+  "Envelope_Union_list_CurrencyOut___PageOut_CurrencyOut___": {
     "properties": {
       "data": {
-        "items": {
-          "$ref": "#/components/schemas/CurrencyOut"
-        },
-        "type": "array",
+        "anyOf": [
+          {
+            "items": {
+              "$ref": "#/components/schemas/CurrencyOut"
+            },
+            "type": "array"
+          },
+          {
+            "$ref": "#/components/schemas/PageOut_CurrencyOut_"
+          }
+        ],
         "title": "Data",
         "description": "端点返回的数据。"
       },
@@ -230,7 +294,7 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
       "data",
       "meta"
     ],
-    "title": "Envelope[list[CurrencyOut]]"
+    "title": "Envelope[Union[list[CurrencyOut], PageOut[CurrencyOut]]]"
   },
   "ErrorBody": {
     "properties": {
@@ -314,6 +378,17 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
           }
         ],
         "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
       }
     },
     "type": "object",
@@ -322,6 +397,76 @@ sourceDigest: "sha256:d40ca02b1697f9311dd6237014cca88881dee2253745bbb72e6e4f2f5c
     ],
     "title": "Meta",
     "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
+  },
+  "PageOut_CurrencyOut_": {
+    "properties": {
+      "items": {
+        "items": {
+          "$ref": "#/components/schemas/CurrencyOut"
+        },
+        "type": "array",
+        "title": "Items",
+        "description": "本页的记录。"
+      },
+      "total": {
+        "type": "integer",
+        "title": "Total",
+        "description": "所有页中匹配的记录总数。"
+      },
+      "page": {
+        "type": "integer",
+        "title": "Page",
+        "description": "本页的页码，从 1 开始。"
+      },
+      "page_size": {
+        "type": "integer",
+        "title": "Page Size",
+        "description": "每页记录数。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "items",
+      "total",
+      "page",
+      "page_size"
+    ],
+    "title": "PageOut[CurrencyOut]"
   }
 }
 ```

@@ -6,12 +6,12 @@ kind: "how-to"
 status: "ready"
 sources: ["api"]
 translationOf: "guides.query-prices"
-sourceDigest: "sha256:a5c6e981a57cf8c3838196bc88f4fe0056e735f3b2180738682ce8f5f699bc94"
+sourceDigest: "sha256:870526b651c0f8f28f36ac054eb9e6ccd54d2eae6be0b237b7b3a8e957314784"
 ---
 
 ## Выберите фильтры
 
-Передайте `market_hash_name` в `GET /prices`. Для игры, отличной от `730`, задайте `app_id`. Необязательный `markets` — коды в верхнем регистре через запятую, например `BUFF,UUYP`. `side` принимает `ask`, `bid`, `mid`, `all`; по умолчанию — `all`.
+Передайте `market_hash_name` в `GET /prices`. Для игры, отличной от `730`, задайте `app_id`. Необязательный `markets` — коды в верхнем регистре через запятую, например `BUFF,UUYP`. `side` принимает `ask`, `bid`, `mid`, `all`; по умолчанию — `all`. Необязательный `currency` задаёт валюту пересчитанных сумм (`buy_amount`, `sale_amount`, `payout_amount`) и оценки `CSCP`: любой код официальной валюты, по умолчанию — базовая валюта аккаунта, иначе USD. Сами цены площадок остаются в их валютах.
 
 Кодируйте имя для URL и передавайте ключ в заголовке Authorization. [Первый запрос](/docs/get-started/first-request) содержит пример, [справочник](/docs/api/reference/prices/get-price) — все ограничения.
 

@@ -4,7 +4,7 @@ title: "Market fees"
 description: "See what 100 USD becomes after each marketplace's fees and keep your own fee chains for the market purposes you use."
 kind: "how-to"
 status: "ready"
-sources: ["frontend"]
+sources: ["frontend", "api"]
 ---
 
 ## Before you start
@@ -41,4 +41,8 @@ Deprecating a chain cannot be undone, and it is blocked while a market purpose s
 
 ## Currencies
 
-Currency conversions use each currency's reference rate to USD. Official currencies are read-only and maintained from the crawler catalogue; with an active subscription you can create your own currencies for your own conversions. See [marketplace fees](/docs/concepts/marketplace-fees) for how fee schedules and calculation chains are defined.
+Currency conversions use each currency's reference rate to USD. Official currencies are read-only and maintained from the crawler catalogue; with an active subscription you can create your own currencies for your own conversions.
+
+## What it does not change
+
+Your own chains change the results you see here and in previews. The API's price amounts (`buy_amount`, `sale_amount`, `payout_amount`) always use the official fees. To manage the same records through the API, see [customize fees](/docs/guides/customize-fees). See [marketplace fees](/docs/concepts/marketplace-fees) for how fee schedules and calculation chains are defined.

@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.prices.export-prices"
-sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82fc31a76"
+sourceDigest: "sha256:f9c7d7158969229af67d0934914fe15d11118d0a6cfe27bb88f8f83a0c581885"
 ---
 
 ## 操作
@@ -17,10 +17,11 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
 
 以单个文件下载某款游戏所有有价格的饰品的报价，用于批量同步。`side` 默认为 `ask`；`side=mid` 只导出每个有估值饰品的 `CSCP` 估值，文件小得多。
 
-- 响应体就是导出文档本身（`app_id`、`side`、`generated_at`、`items`），经 gzip 压缩（`Content-Encoding: gzip`），不是常规信封。请求 ID 与计费字段改为响应头：`X-Request-ID`、`X-Billable`，计费的响应另有 `X-Credit-Cost` 与 `X-Credit-Remaining`。
+- 响应体就是导出文档本身（`app_id`、`side`、`currency`、`generated_at`、`items`），经 gzip 压缩（`Content-Encoding: gzip`），不是常规信封。请求 ID 与计费字段改为响应头：`X-Request-ID`、`X-Billable`，计费的响应另有 `X-Credit-Cost` 与 `X-Credit-Remaining`。
 - `items` 列出在所请求方向上至少有一条报价的所有饰品，按 market hash name 排序；每个饰品的报价遵循与 `GET /prices` 相同的规则。
 - 文件是服务器每隔几分钟重建一次的快照；`generated_at`（也即 `X-Export-Generated-At` 头）给出构建时间。两次重建之间的请求收到同一份文件。
 - 把收到的 `ETag` 以 `If-None-Match` 原样发回：快照未变时响应为 `304 Not Modified` 且无响应体，`304` 永不计费。
+- `currency` 选择文件：`USD`、`CNY` 或 `RUB`（默认为你账户的本位币，否则为 `USD`）。它决定 `buy_amount`、`sale_amount`、`payout_amount` 以及 `CSCP` 报价所用的货币，与 `GET /prices` 相同；其他货币返回 `422 unsupported_currency`。每种货币是一份独立的文件，各有自己的 `ETag`。
 - 不支持 `Range` 请求；总是发送整个文件。不支持分页，也不支持按市场过滤。
 - `503 dependency_unavailable` 表示首份快照尚未建成；一分钟后重试。
 
@@ -80,6 +81,25 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
         "title": "Side"
       },
       "description": "返回市场的哪一方向：`ask` 为在售挂单，`bid` 为求购订单，`mid` 为 CSCP 估值，`all` 为全部。默认为 `ask`。"
+    },
+    {
+      "name": "currency",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{1,32}$"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "换算后金额（`buy_amount`、`sale_amount`、`payout_amount`）以及 `CSCP` 估值所用的货币：`USD`、`CNY` 或 `RUB`；不区分大小写。优先于你账户的本位币；两者都未设置时使用 `USD`。市场价格从不换算。",
+        "title": "Currency"
+      },
+      "description": "换算后金额（`buy_amount`、`sale_amount`、`payout_amount`）以及 `CSCP` 估值所用的货币：`USD`、`CNY` 或 `RUB`；不区分大小写。优先于你账户的本位币；两者都未设置时使用 `USD`。市场价格从不换算。"
     }
   ]
 }
@@ -228,7 +248,7 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
       "market_hash_name": {
         "type": "string",
         "title": "Market Hash Name",
-        "description": "饰品的 market hash name，与请求中的完全一致。"
+        "description": "饰品的 market hash name，与请求中的完全一致；分页列出时为列出的名称。"
       },
       "markets": {
         "items": {
@@ -236,7 +256,7 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
         },
         "type": "array",
         "title": "Markets",
-        "description": "该饰品的报价，每个市场的每个方向最多一条，先按市场代码、再按方向排序。饰品未知或所有报价都被过滤条件排除时为空。"
+        "description": "该饰品的报价，每个市场的每个方向最多一条，先按市场代码、再按方向排序。饰品未知或所有报价都被过滤条件排除时为空；分页列出时从不为空。"
       }
     },
     "type": "object",
@@ -339,6 +359,11 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
         "title": "Side",
         "description": "所应用的方向过滤条件，原样回显请求中的值。"
       },
+      "currency": {
+        "type": "string",
+        "title": "Currency",
+        "description": "`buy_amount`、`sale_amount`、`payout_amount` 以及 `CSCP` 报价所用的货币（`USD`、`CNY` 或 `RUB`）：`currency` 参数，否则为你账户的本位币，否则为 `USD`。"
+      },
       "generated_at": {
         "type": "string",
         "title": "Generated At",
@@ -357,6 +382,7 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
     "required": [
       "app_id",
       "side",
+      "currency",
       "generated_at",
       "items"
     ],
@@ -368,7 +394,7 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
       "market_code": {
         "type": "string",
         "title": "Market Code",
-        "description": "该报价所属市场的代码，例如 `BUFF`。`CSCP` 表示 cs.cheap 对该饰品的估值：跨市场的人民币加权共识，每天更新，没有数量，`changed_at` 与 `fresh_at` 为其计算时间，详情见 `valuation`。它是估算值，不是任何人都能成交的报价。"
+        "description": "该报价所属市场的代码，例如 `BUFF`。`CSCP` 表示 cs.cheap 对该饰品的估值：以响应的 `currency` 计的跨市场加权共识，每天更新，没有数量，`changed_at` 与 `fresh_at` 为其计算时间，详情见 `valuation`。它是估算值，不是任何人都能成交的报价。"
       },
       "provider_code": {
         "type": "string",
@@ -388,7 +414,7 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
       "market_currency_code": {
         "type": "string",
         "title": "Market Currency Code",
-        "description": "`market_price_amount` 的货币，例如 `CNY`。价格以该市场自身的货币返回，不做换算。"
+        "description": "`market_price_amount` 的货币，例如 `CNY`。市场价格以该市场自身的货币返回，不做换算；只有 `CSCP` 报价以响应的 `currency` 给出。"
       },
       "market_price_amount": {
         "anyOf": [
@@ -401,6 +427,42 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
         ],
         "title": "Market Price Amount",
         "description": "以 `market_currency_code` 计的价格，为十进制字符串（普通记数法，去除末尾的零，从不使用科学记数法）；来源未报告价格时为 `null`。已下架的报价保留最后已知的价格。"
+      },
+      "buy_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Buy Amount",
+        "description": "按此价格买入实际需要支付的现金（含市场费用），换算为响应的 `currency`，为十进制字符串。费用未知或尚未按当前价格计算时为 `null`；`CSCP` 报价上恒为 `null`。"
+      },
+      "sale_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sale Amount",
+        "description": "按此价格卖出、扣除出售费用后记入你在该市场余额的金额，换算为响应的 `currency`，为十进制字符串。出售费用未知、该市场不支持出售，或费用尚未按当前价格计算时为 `null`；`CSCP` 报价上恒为 `null`。"
+      },
+      "payout_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Payout Amount",
+        "description": "按此价格卖出并提现、扣除出售与提现费用后到手的现金，换算为响应的 `currency`，为十进制字符串。相关费用未知、该市场不支持出售或提现，或费用尚未按当前价格计算时为 `null`；`CSCP` 报价上恒为 `null`。"
       },
       "quantity": {
         "anyOf": [
@@ -491,6 +553,9 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
       "side",
       "market_currency_code",
       "market_price_amount",
+      "buy_amount",
+      "sale_amount",
+      "payout_amount",
       "quantity",
       "is_quantity_minimum",
       "is_all_items_same_price",
@@ -532,6 +597,17 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
           }
         ],
         "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
       }
     },
     "type": "object",
@@ -540,6 +616,40 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
     ],
     "title": "Meta",
     "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
   },
   "ValuationOut": {
     "properties": {
@@ -566,7 +676,7 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
       "ask_amount": {
         "type": "string",
         "title": "Ask Amount",
-        "description": "各市场在售挂单的加权共识，按人民币现金买入成本计（含费用），为十进制字符串。"
+        "description": "各市场在售挂单的加权共识，按现金买入成本计（含费用），以响应的 `currency` 计，为十进制字符串。"
       },
       "bid_amount": {
         "anyOf": [
@@ -578,7 +688,7 @@ sourceDigest: "sha256:6a1f2075d642e55a0f364d36ddb8a8f4d0a01b222288c38cbd5f69b82f
           }
         ],
         "title": "Bid Amount",
-        "description": "各市场求购订单的加权共识，按扣除费用后到手的人民币现金计，为十进制字符串；价格高于该市场在售挂单的求购订单已被剔除。`is_two_sided` 为 `false` 时为 `null`。"
+        "description": "各市场求购订单的加权共识，按扣除费用后到手的现金计，以响应的 `currency` 计，为十进制字符串；价格高于该市场在售挂单的求购订单已被剔除。`is_two_sided` 为 `false` 时为 `null`。"
       },
       "ask_quote_count": {
         "type": "integer",

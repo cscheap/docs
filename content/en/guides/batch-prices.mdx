@@ -9,7 +9,7 @@ sources: ["api"]
 
 ## Submit a batch
 
-Send 1–1000 names in `market_hash_names`. One batch has one `app_id` and one side selection. Unlike the single query's CSV parameter, batch `markets` is a JSON array of market codes.
+Send 1–1000 names in `market_hash_names`. One batch has one `app_id`, one side selection and one optional `currency`, which works as on the single query. Unlike the single query's CSV parameter, batch `markets` is a JSON array of market codes. Unknown fields in the request body are rejected with `422`.
 
 ```bash
 curl 'https://api.cs.cheap/prices/batch' \
@@ -23,3 +23,9 @@ curl 'https://api.cs.cheap/prices/batch' \
 `data.items` preserves request order. Unknown names return an entry with an empty `markets` array instead of failing the whole batch. Repeated names remain repeated in the output and count toward billing.
 
 Without an active subscription, cost is one credit per started block of 100 submitted names: 100 names cost one, 101 cost two. Deduplicate in your application before sending if repeated entries are unnecessary. Split larger collections into batches and respect [rate limits](/docs/api/rate-limits).
+
+## Page through every item
+
+Omit `market_hash_names` to page through every priced item of `app_id`. `limit` sets the page size (default 100, at most 1000). Pass `meta.page.next_cursor` back unchanged as `cursor` for the next page, and stop when `next_cursor` is `null`. Items come in the same order as the export, each at most once per pass; prices are read as each page is requested, so an item added while you page may only appear on your next pass.
+
+Each page is billed like a batch of `limit` names, even when the last page holds fewer items. To fetch everything at once, the [export](/docs/guides/export-prices) is cheaper.

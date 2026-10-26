@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.account.get-account"
-sourceDigest: "sha256:433708eef2dfa3e6ce6c82b9fb1edf0552f31fc6aa095da35a1a868087fa3e32"
+sourceDigest: "sha256:134fc493f060cdb66f3bb80fed720bca50f3613ca471612381f7416240b61368"
 ---
 
 ## 操作
@@ -224,6 +224,17 @@ sourceDigest: "sha256:433708eef2dfa3e6ce6c82b9fb1edf0552f31fc6aa095da35a1a868087
           }
         ],
         "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
       }
     },
     "type": "object",
@@ -232,6 +243,40 @@ sourceDigest: "sha256:433708eef2dfa3e6ce6c82b9fb1edf0552f31fc6aa095da35a1a868087
     ],
     "title": "Meta",
     "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
   },
   "SyncCredit": {
     "properties": {
@@ -378,7 +423,7 @@ sourceDigest: "sha256:433708eef2dfa3e6ce6c82b9fb1edf0552f31fc6aa095da35a1a868087
           }
         ],
         "title": "Base Currency",
-        "description": "账户计算所换算到的货币（ISO 4217 代码）；`null` 表示 USD。"
+        "description": "账户计算所换算到的货币（ISO 4217 代码），也是价格端点默认的 `currency`；`null` 表示 USD。"
       }
     },
     "additionalProperties": false,

@@ -6,7 +6,7 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.reference.markets.get-fees"
-sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a4ecce6"
+sourceDigest: "sha256:7705273f8986bed7cba1580e6b089df7c63d34a7c110abc6f5167fd023e54ce3"
 ---
 
 ## 操作
@@ -17,10 +17,10 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
 
 返回平台当前为某个市场发布的费率，每种用途一个槽位：`deposit`、`sale` 和 `withdraw`。
 
-- 每个已发布的槽位都带有完全展开的官方计算链：包含每个费用算子、换币算子和换币算子组及其数值与货币，因此一次请求就足以复现平台的计算。
+- 每个已发布的槽位都带有完全展开的官方计算链，取平台在该用途上应用的 `revision`：包含每个费用算子、换币算子和换币算子组及其数值、货币和当前 `revision`，因此一次请求就足以复现平台的计算。官方计算链的每个算子本身也是官方的。
 - 如果槽位的计算链 `id` 为 `0`，则明确表示免费：平台不对该用途收取任何费用，且该计算链没有步骤。
 - 如果平台尚未为某种用途发布官方计算链，对应槽位为 `null`：费用未知，或该市场不提供此用途。`null` 绝不表示免费。
-- 每条计算链都会注明其 `start_currency`：价格必须采用该货币，计算链才适用（`null`：任意货币）。
+- 每条计算链都会注明其 `start_currency`：价格必须采用该货币，计算链才适用（`null`：任意货币）；`input_auto` 和 `output_auto` 说明其他货币的价格以及计算结果是否应在计算链前后进行换算。
 - 不包含归属和管理类字段。
 
 `404` 表示没有使用该代码的市场。
@@ -324,6 +324,17 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
           }
         ],
         "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
       }
     },
     "type": "object",
@@ -332,6 +343,40 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
     ],
     "title": "Meta",
     "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
   },
   "PublicCalculationChainOut": {
     "properties": {
@@ -371,6 +416,28 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
         "title": "Start Currency",
         "description": "计算链所期望的价格货币；适用于任意货币时为 `null`。采用其他货币的价格不在其适用范围内。"
       },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "平台在该用途上应用的计算链修订；更新的修订在此处被应用之前不会生效。"
+      },
+      "input_auto": {
+        "type": "boolean",
+        "title": "Input Auto",
+        "description": "其他货币的价格是否先换算为 `start_currency`（通过官方的美元价值）。"
+      },
+      "output_auto": {
+        "type": "boolean",
+        "title": "Output Auto",
+        "description": "结果是否应在最后一步之后换算为查看者的基准货币。"
+      },
       "steps": {
         "items": {
           "oneOf": [
@@ -404,6 +471,9 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
       "id",
       "name",
       "start_currency",
+      "revision",
+      "input_auto",
+      "output_auto",
       "steps"
     ],
     "title": "PublicCalculationChainOut",
@@ -451,6 +521,18 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
         "type": "array",
         "title": "Members",
         "description": "成员换算，按顺序排列。"
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "组的当前修订。"
       }
     },
     "additionalProperties": false,
@@ -460,7 +542,8 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
       "id",
       "name",
       "rule",
-      "members"
+      "members",
+      "revision"
     ],
     "title": "PublicConvertOperatorGroupOut",
     "description": "已发布费率表中的一组备选换算。"
@@ -518,6 +601,18 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
         ],
         "title": "Rate",
         "description": "每一单位源货币对应的目标货币数量，以十进制字符串表示；用于 `fixed` 模式。"
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "换币算子的当前修订。"
       }
     },
     "additionalProperties": false,
@@ -529,7 +624,8 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
       "from",
       "to",
       "mode",
-      "rate"
+      "rate",
+      "revision"
     ],
     "title": "PublicConvertOperatorOut",
     "description": "已发布费率表中的一个货币换算步骤。"
@@ -640,6 +736,18 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
         ],
         "title": "Currency Code",
         "description": "`add` 和 `sub` 金额的货币；`mul` 和 `div` 时为 `null`。"
+      },
+      "revision": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Revision",
+        "description": "费用算子的当前修订。"
       }
     },
     "additionalProperties": false,
@@ -650,7 +758,8 @@ sourceDigest: "sha256:5078bb9952bf59cf36634ee1a151cb831bec44b70179e102f1f5f5fd2a
       "name",
       "operator",
       "value",
-      "currency_code"
+      "currency_code",
+      "revision"
     ],
     "title": "PublicFeeOperatorOut",
     "description": "已发布费率表中的一个费用步骤。"

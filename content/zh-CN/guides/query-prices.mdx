@@ -6,12 +6,12 @@ kind: "how-to"
 status: "ready"
 sources: ["api"]
 translationOf: "guides.query-prices"
-sourceDigest: "sha256:a5c6e981a57cf8c3838196bc88f4fe0056e735f3b2180738682ce8f5f699bc94"
+sourceDigest: "sha256:870526b651c0f8f28f36ac054eb9e6ccd54d2eae6be0b237b7b3a8e957314784"
 ---
 
 ## 选择筛选参数
 
-调用 `GET /prices`，提供 `market_hash_name`。查询默认 `730` 以外的游戏时指定 `app_id`。可选 `markets` 是逗号分隔的大写市场代码，例如 `BUFF,UUYP`。可选 `side` 为 `ask`、`bid`、`mid` 或 `all`，默认 `all`。
+调用 `GET /prices`，提供 `market_hash_name`。查询默认 `730` 以外的游戏时指定 `app_id`。可选 `markets` 是逗号分隔的大写市场代码，例如 `BUFF,UUYP`。可选 `side` 为 `ask`、`bid`、`mid` 或 `all`，默认 `all`。可选 `currency` 指定换算金额（`buy_amount`、`sale_amount`、`payout_amount`）与 `CSCP` 估值的币种：可用任意官方货币代码，默认使用账号本位币，未设置时为美元。市场原价本身仍保持各市场的币种。
 
 饰品名称需要 URL 编码，API 密钥放在 Authorization 请求头中。[首次请求](/docs/get-started/first-request)提供可运行示例，[接口参考](/docs/api/reference/prices/get-price)列出完整约束。
 

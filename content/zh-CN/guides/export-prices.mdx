@@ -6,12 +6,12 @@ kind: "how-to"
 status: "ready"
 sources: ["api"]
 translationOf: "guides.export-prices"
-sourceDigest: "sha256:90f9c8282555f4da3df2fa81d9f443cf69a77e04497303fc3ca6ec6aa516a747"
+sourceDigest: "sha256:b14dead55d6ed1782505872bbb9d6d9a6efe125346bfa409692c9a3bb2ab1007"
 ---
 
 ## 下载快照
 
-`GET /prices/export` 返回预先生成、gzip 压缩的 JSON 文档，没有 `data` 信封，计费信息位于响应头。默认方向为 `ask`；指定 `all` 才会包含其他方向及可用估值。
+`GET /prices/export` 返回预先生成、gzip 压缩的 JSON 文档，没有 `data` 信封，计费信息位于响应头。默认方向为 `ask`；指定 `all` 才会包含其他方向及可用估值，指定 `mid` 则只导出 `CSCP` 估值，文件小得多。`currency`（`USD`、`CNY` 或 `RUB`；默认使用账号本位币，未设置时为美元）决定换算金额与 `CSCP` 报价的币种；每种币种是一份独立文件，有各自的 `ETag`。
 
 ```bash
 curl --compressed --get 'https://api.cs.cheap/prices/export' \
@@ -20,10 +20,10 @@ curl --compressed --get 'https://api.cs.cheap/prices/export' \
   --dump-header export.headers --output prices.json
 ```
 
-`--compressed` 会解压响应。将 `prices.json` 当作成功导出处理前，先检查 HTTP 状态。检查 `generated_at` 与 `X-Export-Generated-At`：快照通常每五分钟生成，不是在下载时生成。
+`--compressed` 会解压响应。将 `prices.json` 当作成功导出处理前，先检查 HTTP 状态。检查 `generated_at` 与 `X-Export-Generated-At`：快照在服务器上每隔几分钟重建一次，不是在下载时生成。
 
 ## 避免重复下载
 
 保存响应头中的 `ETag`，下次将原值放入 `If-None-Match`。匹配时返回 `304`，无响应体且不扣点数，但仍计入限速。收到 `304` 时保留旧文件，不要用空输出覆盖。
 
-每次 `200` 都遵循正常导出计费，即使文件未变化。`Range` 被忽略。未知游戏返回 `404`，快照不可用返回 `503`。
+每次 `200` 都遵循正常导出计费，即使文件未变化。`Range` 被忽略。未知游戏返回 `404`；`503` 表示首个快照尚未生成，请一分钟后重试。

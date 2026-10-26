@@ -1,0 +1,454 @@
+---
+docId: "api.reference.calculation-chains.preview-chain"
+title: "试算计算链"
+description: "POST /calculation-chains/preview — 试算计算链"
+kind: "reference"
+status: "ready"
+sources: ["api"]
+translationOf: "api.reference.calculation-chains.preview-chain"
+sourceDigest: "sha256:621bab70d8cc91213ef5bdf59f898dca44bb3d9ce50994e0a1331a18fd928ed6"
+---
+
+## 操作
+
+`POST /calculation-chains/preview`
+
+## 行为
+
+让一个金额流经计算链，返回结果和逐步明细。不保存任何内容。
+
+- 传入 `calculation_chain_id`（你可以读取的已保存计算链；否则返回 404）或内联展开的 `calculation_chain` 之一；两者都提供时以后者为准。
+- 每一步之后，金额都按四舍五入保留 8 位小数。
+- 如果某一步无法计算，响应仍为 200：`final` 为 `null`，出错的明细条目带有 `error`。
+- 传入 `to_home: true` 时，结果还会换算为你账户的基准货币（除非你改过，否则为 USD）；计算链自身的 `output_auto` 不改变这一点。API 密钥不得发送 `home_currency`（422）。
+- 你的基准货币不在官方目录中时返回 422；暂时无法读取你的账户设置时返回 503。
+
+
+## 用量
+
+```json
+{
+  "authentication": "user-api-key",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": null,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## 请求
+
+```json
+{
+  "requestBody": {
+    "required": true,
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/PreviewIn"
+        }
+      }
+    }
+  }
+}
+```
+
+## 响应
+
+```json
+{
+  "200": {
+    "description": "请求成功",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/Envelope_PreviewOut_"
+        }
+      }
+    }
+  },
+  "401": {
+    "description": "缺少认证信息或认证无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "403": {
+    "description": "凭证有效，但无权调用此操作",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "404": {
+    "description": "请求的资源不存在",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "422": {
+    "description": "参数或请求体无效",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "429": {
+    "description": "对此端点的请求过多；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  },
+  "503": {
+    "description": "服务暂时不可用；请稍后重试",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/ErrorEnvelope"
+        }
+      }
+    }
+  }
+}
+```
+
+## 模型
+
+```json
+{
+  "CreditMeta": {
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "title": "Cost",
+        "description": "本次请求花费的点数。"
+      },
+      "remaining": {
+        "type": "integer",
+        "title": "Remaining",
+        "description": "本次请求后的预估剩余点数。仅作参考而非账目：并发请求可能导致其略有偏差。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "cost",
+      "remaining"
+    ],
+    "title": "CreditMeta",
+    "description": "计费请求的点数结算信息。"
+  },
+  "Envelope_PreviewOut_": {
+    "properties": {
+      "data": {
+        "$ref": "#/components/schemas/PreviewOut",
+        "description": "端点返回的数据。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "data",
+      "meta"
+    ],
+    "title": "Envelope[PreviewOut]"
+  },
+  "ErrorBody": {
+    "properties": {
+      "code": {
+        "type": "string",
+        "title": "Code",
+        "description": "稳定的机器可读错误代码。请根据此值进行分支处理，而不是 `message`。"
+      },
+      "message": {
+        "type": "string",
+        "title": "Message",
+        "description": "面向人类阅读的说明。措辞可能变化。"
+      },
+      "details": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Details",
+        "description": "可选的结构化上下文，例如校验错误列表；对于 `credit_insufficient`，则为所需点数和剩余点数。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "code",
+      "message"
+    ],
+    "title": "ErrorBody",
+    "description": "失败请求的详细信息。"
+  },
+  "ErrorEnvelope": {
+    "properties": {
+      "error": {
+        "$ref": "#/components/schemas/ErrorBody",
+        "description": "出了什么问题。"
+      },
+      "meta": {
+        "$ref": "#/components/schemas/Meta",
+        "description": "请求元数据。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "error",
+      "meta"
+    ],
+    "title": "ErrorEnvelope",
+    "description": "错误响应：`error` 中为错误信息，`meta` 中为请求元数据。"
+  },
+  "Meta": {
+    "properties": {
+      "request_id": {
+        "type": "string",
+        "title": "Request Id",
+        "description": "本次请求的唯一标识符，与响应头 `X-Request-ID` 相同。联系支持时请提供。"
+      },
+      "billable": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Billable",
+        "description": "该请求是否以点数计费。仅出现在计量端点上；`false` 表示该请求免费，例如因为它本身不收费，或已被你的订阅覆盖。"
+      },
+      "credit": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/CreditMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "本次请求的费用和你的预估剩余余额。仅在 `billable` 为 `true` 时出现。"
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "分页状态。仅出现在按页列出结果的响应中。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "request_id"
+    ],
+    "title": "Meta",
+    "description": "每个带信封的响应中都包含的请求元数据。"
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "本次请求实际采用的每页条数。"
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "是否还有下一页。"
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "将其原样作为 `cursor` 传回即可获取下一页；列表已全部返回时为 `null`。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "本页之后分页列表的进度。"
+  },
+  "PreviewIn": {
+    "properties": {
+      "start_amount": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+          }
+        ],
+        "title": "Start Amount",
+        "description": "要流经计算链的金额，以精确小数表示。",
+        "default": "100"
+      },
+      "start_currency": {
+        "type": "string",
+        "minLength": 1,
+        "title": "Start Currency",
+        "description": "`start_amount` 的货币代码，例如 `USD`。"
+      },
+      "calculation_chain": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Calculation Chain",
+        "description": "内联、完全展开的计算链，结构与校验时相同。优先于 `calculation_chain_id`。"
+      },
+      "calculation_chain_id": {
+        "anyOf": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Calculation Chain Id",
+        "description": "对你可见的已保存计算链的 ID。未提供 `calculation_chain` 时必填。"
+      },
+      "to_home": {
+        "type": "boolean",
+        "title": "To Home",
+        "description": "将最终金额换算为你的本位币：即你账户的基准货币（默认为 USD）。默认关闭，此时结果保持为计算链最终所用的货币。",
+        "default": false
+      },
+      "home_currency": {
+        "anyOf": [
+          {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Home Currency",
+        "description": "你的 API 密钥不能使用此字段：请省略（否则返回 422）。"
+      }
+    },
+    "type": "object",
+    "required": [
+      "start_currency"
+    ],
+    "title": "PreviewIn",
+    "description": "要流经已保存或内联计算链的金额。"
+  },
+  "PreviewOut": {
+    "properties": {
+      "final": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Final",
+        "description": "最终金额，以十进制字符串表示（8 位小数）；某一步失败时为 `null`。"
+      },
+      "final_currency": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Final Currency",
+        "description": "`final` 的货币代码；某一步失败时为 `null`。"
+      },
+      "start_amount": {
+        "type": "string",
+        "title": "Start Amount",
+        "description": "起始金额，以十进制字符串表示。"
+      },
+      "start_currency": {
+        "type": "string",
+        "title": "Start Currency",
+        "description": "起始金额的货币代码。"
+      },
+      "expression": {
+        "type": "string",
+        "title": "Expression",
+        "description": "本次运行的可读算式，仅供展示；某一步失败时以 `= ERROR` 结尾。程序处理请使用 `ledger`。"
+      },
+      "ledger": {
+        "items": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "type": "array",
+        "title": "Ledger",
+        "description": "每个已执行的步骤一条记录，设置 `to_home` 时另加换算为本位币的一条：`position`、`kind`、`operator_id`、`operator_name`、`summary`、`input_amount`、`input_currency`、`output_amount`、`output_currency`、`detail`（步骤细节，例如组成员的结果）和 `error`（步骤失败时设置）。执行在第一个失败的步骤处停止。"
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "final",
+      "final_currency",
+      "start_amount",
+      "start_currency",
+      "expression",
+      "ledger"
+    ],
+    "title": "PreviewOut",
+    "description": "让金额流经计算链的结果。"
+  }
+}
+```
+
+[下载公开 OpenAPI schema](/assets/openapi-zh-CN.json)

@@ -9,7 +9,7 @@ sources: ["api"]
 
 ## Download the snapshot
 
-`GET /prices/export` returns a prebuilt gzip-compressed JSON document. It has no `data` envelope: billing metadata is in response headers. The default side is `ask`; request `all` to include other sides and available valuations.
+`GET /prices/export` returns a prebuilt gzip-compressed JSON document. It has no `data` envelope: billing metadata is in response headers. The default side is `ask`; request `all` to include other sides and available valuations, or `mid` for only the `CSCP` valuations, a much smaller file. `currency` (`USD`, `CNY` or `RUB`; default your account's base currency, else USD) sets the currency of the converted amounts and of the `CSCP` quotes; each currency is a separate file with its own `ETag`.
 
 ```bash
 curl --compressed --get 'https://api.cs.cheap/prices/export' \
@@ -18,10 +18,10 @@ curl --compressed --get 'https://api.cs.cheap/prices/export' \
   --dump-header export.headers --output prices.json
 ```
 
-`--compressed` decompresses the response. Inspect the HTTP status before treating `prices.json` as a successful export. Check `generated_at` and `X-Export-Generated-At`; the snapshot is normally rebuilt on a five-minute schedule, not at download time.
+`--compressed` decompresses the response. Inspect the HTTP status before treating `prices.json` as a successful export. Check `generated_at` and `X-Export-Generated-At`; the snapshot is rebuilt on the server every few minutes, not at download time.
 
 ## Avoid downloading unchanged data
 
 Save `ETag` from the response headers and send that exact value in `If-None-Match` next time. A match returns `304`, no body and no credit charge; rate limiting still applies. Keep your previous file on a `304` instead of replacing it with an empty output.
 
-Every `200` follows normal export billing, even if the file is unchanged. `Range` is ignored. Unknown apps return `404`; an unavailable snapshot returns `503`.
+Every `200` follows normal export billing, even if the file is unchanged. `Range` is ignored. Unknown apps return `404`; `503` means the first snapshot has not been built yet, so retry after a minute.

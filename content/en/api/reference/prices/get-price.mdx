@@ -17,10 +17,12 @@ Returns the current quotes for one item across marketplaces, identified by its S
 
 - The result has at most one quote per market and side, sorted by `market_code` and then `side`. When several sources report the same market, a quote that is still listed takes precedence over a delisted one, then data taken directly from that marketplace over aggregators, then the most recently confirmed quote (`fresh_at`) wins.
 - A market is reported as delisted (`delisted_at` set, `quantity` `0`, last known price kept) only when every source for it has delisted the item.
-- Items with enough market data also get one `CSCP` quote with `side` `mid`: the cs.cheap valuation, a weighted consensus of the marketplaces' sell listings and buy orders in CNY, refreshed once a day. Its `valuation` object carries the confidence (`credibility`, `uncertainty`) and the two consensus prices; on every other quote `valuation` is `null`. It is an estimate, not a tradable offer.
+- Items with enough market data also get one `CSCP` quote with `side` `mid`: the cs.cheap valuation, a weighted consensus of the marketplaces' sell listings and buy orders, refreshed once a day and given in the response `currency`. Its `valuation` object carries the confidence (`credibility`, `uncertainty`) and the two consensus prices; on every other quote `valuation` is `null`. It is an estimate, not a tradable offer.
 - Narrow the result with `markets` (comma-separated market codes; `CSCP` selects the valuation) and `side` (`ask`, `bid`, `mid` or `all`).
 - `market_hash_name` must match exactly, including case.
-- Prices are decimal strings in each marketplace's own currency (`market_currency_code`); nothing is converted.
+- Marketplace prices (`market_price_amount`) are decimal strings in each marketplace's own currency (`market_currency_code`) and are never converted.
+- `buy_amount`, `sale_amount` and `payout_amount` say what buying, selling, and selling then withdrawing at that price come to after the marketplace's fees, all in one currency: the `currency` parameter, else your account's base currency, else `USD`. The response's `currency` names it; the `CSCP` quote uses it too.
+- `currency` accepts any official currency code (see `GET /currencies`). Any other code — including a base currency that is not supported — is `422 unsupported_currency`, never billed.
 - `404` means the item has no quotes at all for this `app_id`. An item whose quotes are all excluded by `markets` or `side` returns `200` with an empty `markets` list.
 
 > [!note]
@@ -111,6 +113,25 @@ Returns the current quotes for one item across marketplaces, identified by its S
         "title": "Side"
       },
       "description": "Which side of the market to return: `ask` for sell listings, `bid` for buy orders, `mid` for the CSCP valuation, `all` for everything. Defaults to `all`."
+    },
+    {
+      "name": "currency",
+      "in": "query",
+      "required": false,
+      "schema": {
+        "anyOf": [
+          {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]{1,32}$"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Currency of the converted amounts (`buy_amount`, `sale_amount`, `payout_amount`) and of the `CSCP` valuation, as an official currency code (see `GET /currencies`), for example `EUR`; case-insensitive. Takes precedence over your account's base currency; when neither is set, `USD` is used. Marketplace prices are never converted.",
+        "title": "Currency"
+      },
+      "description": "Currency of the converted amounts (`buy_amount`, `sale_amount`, `payout_amount`) and of the `CSCP` valuation, as an official currency code (see `GET /currencies`), for example `EUR`; case-insensitive. Takes precedence over your account's base currency; when neither is set, `USD` is used. Marketplace prices are never converted."
     }
   ]
 }
@@ -311,6 +332,11 @@ Returns the current quotes for one item across marketplaces, identified by its S
         "title": "Market Hash Name",
         "description": "Market hash name of the item, echoed from the request."
       },
+      "currency": {
+        "type": "string",
+        "title": "Currency",
+        "description": "Currency of `buy_amount`, `sale_amount`, `payout_amount` and of the `CSCP` quote: the `currency` parameter, else your account's base currency, else `USD`."
+      },
       "markets": {
         "items": {
           "$ref": "#/components/schemas/MarketQuoteOut"
@@ -324,6 +350,7 @@ Returns the current quotes for one item across marketplaces, identified by its S
     "required": [
       "app_id",
       "market_hash_name",
+      "currency",
       "markets"
     ],
     "title": "ItemPricesOut",
@@ -334,7 +361,7 @@ Returns the current quotes for one item across marketplaces, identified by its S
       "market_code": {
         "type": "string",
         "title": "Market Code",
-        "description": "Code of the marketplace this quote is for, for example `BUFF`. `CSCP` marks the cs.cheap valuation of the item: a weighted consensus across marketplaces in CNY, refreshed daily, with no quantity, its computation time in `changed_at` and `fresh_at`, and its details in `valuation`. It is an estimate, not an offer anyone can trade on."
+        "description": "Code of the marketplace this quote is for, for example `BUFF`. `CSCP` marks the cs.cheap valuation of the item: a weighted consensus across marketplaces in the response `currency`, refreshed daily, with no quantity, its computation time in `changed_at` and `fresh_at`, and its details in `valuation`. It is an estimate, not an offer anyone can trade on."
       },
       "provider_code": {
         "type": "string",
@@ -354,7 +381,7 @@ Returns the current quotes for one item across marketplaces, identified by its S
       "market_currency_code": {
         "type": "string",
         "title": "Market Currency Code",
-        "description": "Currency of `market_price_amount`, for example `CNY`. Prices are returned in the marketplace's own currency, without conversion."
+        "description": "Currency of `market_price_amount`, for example `CNY`. Marketplace prices are returned in the marketplace's own currency, without conversion; only the `CSCP` quote is given in the response `currency`."
       },
       "market_price_amount": {
         "anyOf": [
@@ -367,6 +394,42 @@ Returns the current quotes for one item across marketplaces, identified by its S
         ],
         "title": "Market Price Amount",
         "description": "Price in `market_currency_code` as a decimal string (plain notation, trailing zeros trimmed, never scientific notation), or `null` when the source reports no price. A delisted quote keeps its last known price."
+      },
+      "buy_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Buy Amount",
+        "description": "What buying at this price actually costs in cash, the marketplace's fees included, converted into the response `currency`, as a decimal string. `null` when the fees are unknown or not yet computed for the current price, and always `null` on the `CSCP` quote."
+      },
+      "sale_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sale Amount",
+        "description": "What selling at this price credits to your marketplace balance after the sale fees, converted into the response `currency`, as a decimal string. `null` when the sale fees are unknown, selling there is not supported, or the fees are not yet computed for the current price; always `null` on the `CSCP` quote."
+      },
+      "payout_amount": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Payout Amount",
+        "description": "What selling at this price leaves you in cash after the sale and withdrawal fees, converted into the response `currency`, as a decimal string. `null` when those fees are unknown, selling or withdrawing there is not supported, or the fees are not yet computed for the current price; always `null` on the `CSCP` quote."
       },
       "quantity": {
         "anyOf": [
@@ -457,6 +520,9 @@ Returns the current quotes for one item across marketplaces, identified by its S
       "side",
       "market_currency_code",
       "market_price_amount",
+      "buy_amount",
+      "sale_amount",
+      "payout_amount",
       "quantity",
       "is_quantity_minimum",
       "is_all_items_same_price",
@@ -498,6 +564,17 @@ Returns the current quotes for one item across marketplaces, identified by its S
           }
         ],
         "description": "Cost of the request and your estimated remaining balance. Present only when `billable` is `true`."
+      },
+      "page": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PageMeta"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "Paging state. Present only on a response that lists a page."
       }
     },
     "type": "object",
@@ -506,6 +583,40 @@ Returns the current quotes for one item across marketplaces, identified by its S
     ],
     "title": "Meta",
     "description": "Request metadata included in every enveloped response."
+  },
+  "PageMeta": {
+    "properties": {
+      "limit": {
+        "type": "integer",
+        "title": "Limit",
+        "description": "Page size actually applied to this request."
+      },
+      "has_next": {
+        "type": "boolean",
+        "title": "Has Next",
+        "description": "Whether another page follows."
+      },
+      "next_cursor": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Next Cursor",
+        "description": "Pass it back unchanged as `cursor` to get the next page; `null` once the list is complete."
+      }
+    },
+    "type": "object",
+    "required": [
+      "limit",
+      "has_next",
+      "next_cursor"
+    ],
+    "title": "PageMeta",
+    "description": "Where a paged list stands after this page."
   },
   "ValuationOut": {
     "properties": {
@@ -532,7 +643,7 @@ Returns the current quotes for one item across marketplaces, identified by its S
       "ask_amount": {
         "type": "string",
         "title": "Ask Amount",
-        "description": "Weighted consensus of sell listings across marketplaces, as the cash cost of buying in CNY (fees included), as a decimal string."
+        "description": "Weighted consensus of sell listings across marketplaces, as the cash cost of buying (fees included), in the response `currency`, as a decimal string."
       },
       "bid_amount": {
         "anyOf": [
@@ -544,7 +655,7 @@ Returns the current quotes for one item across marketplaces, identified by its S
           }
         ],
         "title": "Bid Amount",
-        "description": "Weighted consensus of buy orders across marketplaces, as the cash received in CNY after fees, as a decimal string; buy orders priced above the market's sell listings are excluded. `null` when `is_two_sided` is `false`."
+        "description": "Weighted consensus of buy orders across marketplaces, as the cash received after fees, in the response `currency`, as a decimal string; buy orders priced above the market's sell listings are excluded. `null` when `is_two_sided` is `false`."
       },
       "ask_quote_count": {
         "type": "integer",

@@ -6,19 +6,21 @@ kind: "reference"
 status: "ready"
 sources: ["api"]
 translationOf: "api.errors"
-sourceDigest: "sha256:28b1e71aae0fe1574dd4f61f7f75a65bf95d0f0decb82a980e2dc67aac1a965c"
+sourceDigest: "sha256:20ad4da9906ab52169719e28ccefb1f7106bb7c4cda8c2dacb79ddbc92f5213e"
 ---
 
 ## Учитывайте статус и код
 
 | Статус | Значение и действие |
 | --- | --- |
+| 400 | `validation_error`, если запись тарифа ссылается на недоступный вам объект (`error.details.missing` перечисляет `kind`, `id` и `reason`), или `invalid_cursor`, если изменён `cursor` пакетного запроса; исправьте запрос. |
 | 401 | Нет действительной аутентификации; проверьте ключ. |
 | 402 | `credit_insufficient`; пополните кредиты или проверьте подписку. |
-| 403 | `forbidden`; у ключа нет права на операцию. |
+| 403 | `forbidden`; у ключа нет права на операцию. `subscription_required`: сохранять свои тарифы можно только с активной подпиской, чтение остаётся доступным. |
 | 404 | `resource_not_found`; проверьте путь, идентификатор и покрытие. |
 | 405 | `method_not_allowed`; проверьте метод и заголовок `Allow`. |
-| 422 | `validation_error`; исправьте поля. |
+| 409 | `conflict`; запись изменилась после чтения (например, устарел `expected_sequence`) или цепочка ещё используется. Перечитайте и повторите. |
+| 422 | `validation_error`; исправьте поля. `unsupported_currency`: используйте код официальной валюты. |
 | 429 | `rate_limited`; дождитесь `Retry-After`. |
 | 500 | `internal_error`; сохраните ID и сообщите о повторяющемся сбое. |
 | 503 | `dependency_unavailable`; повторите позже с задержкой. |

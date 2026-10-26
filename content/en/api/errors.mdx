@@ -11,12 +11,14 @@ sources: ["api"]
 
 | Status | Meaning and action |
 | --- | --- |
+| 400 | `validation_error` when a fee write references something you cannot use (`error.details.missing` lists each `kind`, `id` and `reason`), or `invalid_cursor` when a batch `cursor` was altered; fix the request. |
 | 401 | Missing or invalid authentication; check the active key. |
 | 402 | `credit_insufficient`; add credits or check your subscription. |
-| 403 | `forbidden`; this operation is not available to your credential. |
+| 403 | `forbidden`; this operation is not available to your credential. `subscription_required`: saving your own fee records needs an active subscription; reading them stays available. |
 | 404 | `resource_not_found`; check path, identifier and coverage. |
 | 405 | `method_not_allowed`; check the HTTP method and `Allow` header. |
-| 422 | `validation_error`; fix field constraints before retrying. |
+| 409 | `conflict`; the record changed since you read it (for example a stale `expected_sequence`), or a chain is still in use. Reload, then retry. |
+| 422 | `validation_error`; fix field constraints before retrying. `unsupported_currency`: use an official currency code. |
 | 429 | `rate_limited`; wait for `Retry-After`. |
 | 500 | `internal_error`; keep the request ID and report persistent failures. |
 | 503 | `dependency_unavailable`; retry later with backoff. |
