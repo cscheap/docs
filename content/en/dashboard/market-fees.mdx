@@ -11,11 +11,11 @@ sources: ["frontend", "api"]
 
 Market fees unlocks at 12 USD in lifetime spend. Completed product orders and eligible redemption codes count toward it; adding funds to the wallet alone does not. Until then the sidebar entry is locked and shows the threshold.
 
-With the unlock you can read the official fees of every market. Creating, editing, saving and applying your own fees also needs an active subscription. Without one, your custom fees are read-only: you can still view and copy them and export them as JSON for your own calculations.
+With the unlock you can read the official fees of every market. Creating, editing, saving and applying your own fees also needs an active subscription. Without one, your custom fees are read-only: you can still view and copy them and export them as JSON for your own calculations, and the official fees apply instead of your custom ones until you renew.
 
 ## Read the market matrix
 
-Each row is a marketplace and each column a market purpose: Purchase cost, Sale proceeds and Withdrawal proceeds. A cell shows what 100 USD becomes after that purpose's fees and whether it follows the official fee or a chain of your own. Open Calculation breakdown to see every step.
+Each row is a marketplace and each column a market purpose: Purchase cost, Sale proceeds and Withdrawal proceeds. A cell shows what 100 USD becomes after that purpose's fees and whether it follows the official fee or a chain of your own. Open Calculation breakdown to see every step. A warning triangle marked Partial success means some routes failed and the result uses the successful routes only.
 
 Not filled in yet means no fee chain is published for that purpose: the fee is unknown, which is not the same as free. Official rates apply by default; applying a chain of your own overrides only that market purpose, and only for you.
 
