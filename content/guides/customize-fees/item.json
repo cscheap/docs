@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 3,
+  "docId": "guides.customize-fees",
+  "slug": "guides/customize-fees",
+  "kind": "how-to",
+  "stage": "published",
+  "sources": [
+    "api"
+  ],
+  "workflow": [
+    {
+      "stage": "published",
+      "by": "claude-code",
+      "at": "2026-11-04T08:00:00Z",
+      "note": "migrated from v2 f11a521a0dcd32636ad04495414f207f38657451"
+    }
+  ]
+}

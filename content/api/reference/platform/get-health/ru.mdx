@@ -1,0 +1,78 @@
+---
+title: "Проверить доступность сервиса"
+description: "GET /health — Проверить доступность сервиса"
+sourceDigest: "sha256:bf2d977f24dc7d4956f4b656acda19b381608e427ad704dbdf4003965fc63ac6"
+---
+
+## Операция
+
+`GET /health`
+
+## Поведение
+
+Лёгкая проверка доступности: возвращает `{"status": "ok"}`, пока процесс API запущен и обслуживает запросы.
+
+- Базы данных и другие зависимости не проверяются, поэтому `200` здесь не гарантирует доступность эндпоинтов с данными. Историю состояния сервиса смотрите в `GET /status`.
+- Тело возвращается как есть, без обычной обёртки `data` / `meta`.
+
+
+## Использование
+
+```json
+{
+  "authentication": "public",
+  "credit_cost": 0,
+  "premium": false,
+  "recommended_interval_seconds": 30,
+  "rate_limit": null,
+  "unit_pricing": null
+}
+```
+
+## Запрос
+
+```json
+{}
+```
+
+## Ответы
+
+```json
+{
+  "200": {
+    "description": "Успешный ответ",
+    "content": {
+      "application/json": {
+        "schema": {
+          "$ref": "#/components/schemas/HealthOut"
+        }
+      }
+    }
+  }
+}
+```
+
+## Модели
+
+```json
+{
+  "HealthOut": {
+    "properties": {
+      "status": {
+        "type": "string",
+        "title": "Status",
+        "description": "Всегда `ok`, пока сервис работает."
+      }
+    },
+    "additionalProperties": false,
+    "type": "object",
+    "required": [
+      "status"
+    ],
+    "title": "HealthOut",
+    "description": "Результат проверки доступности. Возвращается как голый объект, без обёртки ответа."
+  }
+}
+```
+
+[Скачать публичную схему OpenAPI](/assets/openapi-ru.json)

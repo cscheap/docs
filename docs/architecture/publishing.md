@@ -1,56 +1,75 @@
 # 内容发布
 
-首版流程为 **AI → docs Git → 固定 SHA 内容编译 → R2 发布 → frontend 动态读取**。生产地址保持 `/{locale}/docs/...`，内容更新不触发 frontend 构建。
+流程为 **代理 → docs Git（单分支 master）→ CI 一次编译、按 stage 投影两个频道 → KV + R2 → frontend 按频道读取**。生产地址保持 `/{locale}/docs/...`，内容更新不触发 frontend 构建。
 
-## 编辑与分支
+## 存储与键
 
-正文通过独立 PR 合入 preview，自动发布到 preview-cscheap-docs；验收后将 preview 合入 master，自动发布到 cscheap-docs。两分支长期保留，不自动互相合并。生产修复若先合入 master，随后把 master 合回 preview，保持发布历史连续。
+一个 KV 命名空间 `cscheap-content`（id `9157dfb0aad643ff8451ef992eb9c64a`）和一个 R2 桶 `cscheap-content`，预览与生产 Worker 都绑定它们。频道隔离靠指针键和标记里的 `channel` 字段，不靠命名空间。docs 用键前缀 `docs/`；sites / blog 之后各用自己的前缀。
 
-桶名固定在 scripts/deployment.mjs，不使用环境变量或手动输入选择。两分支暂共用三项仓库 Secrets，不需要 GitHub Environment。preview 分支发布的也是带真实 docsCommit 的正式包；它与本地全零 SHA 的不可发布预览产物不同。
+| 键 | 内容 | 可变性 |
+| --- | --- | --- |
+| `docs/objects/<sha256>.json` | PageObject 或 SearchIndex，内容寻址 | 不可变，永不删除 |
+| `docs/releases/<releaseId>/manifest.json` | 一个频道的一个版本；`releaseId` = 字节 sha256 | 不可变 |
+| `docs/published/<releaseId>.json` | 激活标记 `{ channel, releaseId, docsCommit }` | 不可变 |
+| `docs/channels/<preview\|production>.json` | 频道指针 `{ current, previous, activatedAt }` | **唯一会被重写的键** |
+| R2 `assets/<sha256>/<basename>` | 二进制资源 | 不可变 |
+
+v3 只增不删（prune 是后续事项）；本地验收脚本的 `delete` 只用于 `test/<run-id>/` 前缀。
+
+两个频道从同一提交各出一份 manifest。`published` 单元同时出现在两份 manifest 里且页面对象相同（sha 相同，只上传一次）；`reviewed` 单元只在 preview。
 
 ## CI 流程
 
 ```text
-独立 docs PR
-  → 校验元数据、MDX、翻译摘要、导航、链接、资源、来源 SHA、公开 API 范围
-  → 合入 preview（预览桶），验收后合入 master（生产桶）
-  → checkout 本次事件完整 SHA
-  → 离线解析/生成正文树 + 编译期高亮 + TOC + 树 + structuredData + 有效语言 + 基线
-  → 上传不可变资源及内容包，读回并验证摘要/schema
-  → 串行激活一个发布指针
-  → frontend 后续请求读取已发布版本
+push master（或 PR）
+  → npm run check：typecheck、api:check、两频道编译（校验 item.json、译文摘要、导航、链接、资源、基线）、合同测试
+  → [仅 push master] npm run docs:build：HEAD 作为 docsCommit，写 dist/
+  → [仅 push master] node scripts/publish.mjs：先 preview 后 production，各自激活
+  → frontend 后续请求按其频道指针读取
 ```
 
-PR 校验不拿生产写凭证。独立变化保持独立 PR，不自动把不同项目的变更汇总；每个项目基线文件单独维护，跨领域页面同时复核依赖 SHA。
+PR 不接触发布凭证。任一频道**编译**失败 → 两个频道都不发布，退出非零。激活阶段两频道各自捕获错误：production 不因 preview 失败而跳过；任一频道 `failed-before-switch` 或 `unknown` → 作业退出非零，已切换的频道保持切换。
 
-内容发布是数据构建，不是 Next/Workers 应用构建。没有 frontend repository_dispatch，也没有通过 revalidateTag 刷新只读静态缓存的前提。
+## 激活算法（`publish-core.activate`，按频道）
 
-## 版本契约
+输入：`channel`、`mode: publish | rollback`、本地 `dist/<channel>/manifest.json` 与对象（publish）或目标 `releaseId`（rollback）、KV / R2 store、`head()`。
 
-内容包记录 schemaVersion、rendererContract、docsCommit、编译器和实际工具链版本、四项目 baselines，以及发布集合。包外 SHA256 为 releaseId，直接关联包的确定字节。
+**publish 前置条件**：manifest 过 `Manifest` 解析且 `channel` 一致；`docsCommit` = HEAD = `GITHUB_SHA`，`dist/build.json` 非本地构建；本地每个对象 sha256 = 文件名且体积与 manifest 一致，资源字节与 manifest 一致。`head()`（重新 fetch `origin/master`）≠ `docsCommit` → `skipped-stale`，不写任何东西。当前指针（若存在）的 `docsCommit` 必须是新提交的祖先，否则拒绝。
 
-正文、导航、TOC、搜索、语言映射、重定向和资源索引由同一输入快照产生。ready/deprecated 且事实复核通过的页面可以发布；草稿、过期译文及未公开 API 不进入公共包。baselines 的 pending 不能因捕获 SHA 自动变成 reviewed。
+**rollback 前置条件**：从 KV 读 `docs/releases/<id>/manifest.json`，字节 sha256 = id、过解析、`channel` 一致。资格二选一：(a) 指针路径——id 等于本频道指针的 `current` 或 `previous`，且指针记录的 `docsCommit` 等于 manifest 的；(b) 标记路径——`docs/published/<id>.json` 存在、可解析，且 `{ releaseId, docsCommit, channel }` 与 manifest 一致。否则拒绝，包括标记属于另一频道（禁止跨频道回滚）。不检查 HEAD。
 
-首版使用受限单 JSON 包：指针 16 KiB、包 8 MiB、单页 256 KiB 的上限由编译器和发布器校验。包和资源放 `releases/<releaseId>/bundle.json` / `assets/<sha256>/<filename>`；`channels/current.json` 记录 current/previous。图片随内容发布，不复制到 frontend/public 后重建。
+**写序：对象 → manifest → 标记 → 指针**，每步 REST 回读确认已持久化后才进行下一步。
 
-## 并发、激活和回滚
+1. 远端对象：`list docs/objects/` 得已存在键集（list 可能滞后，重复上传相同内容无害）。publish：不存在的对象 `bulkPut`，随后**每个**引用对象逐个点读核 sha256 = 键、体积 = manifest 记录，不符即失败且不覆盖。资源：R2 `immutable`（已存在则比对字节，不同即失败；不存在则写入并回读）。最后 manifest `immutable` 写入。rollback：只点读验证全部对象与资源，缺失或不符 → 失败，不补传。
+2. 切换前：publish 再次 `head()`，≠ `docsCommit` → `skipped-stale`（已上传对象留在 KV，无害；**不写标记**，该版本不具备资格）。重读指针，字节必须与步骤 0 读到的一致，否则失败（并发写者）；指针中 `current` / `previous` 的标记必须存在且身份一致，否则拒绝继续。
+3. **写本版标记**（`immutable`：已存在则必须身份一致）。失败 → `failed-before-switch`，指针不动。
+4. 目标已是 `current` → `already-current`。
+5. 写指针 `{ current: new, previous: before.current, activatedAt }`，回读确认（见下文写后确认）。rollback 结果为 `rolled-back`，publish 为 `published`。
 
-上传并验证完整产物后才切指针，任何前置失败保持旧版本。每个分支的激活与回滚共用该分支的 GitHub Actions concurrency group，两个桶互不阻塞，禁止第二个未受管的写入口。concurrency 不是 FIFO；激活前还需重新 fetch 对应分支并核对已发布 SHA 的祖先关系，旧任务/重跑不得覆盖新发布。回滚通过选定分支及该桶中已激活的历史版本执行，不允许跨桶回滚。
+以上任一步在写指针之前失败 → `failed-before-switch`，指针不变。频道结果枚举：`published | already-current | skipped-stale | rolled-back | failed-before-switch | unknown`。
 
-R2 是 last-writer-wins，不能把对象存储当成自动去除乱序事件的服务。以后引入多写者前必须增加经过验证的条件更新/围栏。首版不自动删除历史 release，旧浏览器页面仍按其 release 搜索。显式版本读取仅允许 current/previous 或有历史激活记录的版本，不能通过猜测 hash 读取尚未激活的包；每次下一轮激活前补齐历史记录。
+**标记先于指针**是核心不变量：一个版本能出现在指针里，当且仅当它的标记已持久化。写指针之后不再有可失败的步骤，不存在“切换成功但标记失败”的半完成态，也不需要跨运行修复。标记的语义是**激活记录**：该版本已为本频道完整上传并通过远端验证；指针 PUT 失败而标记已在的版本视同“已激活但未成为 current”，保有显式读取与回滚资格。
 
-## frontend 读取
+## 一致性模型
 
-前端通过 R2 binding 读取，不持有 docs CI 的上传 key 。current 指针不走公共 CDN 缓存，每次服务端渲染在请求范围内选一次完整包，metadata/正文/页面树共用该快照；搜索与资源请求携带 releaseId。
+KV 是最终一致存储。方案**不**假设 REST 回读等于全球可见，**不**对传播时长作数值承诺，也不假设 `previous` 已被各地读者读过。协议只依赖：(i) 对象、manifest、标记键不可变、永不删除；(ii) 写者按上述顺序写，回读只用于排除写入丢失，不作为可见性屏障。2026-11-04 实测：KV 删除即使点读也最终一致，`list()` 可能滞后；协议不依赖删除。
 
-新增路由不能仅依赖 generateStaticParams。共享布局在客户端导航可能不刷新，因此可变树/provider/外壳与正文统一由叶子 page 输出同一快照，并做完整 Next E2E 验证。法律页、web3、changelog 与其他页面保持现有内容源及缓存。
+**写后确认**（只针对指针键）：PUT 成功 → 回读；读到新值 → `published`。读到旧值或 null → 间隔 1 s 再读，最多 3 次；仍非新值 → `unknown`，退出非零，不再写。PUT 结果未知（超时 / 网络错误）→ 先回读，新值即 `published`；否则重试 PUT（内容幂等）最多 3 次，每次后同样确认；耗尽 → `unknown`。`unknown` 的含义：指针可能已切换也可能未切换，但标记已在，版本资格不受影响；下一次运行按自己读到的指针正常工作。
 
-未知 schema、摘要错误、超限等可以回退完整 previous；current 中确实删除的页正常 404/重定向，不能从历史救回。pointer 或整个 R2 不可用不保证有持久旧缓存；API 返回 503，SSR 显示明确不可用与重试，真实流式状态在 Next 实测，不虚报固定 503。
+写前读到旧指针（陈旧前置读）不影响结果：后果只有 `previous` 链可能跳过一版，被跳过的版本仍有标记，保有显式读取与回滚资格。写指针前的“重读指针字节未变”是并发写者的尽力检测，互斥由 Actions 并发组 `cscheap-docs-activation` 保证。同键限速（1 写/秒）只影响指针键；适配器对 429 按 `Retry-After` 等待重试，最多 3 次，耗尽按“结果未知”处理。
 
-## 接入凭证与状态
+## 读取协议（frontend）
 
-本地 PoC 已完成，完整前端改造 plan、接口和原始输出在 frontend `.ai/2026-10-09/docs-cms-runtime-poc/`。
+参考实现 `scripts/reader-model.mjs`，前端照此移植到 KV binding。频道由环境变量选取（建议 `CSCHEAP_FRONTEND_CONTENT_CHANNEL=preview|production`，绑定名建议 `CSCHEAP_CONTENT_KV`、`CSCHEAP_CONTENT_BUCKET`）。
 
-CI 从仓库 Secrets 读取 R2 Account ID、S3 Access Key ID 和 S3 Secret Access Key。Infisical 对应环境 `/cscheap/docs` 保留凭证记录，CI 不在线连接 Infisical；轮换后同步更新仓库 Secrets。frontend 用原生 binding，不接收上传凭证。预览与生产暂共用对象读写凭证，桶名由代码按分支固定。
+1. 读本频道指针，`cacheTtl: 60`。缺失、非法或 `channel` 不符 → `unavailable`。
+2. 按 `current` 读 manifest（字节 sha256 = releaseId、过 `Manifest` 解析、`channel` = 本频道、`docsCommit` = 指针记录值）和所需对象（字节数 = `size`、sha256 = 键、过对应 schema）。任一不符 → **整版改用 `previous`**，同样规则；`previous` 不存在或也失败 → `unavailable`。一次请求内不混用两版。页在该版 manifest 中不存在 → 正常 404 / 重定向，不从 `previous` 救回。
+3. **显式 releaseId 读取**（搜索、资源路由 `/api/docs/assets/<releaseId>/<file>`）：manifest 字节 sha256 = 请求 id、`channel` = 本频道，且 (a) id 等于本频道指针的 `current` 或 `previous` 并且指针记录的 `docsCommit` = manifest 的，或 (b) 存在本频道标记且 `{ releaseId, docsCommit, channel }` 与 manifest 一致。任一不满足 → 404，不返回内容、不改用其他版本（含“只上传无标记”与“另一频道的版本”）；合格但对象缺失 → 404。
+4. `cacheTtl`：指针 60 s；manifest、对象、标记一律 **30 s**（最小值），因为 KV 对“未找到”也按 `cacheTtl` 负缓存，长 TTL 会把传播中的新键在该机房钉死为缺失。命中后的对象由 isolate 内 LRU 保留（内容寻址键不变，可无限期保留），30 s 只影响未命中路径的回源频率。
+5. **可用性承诺（只承诺行为，不承诺时限）**：读者在任何时刻要么返回某一个完整版本（`current` 或 `previous`），要么 `unavailable`；绝不混版、绝不返回摘要不符的对象。首次发布后、以及连续发布间隔短于传播时间时可能 `unavailable`，持续到任一版本在该机房可见为止。旧指针被边缘缓存最多 60 s 只意味着晚看到新版。
 
-前端改造交由用户安排的前端 AI。本仓 v2 编译器、CI、发布/回滚保持独立；R2 激活成功不代表 frontend 接入已完成。操作见[发布操作](release-operations.md)，设计见[工具链决策](../decisions/0004-drop-tina-fumadocs-toolchain.md)与[分支发布决策](../decisions/0005-branch-based-r2-publication.md)。
+运行时校验范围：指针与 manifest 过 zod；单页只核 sha256 = 键、体积与顶层字段浅校验，正文不深校验；前端用节点白名单渲染，绝不执行内容中的代码或 HTML。
+
+## 回滚
+
+Actions → Documentation → Run workflow：`mode=rollback`，选 `channel`（preview / production），`release` 填该频道已激活过的完整 64 位 releaseId。回滚是独立 job，不依赖当前正文能否构建；只调整所选频道的指针，原 `current` 变成 `previous`，不改 Git。之后 `master` 的新提交仍会自动发布；永久撤销内容应通过 Git（把单元改为 `retired` / `held` 或回退正文）。不允许跨频道回滚；整个命名空间不可用时，`previous` 不是灾备。操作细节见[发布操作](release-operations.md)，设计依据见 [ADR 0006](../decisions/0006-content-contract-v3.md)。

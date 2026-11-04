@@ -11,11 +11,12 @@
     "docs:check": "npm run api:check && node scripts/build.mjs",
     "docs:build": "node scripts/build.mjs --release",
     "test": "node --test tests/*.test.mjs",
+    "test:kv": "node --env-file-if-exists=.env scripts/kv-store.integration.mjs",
+    "test:publish-local": "node --env-file-if-exists=.env scripts/publish-local-test.mjs",
     "check": "npm run typecheck && npm run docs:check && npm test",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "3.1148.0",
     "@types/node": "22.20.5",
     "remark-gfm": "4.0.1",
     "remark-mdx": "3.1.1",

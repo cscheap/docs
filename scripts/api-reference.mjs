@@ -1,6 +1,8 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
+import { Item } from '../contracts/schema.ts';
+import { serializeItem, serializeLocaleFile, sourceDigestOf, LOCALE_FILES } from './unit.mjs';
 
 const locales = ['en', 'zh-CN', 'ru'];
 const operations = [
@@ -66,6 +68,8 @@ const adminWording = {
 const sha = value => createHash('sha256').update(value).digest('hex');
 const read = async path => JSON.parse(await readFile(path, 'utf8'));
 const check = process.argv.includes('--check');
+// --from-openapi regenerates units from the committed openapi/*.json without touching .cache/openapi.
+const fromOpenapi = process.argv.includes('--from-openapi');
 async function output(path, value) {
   const bytes = typeof value === 'string' ? value : JSON.stringify(value, null, 2) + '\n';
   if (check) {
@@ -110,7 +114,7 @@ function closure(value, schemas) {
   return Object.fromEntries([...needed].sort().map(k => [k, schemas[k]]));
 }
 const baseline = await read('baselines/api.json');
-if (!check) {
+if (!check && !fromOpenapi) {
   const provenance = await read('.cache/openapi/provenance.json');
   if (provenance.commit !== baseline.commit) throw new Error('API export baseline mismatch');
   for (const locale of locales) {
@@ -164,6 +168,23 @@ const labels = [
   ['操作', '行为', '用量', '请求', '响应', '模型', '下载公开 OpenAPI schema'],
   ['Операция', 'Поведение', 'Использование', 'Запрос', 'Ответы', 'Модели', 'Скачать публичную схему OpenAPI'],
 ];
+// Unit ownership (plan §1.4): the generator owns docId/slug/kind/sources/generated and the three
+// locale files; stage/deprecated/workflow belong to the review flow and are preserved verbatim.
+// New units start as draft with a deterministic timestamp derived from the API baseline date.
+const GENERATED_FIELDS = ['schemaVersion', 'docId', 'slug', 'kind', 'sources', 'generated'];
+const initialWorkflow = () => [{ stage: 'draft', by: 'claude-code', at: `${baseline.capturedOn}T00:00:00Z`, note: `generated from api baseline ${baseline.commit.slice(0, 12)}` }];
+async function existingItem(path) {
+  try { return Item.parse(JSON.parse(await readFile(path, 'utf8'))); } catch (error) { if (error.code === 'ENOENT') return null; throw new Error(`Cannot read ${path}: ${error.message.split('\n')[0]}`); }
+}
+async function outputItem(dir, generated) {
+  const path = `${dir}/item.json`, current = await existingItem(path);
+  const merged = { ...generated, stage: current?.stage ?? 'draft', ...(current && 'deprecated' in current ? { deprecated: current.deprecated } : {}), workflow: current?.workflow ?? initialWorkflow() };
+  const bytes = serializeItem(merged);
+  if (check) {
+    if (!current) throw new Error(`Generated unit missing: ${path}`);
+    for (const key of GENERATED_FIELDS) if (JSON.stringify(current[key]) !== JSON.stringify(generated[key])) throw new Error(`Generated field ${key} differs: ${path}`);
+  } else { await mkdir(dir, { recursive: true }); await writeFile(path, bytes); }
+}
 const english = new Map();
 for (const [index, locale] of locales.entries()) {
   const schema = await read(`openapi/${locale}.json`), billing = await read(`openapi/${locale}.billing.json`);
@@ -177,11 +198,13 @@ for (const [index, locale] of locales.entries()) {
     const requestSchema = { ...(op.parameters ? { parameters: op.parameters } : {}), ...(op.requestBody ? { requestBody: op.requestBody } : {}) };
     const code = value => '```json\n' + JSON.stringify(value, null, 2) + '\n```';
     const body = `## ${operation}\n\n\`${method.toUpperCase()} ${path}\`\n\n## ${behavior}\n\n${prose(op.description)}\n\n## ${usage}\n\n${code(billing[`${method.toUpperCase()} ${path}`])}\n\n## ${request}\n\n${code(requestSchema)}\n\n## ${responses}\n\n${code(op.responses)}\n\n## ${models}\n\n${code(closure(op, schema.components.schemas))}\n\n[${download}](/assets/openapi-${locale}.json)\n`;
-    const metadata = {docId, title: op.summary, description: `${method.toUpperCase()} ${path} — ${op.summary}`, kind:'reference',status:'ready',sources:['api']};
-    if(index) Object.assign(metadata,{translationOf:docId,sourceDigest:`sha256:${sha(english.get(slug))}`});
-    const file = '---\n' + Object.entries(metadata).map(([k,v]) => `${k}: ${JSON.stringify(v)}`).join('\n') + '\n---\n\n' + body;
-    if(!index) english.set(slug,file);
-    await output(`content/${locale}/${slug}.mdx`,file);
+    const meta = { title: op.summary, description: `${method.toUpperCase()} ${path} — ${op.summary}` };
+    if (index) meta.sourceDigest = sourceDigestOf(english.get(slug));
+    const file = serializeLocaleFile(meta, body);
+    if (!index) english.set(slug, file);
+    const dir = `content/${slug}`;
+    if (!index) await outputItem(dir, { schemaVersion: 3, docId, slug, kind: 'reference', sources: ['api'], generated: true });
+    await output(`${dir}/${LOCALE_FILES[locale]}`, file);
   }
 }
 function structural(value) {

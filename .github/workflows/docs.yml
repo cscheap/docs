@@ -2,21 +2,27 @@ name: Documentation
 on:
   pull_request:
   push:
-    branches: [preview, master]
+    branches: [master]
   workflow_dispatch:
     inputs:
       mode:
         type: choice
-        options: [publish, rollback]
-        default: publish
-        description: Publish the selected branch or restore its previously activated release
+        options: [rollback]
+        default: rollback
+        description: Re-activate a previously activated release of one channel
+      channel:
+        type: choice
+        options: [preview, production]
+        default: preview
+        description: Channel to roll back
       release:
         type: string
-        description: Full 64-character release ID, required for rollback
+        description: Full 64-character release ID (manifest digest) to roll back to
 permissions:
   contents: read
 jobs:
   validate:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -31,39 +37,67 @@ jobs:
       - run: npm run check
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: documentation-preview
+          name: documentation-build
           path: dist/
           retention-days: 7
   activate:
     needs: validate
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/preview' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    # Publish and rollback share one writer lock per bucket. It is not FIFO.
+    timeout-minutes: 20
+    # Publish and rollback share one writer lock. It is not FIFO.
     concurrency:
-      group: cscheap-docs-activation-${{ github.ref_name }}
+      group: cscheap-docs-activation
       cancel-in-progress: false
     permissions:
       contents: read
     env:
-      # Repository Secrets only. Bucket names are fixed in scripts/deployment.mjs.
-      CSCHEAP_DOCS_R2_ACCOUNT_ID: ${{ secrets.CSCHEAP_DOCS_R2_ACCOUNT_ID }}
-      CSCHEAP_DOCS_R2_ACCESS_KEY_ID: ${{ secrets.CSCHEAP_DOCS_R2_ACCESS_KEY_ID }}
-      CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY: ${{ secrets.CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY }}
-      DOCS_PUBLISH_MODE: ${{ inputs.mode || 'publish' }}
-      DOCS_ROLLBACK_RELEASE: ${{ inputs.release }}
+      # Repository Secrets only. The KV namespace and R2 bucket are fixed in scripts/deployment.mjs.
+      CSCHEAP_DOCS_CF_ACCOUNT_ID: ${{ secrets.CSCHEAP_DOCS_CF_ACCOUNT_ID }}
+      CSCHEAP_DOCS_CF_API_TOKEN: ${{ secrets.CSCHEAP_DOCS_CF_API_TOKEN }}
+      DOCS_PUBLISH_MODE: publish
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-          # Read-only job token is used to fetch the selected publication branch.
+          # Read-only job token is used to fetch the publication branch head.
           persist-credentials: true
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 22.22.3
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - if: env.DOCS_PUBLISH_MODE == 'publish'
-        run: npm run docs:build
+      - run: npm run docs:build
+      - run: node scripts/publish.mjs
+  rollback:
+    # Rolls back a stored release; deliberately independent of validate so broken current content
+    # cannot block restoring a known-good release.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    concurrency:
+      group: cscheap-docs-activation
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      CSCHEAP_DOCS_CF_ACCOUNT_ID: ${{ secrets.CSCHEAP_DOCS_CF_ACCOUNT_ID }}
+      CSCHEAP_DOCS_CF_API_TOKEN: ${{ secrets.CSCHEAP_DOCS_CF_API_TOKEN }}
+      DOCS_PUBLISH_MODE: rollback
+      DOCS_ROLLBACK_CHANNEL: ${{ inputs.channel }}
+      DOCS_ROLLBACK_RELEASE: ${{ inputs.release }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22.22.3
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: node --test tests/publisher.test.mjs tests/kv-store.test.mjs
       - run: node scripts/publish.mjs

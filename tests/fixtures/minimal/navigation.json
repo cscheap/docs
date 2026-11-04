@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "groups": [
+    {
+      "title": {
+        "en": "All",
+        "zh-CN": "全部",
+        "ru": "Все"
+      },
+      "pages": [
+        "get-started/introduction",
+        "guides/first-steps"
+      ]
+    }
+  ]
+}

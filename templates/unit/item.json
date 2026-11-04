@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 3,
+  "docId": "section.page-name",
+  "slug": "section/page-name",
+  "kind": "how-to",
+  "stage": "draft",
+  "sources": [
+    "api"
+  ],
+  "workflow": [
+    {
+      "stage": "draft",
+      "by": "claude-code",
+      "at": "2026-01-01T00:00:00Z",
+      "note": "why this page exists"
+    }
+  ]
+}

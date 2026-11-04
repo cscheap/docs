@@ -7,17 +7,17 @@ npm ci
 npm run check
 ```
 
-`check` 运行 TypeScript 检查、API 生成一致性、正文编译与合同测试。输出 dist/bundle.json、dist/build.json 和仅被有效页面使用的资源。默认预览用全零 docsCommit，明确不可发布；不拿旧提交 SHA 冒充尚未提交的正文版本。
+`check` = `typecheck` + `api:check`（生成器零差异）+ `docs:check`（两频道编译到 `dist/`）+ `test`。本地构建用全零 docsCommit，`dist/build.json` 标 `local: true`，发布器拒绝；不拿旧提交 SHA 冒充尚未提交的正文。
 
-提交后的干净 checkout 使用 `npm run docs:build`，记录 HEAD 完整 SHA；Actions 中还必须与事件 GITHUB_SHA 一致。node_modules、dist、.cache 和凭证文件不入 Git。
+提交后的干净 checkout 使用 `npm run docs:build`：记录 HEAD 完整 SHA，Actions 中还必须与事件 `GITHUB_SHA` 一致。`dist/` 先清空再写：`preview/manifest.json`、`production/manifest.json`、`objects/<sha256>.json`、`assets/<sha256>/<file>`、`build.json`（两频道 releaseId、页数、字节数、警告）。node_modules、dist、.cache、`.ai/` 和凭证文件不入 Git。
 
 ## 更新业务版本
 
 1. 单独更新涉及项目的 baselines 文件，核对 GitHub 完整 SHA。改为 pending。
-2. 读取该提交，复核所有 sources 引用了它的页面，更新英文和真实译文。
-3. 记录事实证据，再把 documentationReview 改为 reviewed。不能仅刷新 SHA。
-4. 更新 navigation.json 和必要的 redirects.json；每个可发布页必须在导航中。
-5. 运行 check。过期译文被排除、记录警告，并生成英文回退；其他无效输入使构建失败。
+2. 读取该提交，复核所有 `sources` 引用了它的单元，更新英文和真实译文。
+3. 记录事实证据，再把 documentationReview 改为 reviewed；任一基线 pending 时编译失败。
+4. 更新 navigation.json 和必要的 redirects.json；每个单元必须在导航中。
+5. 运行 check。过期译文被排除并记录警告；其他无效输入使构建失败。
 
 ## 更新 API 参考
 
@@ -27,61 +27,55 @@ npm run api:generate
 npm run check
 ```
 
-Python 使用该 API 的已安装依赖，但代码来自 baselines/api.json 的 git archive；不运行 lifespan，禁止 socket 连接。生成器只保留公开/普通用户操作，清除示例、内部扩展并剪裁 schema 引用。13 个操作集合变化时停止，先复核范围。
+Python 使用该 API 的已安装依赖，但代码来自 baselines/api.json 的 git archive；不运行 lifespan，禁止 socket 连接。生成器只保留公开/普通用户操作，清除示例、内部扩展并剪裁 schema 引用；操作集合变化时停止，先复核范围。
 
-openapi/ 保存审核后的三语投影和来源摘要；content/*/api/reference/ 与 assets/openapi-*.json 都由生成器生成。不要手工编辑这些生成页。CI 从本仓审核后的投影验证生成一致性，不需要访问业务私有仓或数据库。
+`openapi/` 保存审核后的三语投影和来源摘要；`content/api/reference/**` 单元与 `assets/openapi-*.json` 都由生成器生成。生成器只改它拥有的字段与文件，保留每个单元已有的 `stage` / `deprecated` / `workflow`；新单元初始 `draft`，需要代理按流程推进到 `published`。CI 用 `api:check` 验证生成一致性，不访问业务私有仓。
 
-## GitHub Actions 与分支
+## GitHub Actions
 
-| 来源 | 动作 | 固定目标 |
-| --- | --- | --- |
-| PR | check 与本地预览 artifact，不读取发布凭证 | 无 |
-| push 到 preview | check 通过后从事件 SHA 构建、上传并激活 | preview-cscheap-docs |
-| push 到 master | check 通过后从事件 SHA 构建、上传并激活 | cscheap-docs |
-| 手动 publish / rollback | 使用 Run workflow 的分支选择器，只接受 preview / master | 对应分支的固定桶 |
+单分支 `master`，工作流 `.github/workflows/docs.yml`：
 
-没有额外发布开关、环境选择输入或 GitHub Environment。首次向两个分支推送本工作流即会尝试自动发布，三项仓库 Secrets 必须已就绪。
+| 事件 | job | 动作 | 凭证 |
+| --- | --- | --- | --- |
+| `pull_request` | `validate` | `npm run check`，上传 `dist/` 为 artifact | 无 |
+| `push master` | `validate` → `activate` | check → `docs:build` → `node scripts/publish.mjs`（两频道） | 两项 Secrets |
+| `workflow_dispatch`（`mode=rollback`，`channel`，`release`） | `rollback` | typecheck → 只跑 publisher / kv-store 测试 → `publish.mjs` rollback 模式；**不依赖 `validate`、不 `docs:build`** | 两项 Secrets |
 
-每个分支的激活与回滚共用 `cscheap-docs-activation-<branch>`，cancel-in-progress=false。两个桶可独立推进。串行不等于 FIFO；激活前重新 fetch 对应分支，核对最新 SHA 与当前发布的祖先关系，过时任务跳过。
+`activate` 与 `rollback` 共用并发组 `cscheap-docs-activation`，cancel-in-progress=false；并发组不是 FIFO，激活前重新 fetch `origin/master` 并核对祖先关系，过时任务 `skipped-stale`。`publish.mjs` 入口守卫：`GITHUB_ACTIONS=true`、`GITHUB_REPOSITORY=cscheap/docs`、`GITHUB_REF=refs/heads/master`、工作区干净、HEAD = `GITHUB_SHA`；本地永不发布。
 
-日常将独立 docs PR 合入 preview，完成预览验收后将 preview 合入 master。两分支不自动互相同步；生产热修复后将 master 合回 preview。保持历史连续，避免重建或强推长期发布分支。合并提交的 SHA 可以不同，因此生产发布会有自己的 docsCommit / releaseId，即使正文与预览一致。
+每次推送 `master` 自动尝试发布，没有发布开关、环境选择或 GitHub Environment。
 
-没有跨仓聚合 PR、frontend dispatch、frontend 构建或 revalidation 请求。内容、基线、译文与导航在同一提交中组成一个发布快照。
-
-## 三项仓库 Secrets
+## 两项仓库 Secrets
 
 在 **cscheap/docs → Settings → Secrets and variables → Actions → Repository secrets** 配置：
 
-| 名称 | 值的来源 |
+| 名称 | 值 |
 | --- | --- |
-| CSCHEAP_DOCS_R2_ACCOUNT_ID | Cloudflare Account ID，32 位十六进制账号标识 |
-| CSCHEAP_DOCS_R2_ACCESS_KEY_ID | R2 S3 Access Key ID |
-| CSCHEAP_DOCS_R2_SECRET_ACCESS_KEY | 与上述 Access Key 配对的 S3 Secret Access Key |
+| `CSCHEAP_DOCS_CF_ACCOUNT_ID` | Cloudflare Account ID，32 位十六进制 |
+| `CSCHEAP_DOCS_CF_API_TOKEN` | Cloudflare API token：Workers KV Storage Write + 桶 `cscheap-content` 的 R2 对象读写 |
 
-Account ID 不是 Cloudflare API token。发布器使用 S3 API，不需要 `cfut_...` API token。桶名在 `scripts/deployment.mjs` 写死，`CSCHEAP_DOCS_R2_BUCKET`、`CSCHEAP_DOCS_ENVIRONMENT` 与 `CSCHEAP_DOCS_PUBLISH_ENABLED` 均不再使用。
+KV 与 R2 都走 Cloudflare REST API，同一个 token；没有 S3 凭证，也没有 SDK 依赖。命名空间 id 与桶名固定在 `scripts/deployment.mjs`，不能经输入或变量改写。Infisical `steammarket` 项目 `/cscheap/docs` 路径保留凭证记录；CI 不连接 Infisical（来源 IP 白名单），轮换后手动同步仓库 Secrets。frontend 用原生 KV / R2 binding 读取，不接收 token。
 
-无需建立 GitHub Environments 或 Actions Variables。若之前创建了这些配置，本工作流不读取它们；仓库 Secrets 中的三项名称必须与上表完全一致。
+## 本地真机验收
 
-R2 凭证需对两个文档桶有 Object Read & Write 权限，用户暂授权共用一组对象凭证。发布器不创建桶、不管理 DNS/Workers。frontend 只需 `CSCHEAP_DOCS_BUCKET` 原生 binding，preview 绑定预览桶，生产绑定生产桶，不接收 S3 secret。
+两个脚本在真实命名空间 / 桶上运行，只写 `test/<run-id>/` 前缀（正则强制 `test/[a-z0-9][a-z0-9-]{0,39}/`），结束时删除并轮询确认已不可读（KV 删除最终一致）。本地 `.env` 提供同名两项凭证。
 
-## Infisical 的角色
+```bash
+npm run test:kv -- --prefix test/<run-id>/
+DOCS_ALLOW_LOCAL_PUBLISH=1 npm run test:publish-local -- --prefix test/<run-id>/
+```
 
-沿用 frontend 既有构建期配置模式。Infisical steammarket 项目 staging / prod 环境 `/cscheap/docs` 保留凭证记录；CI 只使用用户配置的仓库 Secrets。既有 Infisical 来源 IP 白名单阻止云端 runner 直接访问，因此发布任务不连接 Infisical，也不新增 OIDC 或网络代理。
+- `test:kv`（`scripts/kv-store.integration.mjs`）：写 1,500 键（含一个 300 KiB 值）→ list 跨分页 → get 逐键比对 → delete → 确认为空。
+- `test:publish-local`（`scripts/publish-local-test.mjs`）：用 `tests/fixtures/minimal` 构建版本 A 并激活 → 改一页构建版本 B 并激活（`previous = A`）→ 回滚到 A → 重跑 A 得 `already-current` → 清理。拒绝条件：缺 `DOCS_ALLOW_LOCAL_PUBLISH=1`、无前缀或非 `test/` 前缀、缺凭证；拒绝发生在创建任何存储客户端之前。不读 `GITHUB_*`，`docsCommit` 用本地 HEAD（允许工作区脏）。
 
-既存 `CSCHEAP_DOCS_R2_BUCKET` 值仅作环境记录，实际发布映射以代码为准。轮换凭证时同步更新三项仓库 Secrets，并在 preview 手动 publish 验证；手动副本不会自动同步。本次分支改造不改 Infisical 或 frontend 既有 Cloudflare Workers Secret Sync。
-
-## 首次启用与前端验收
-
-1. 确认三项仓库 Secrets 已配置，两个固定桶已存在。
-2. 推送 preview，等待 Documentation 的 validate / activate 成功；核对 bundle、资源、current/previous 和 published 记录。
-3. 将已验证变更合入 master，同样验证生产桶发布。内容包就绪不等于 frontend 已接入。
-4. 前端 AI 完成既有 plan 的 v2 reader、路由、搜索、SEO、R2 binding 与 E2E，在预览环境验证实际软导航和 R1→R2→R3。
-5. 前端生产接入后做一次仅正文修改，确认无需 frontend 构建即可读取新 release。
+它不是日常发布能力；正式发布只走 Actions。
 
 ## 发布失败与回滚
 
-资源或 bundle 上传/校验失败：current 不变。激活前对应分支已前进：旧任务返回 skipped-stale。重复激活同一 release：already-current，不改 previous。
+频道结果：`published`、`already-current`（重复激活同一版本，不改 `previous`）、`skipped-stale`（激活前 `master` 已前进）、`rolled-back`、`failed-before-switch`（上传 / 校验 / 标记任一失败，指针不变）、`unknown`（指针写后确认 3 次读不到新值；标记已在，先查指针再决定是否重跑）。两频道各自结果写在作业日志末行的 JSON 里；任一 `failed-before-switch` / `unknown` 则作业失败，但已成功的频道保持切换。
 
-指针成功但 published 标记失败：工作流失败时当前版本可能已切换。先检查指针，不把失败一律理解为“没有发布”；下一次激活会先修复 current/previous 的标记。上传但未激活的包没有历史读取资格。
+回滚：Actions → Documentation → Run workflow，`mode=rollback`，选 `channel`，`release` 填该频道已激活过（指针 current/previous 或带本频道标记）的完整 64 位 releaseId。回滚只验证不补传，引用对象或资源缺失即拒绝且指针不变；不允许跨频道回滚。永久撤销内容通过 Git 修改单元 stage 或正文。
 
-回滚在 Actions → Documentation → Run workflow：选择 preview 或 master，mode=rollback，release 填该桶已激活过的完整 64 位 releaseId。回滚只调整所选桶的整个内容包，原 current 变成 previous，不改 Git 分支。之后该分支的新提交仍会自动发布；永久撤销内容应通过 Git revert。首版不自动删除历史对象；整个桶不可用时，同桶 previous 不是灾备。
+## 迁移记录
+
+v2 → v3 迁移一次性完成：源提交 `f11a521a0dcd32636ad04495414f207f38657451`，93 单元 × 3 语种 = 279 页逐字节核对，全部 `stage: published`，有效译文摘要全部重算为新 `en.mdx` 摘要。迁移脚本不入库（在 `.ai/2026-11-04/docs-repo-rebuild-v3/assets/`）。前端读取端切换并上线后，退役 `preview` 分支与 v2 的两个旧 R2 桶（名称见 [ADR 0006](../decisions/0006-content-contract-v3.md) 后续事项）；切换前线上文档停在最后一版 v2 内容，没有热修复通道。

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 3,
+  "docId": "api.reference.bindings.reset-binding",
+  "slug": "api/reference/bindings/reset-binding",
+  "kind": "reference",
+  "stage": "published",
+  "sources": [
+    "api"
+  ],
+  "generated": true,
+  "workflow": [
+    {
+      "stage": "published",
+      "by": "claude-code",
+      "at": "2026-11-04T08:00:00Z",
+      "note": "migrated from v2 f11a521a0dcd32636ad04495414f207f38657451"
+    }
+  ]
+}
