@@ -78,4 +78,4 @@ DOCS_ALLOW_LOCAL_PUBLISH=1 npm run test:publish-local -- --prefix test/<run-id>/
 
 ## 迁移记录
 
-v2 → v3 迁移一次性完成：源提交 `f11a521a0dcd32636ad04495414f207f38657451`，93 单元 × 3 语种 = 279 页逐字节核对，全部 `stage: published`，有效译文摘要全部重算为新 `en.mdx` 摘要。迁移脚本不入库（在 `.ai/2026-11-04/docs-repo-rebuild-v3/assets/`）。前端读取端切换并上线后，退役 `preview` 分支与 v2 的两个旧 R2 桶（名称见 [ADR 0006](../decisions/0006-content-contract-v3.md) 后续事项）；切换前线上文档停在最后一版 v2 内容，没有热修复通道。
+v2 → v3 迁移一次性完成：源提交 `f11a521a0dcd32636ad04495414f207f38657451`，93 单元 × 3 语种 = 279 页逐字节核对，全部 `stage: published`，有效译文摘要全部重算为新 `en.mdx` 摘要。迁移脚本不入库（在 `.ai/2026-11-04/docs-repo-rebuild-v3/assets/`）。`preview` 分支已于 2026-11-04 删除（docs 仓只有 `master`）；前端读取端切换并上线后，退役 v2 的两个旧 R2 桶（名称见 [ADR 0006](../decisions/0006-content-contract-v3.md) 后续事项）；切换前线上文档停在最后一版 v2 内容，没有热修复通道。

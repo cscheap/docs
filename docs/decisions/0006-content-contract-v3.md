@@ -38,4 +38,4 @@ v2 把全部页面编译成一个 `bundle.json` 发到 R2（2026-10-27 起 6.4 M
 - **prune**：按「不被任何指针 / 标记引用且早于某时间」回收对象与 manifest，需在读取协议上补充删除语义后再做。
 - **sites / blog 复用**：同一单元形状、stage 状态机、写序与读取协议，各自键前缀；blog 私有 = 藏过程，内容照常公开。
 - **共享工具抽取**：`kv-store` / `r2-store` / `cf-api` / `store` / `publish-core` / `reader-model` 在第二个内容仓出现时抽成共享包。
-- **前端读取端任务**：按 `scripts/reader-model.mjs` 移植，绑定 `cscheap-content` KV 与 R2，频道由 `CSCHEAP_FRONTEND_CONTENT_CHANNEL` 选取；上线后退役 `preview` 分支与旧桶 `preview-cscheap-docs` / `cscheap-docs`，移除旧 R2 Secrets。
+- **前端读取端任务**：按 `scripts/reader-model.mjs` 移植，绑定 `cscheap-content` KV 与 R2，频道由 `CSCHEAP_FRONTEND_CONTENT_CHANNEL` 选取；`preview` 分支已于 2026-11-04 删除；上线后退役旧桶 `preview-cscheap-docs` / `cscheap-docs`，移除旧 R2 Secrets。
