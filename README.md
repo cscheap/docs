@@ -93,7 +93,8 @@ Grok / ChatGPT / Claude 等代理直接向 `master` 写单元，两种方式等�
 | [编辑流程](docs/architecture/editing.md) | stage 流转、workflow 日志、代理写入 |
 | [发布与回滚](docs/architecture/publishing.md) | 键布局、频道、激活算法、一致性模型与读取协议 |
 | [发布操作](docs/architecture/release-operations.md) | 命令、Secrets、Actions、回滚、本地验收 |
+| [写作规范](docs/architecture/writing-guide.md) | 任务优先、示例、成功判断与翻译 |
 | [贡献指南](CONTRIBUTING.md) | 事实来源与编写规范 |
 | [内容契约 v3 决策](docs/decisions/0006-content-contract-v3.md) | 为什么按页拆分、KV 交付、stage 分频道 |
 
-对外目录仍为 get-started、concepts、guides、api、billing、dashboard、support。项目名称只用于维护责任与来源追踪。
+对外导航按“开始使用 → 常用操作 → 账号与费用 → 问题排查 → API 参考 → 进阶：自定义费率 → 附录：概念与原理”组织。目录路径保持不变，`concepts/` 对应附录；项目名称只用于维护责任与来源追踪。

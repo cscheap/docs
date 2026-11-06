@@ -1,8 +1,11 @@
 ---
 title: "用 API 自定义费率"
 description: "通过 API 维护自己的费率链：读取费率工作区、查找或搭建计算链、试算、绑定到市场用途，以及恢复官方费率。"
-sourceDigest: "sha256:d38ad7136a233447f4807bdd573902c6b16162e8a92d6dace07414e918f15020"
+sourceDigest: sha256:08dc7041fe4d03fcf869e6f651f7655855a68c370d8fb67086f03a0c37274cb1
 ---
+
+开始前，请先完成[第一次请求](/docs/get-started/first-request)。下方命令使用在那里设置的 `CSCHEAP_API_KEY` 环境变量。反复调用前，请查看[请求费用](/docs/billing/request-costs)。
+
 
 ## 开始之前
 
@@ -17,6 +20,8 @@ sourceDigest: "sha256:d38ad7136a233447f4807bdd573902c6b16162e8a92d6dace07414e918
 [搜索计算链](/docs/api/reference/calculation-chains/search-chains)列出官方、共享和你自己的链，使用最多的排在前面，每条都附带可读的 `formula`。想以其中某条为起点时，[复制它（fork）](/docs/api/reference/calculation-chains/fork-chain)：副本归你所有，从版本 1 开始，引用相同的算子。
 
 从零搭建时，先[创建费用算子](/docs/api/reference/fee-operators/create-fee-operator)，需要换币的地方再创建换汇算子，然后按顺序填入步骤[创建计算链](/docs/api/reference/calculation-chains/create-chain)。可以先[校验](/docs/api/reference/calculation-chains/validate-chain)内联链，查看结构问题，再用一个金额[试算](/docs/api/reference/calculation-chains/preview-chain)：
+
+下方 ID 和序列号都是示例。请把 `42` 替换为你可访问的链 ID，绑定或恢复槽位前先读取工作区当前序列号。这些请求会修改已保存的设置。
 
 ```bash
 curl 'https://api.cs.cheap/calculation-chains/preview' \

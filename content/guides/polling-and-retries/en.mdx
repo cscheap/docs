@@ -3,6 +3,9 @@ title: "Polling and retries"
 description: "Read recommended_interval_seconds from GET /endpoints."
 ---
 
+Use this guide when your application needs regular updates. First complete [your first request](/docs/get-started/first-request), then choose [batch queries](/docs/guides/batch-prices) for a list or [export](/docs/guides/export-prices) for a whole game.
+
+
 ## Poll deliberately
 
 Read `recommended_interval_seconds` from `GET /endpoints`. It is polling guidance, not a freshness guarantee or a replacement for the request limit. Reuse results among your application's users rather than issuing identical requests for each view.

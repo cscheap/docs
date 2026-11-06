@@ -7,7 +7,7 @@
 3. 页面移动保留 docId，更新 navigation.json、内部引用与 redirects.json。生成的 API 单元通过 `npm run api:generate` 更新，不手改。
 4. 推进 `stage`：在 `workflow` 末尾追加 `{ stage, by, at, note? }`（`at` 为当前 UTC、不早于上一条），把顶层 `stage` 改为同值。不修改或删除既有条目。
 5. 运行 `npm run check`。本地构建用全零 docsCommit，不具备发布资格。
-6. 推送 `master`（contents API 带 `sha`、409 重试，或 `git push`）。CI 校验通过后编译并激活两个频道；`reviewed` 单元出现在 preview，`published` 单元出现在 preview 与 production。
+6. 获用户明确授权后推送 `master`（定时代理按自身授权）（contents API 带 `sha`、409 重试，或 `git push`）。CI 校验通过后编译并激活两个频道；`reviewed` 单元出现在 preview，`published` 单元出现在 preview 与 production。
 
 ## stage 流转
 

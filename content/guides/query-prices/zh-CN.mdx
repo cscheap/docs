@@ -1,8 +1,25 @@
 ---
 title: "查询单个饰品"
 description: "调用 GET /prices，提供 market_hash_name。"
-sourceDigest: "sha256:254e2da21c9290bd09a375d360d95173a9f84a47220bdece46bd4b8f027ba239"
+sourceDigest: sha256:1229d987f2f324871bd1814bc0f1452c4edcd2e7e73d406509d3b559a24b68e2
 ---
+
+开始前，请先完成[第一次请求](/docs/get-started/first-request)。下方命令使用在那里设置的 `CSCHEAP_API_KEY` 环境变量。反复调用前，请查看[请求费用](/docs/billing/request-costs)。
+
+
+## 发送带筛选条件的请求
+
+```bash
+curl --get 'https://api.cs.cheap/prices' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'app_id=730' \
+  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)' \
+  --data-urlencode 'markets=BUFF,UUYP' \
+  --data-urlencode 'side=ask' \
+  --data-urlencode 'currency=USD'
+```
+
+这条命令选择 BUFF 和 UUYP 的在售报价。检查 `data.markets`：返回的记录应符合这些条件。`currency=USD` 换算费用调整后的金额，市场原始报价仍保留原币种。
 
 ## 选择筛选参数
 

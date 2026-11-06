@@ -3,6 +3,9 @@ title: "Export prices"
 description: "GET /prices/export returns a prebuilt gzip-compressed JSON document."
 ---
 
+Before you start, complete [your first request](/docs/get-started/first-request). The commands below use the `CSCHEAP_API_KEY` environment variable set there. Check [request costs](/docs/billing/request-costs) before running repeated requests.
+
+
 ## Download the snapshot
 
 `GET /prices/export` returns a prebuilt gzip-compressed JSON document. It has no `data` envelope: billing metadata is in response headers. The default side is `ask`; request `all` to include other sides and available valuations, or `mid` for only the `CSCP` valuations, a much smaller file. `currency` (`USD`, `CNY` or `RUB`; default your account's base currency, else USD) sets the currency of the converted amounts and of the `CSCP` quotes; each currency is a separate file with its own `ETag`.

@@ -3,6 +3,23 @@ title: "Query one item"
 description: "Call GET /prices with market_hash_name."
 ---
 
+Before you start, complete [your first request](/docs/get-started/first-request). The commands below use the `CSCHEAP_API_KEY` environment variable set there. Check [request costs](/docs/billing/request-costs) before running repeated requests.
+
+
+## Try a filtered request
+
+```bash
+curl --get 'https://api.cs.cheap/prices' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'app_id=730' \
+  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)' \
+  --data-urlencode 'markets=BUFF,UUYP' \
+  --data-urlencode 'side=ask' \
+  --data-urlencode 'currency=USD'
+```
+
+This selects sell-listing quotes from BUFF and UUYP. Check `data.markets`: each returned row should match those filters. `currency=USD` converts fee-adjusted amounts; the original market price keeps its own currency.
+
 ## Choose filters
 
 Call `GET /prices` with `market_hash_name`. Set `app_id` when querying a game other than the default `730`. Optional `markets` is a comma-separated list of uppercase codes such as `BUFF,UUYP`. Optional `side` is `ask`, `bid`, `mid` or `all`; the default is `all`. Optional `currency` sets the currency of the converted amounts (`buy_amount`, `sale_amount`, `payout_amount`) and of the `CSCP` valuation: any official currency code, defaulting to your account's base currency, else USD. Marketplace prices themselves stay in each marketplace's currency.

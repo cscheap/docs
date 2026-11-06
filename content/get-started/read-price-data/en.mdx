@@ -1,16 +1,53 @@
 ---
-title: "Read price data"
-description: "Use market_code to identify the marketplace and provider_code to identify the source."
+title: "Read your price result"
+description: "Find the price, currency and update time before comparing quotes."
 ---
 
-## Read a quote in context
+After [your first request](/docs/get-started/first-request), read the entries in `data.markets`. Each entry describes one market and side.
 
-Use `market_code` to identify the marketplace and `provider_code` to identify the source. `side=ask` means sell listings, `bid` means buy orders, and `mid` means the CSCP estimate.
+## 1. Find the amount and currency
 
-Treat `market_price_amount` as a decimal string in `market_currency_code`. Do not compare raw numbers across currencies. `null` means no reported amount; it is not zero. A delisted quote can retain its last price, so also check `delisted_at` and `quantity`.
+This is an illustrative excerpt of one quote, not a complete response or a current market price:
 
-## Decide whether to use it
+```json
+{
+  "market_code": "BUFF",
+  "provider_code": "BUFF",
+  "side": "ask",
+  "market_price_amount": "100",
+  "market_currency_code": "CNY",
+  "quantity": 5,
+  "fresh_at": "2026-11-06T00:00:00Z",
+  "delisted_at": null
+}
+```
 
-Check `fresh_at` against your own maximum age. `changed_at` is the last change, not the last successful observation. Quantity may be unknown or a lower bound. Unless `is_all_items_same_price` is true, do not assume every unit is available at the quoted price.
+Read it as: BUFF reports a sell-listing quote of 100 CNY. `ask` means a sell listing; `bid` means a buy order. `market_code` is the marketplace, while `provider_code` tells you where the data came from.
 
-For `CSCP`, inspect `valuation.valuation_date` and confidence fields. See [prices](/docs/concepts/prices), [freshness](/docs/concepts/freshness) and [valuation](/docs/concepts/valuation).
+Always keep `market_price_amount` with `market_currency_code`. An amount is a decimal string; `null` means unavailable, not zero.
+
+## 2. Check whether the quote is usable
+
+- Check `fresh_at` against the maximum age your application accepts. An old `changed_at` alone does not mean the data is stale.
+- If `delisted_at` is set, the last price can still be present but the offer is no longer listed.
+- `quantity=null` means unknown. `is_quantity_minimum=true` means at least that many units. Only `is_all_items_same_price=true` confirms all reported units share the price.
+
+The example's quantity of 5 does not by itself mean you can buy five units for 100 CNY each.
+
+## 3. Compare the right amounts
+
+`market_price_amount` stays in the marketplace currency, even when you request `currency=USD`. The converted amounts use the response's `currency`:
+
+| Field | Meaning |
+| --- | --- |
+| `buy_amount` | Purchase cost after official deposit fees |
+| `sale_amount` | Sale proceeds in the marketplace balance after official sale fees |
+| `payout_amount` | Proceeds after official sale and withdrawal fees |
+
+These amounts can be `null` when unavailable. Your personal fee settings do not change them. For a first integration, display the original price, its currency and `fresh_at`; add fee comparisons when needed.
+
+A `CSCP` row with `side=mid` is a daily estimate, not a listing. The first-request example selects `ask`, so it leaves estimates out.
+
+## Next step
+
+[Filter a price query](/docs/guides/query-prices) or [query a batch](/docs/guides/batch-prices). For the details behind these checks, use the appendix: [prices](/docs/concepts/prices), [freshness](/docs/concepts/freshness), [cost calculation](/docs/concepts/cost-calculation) and [valuation](/docs/concepts/valuation).

@@ -29,6 +29,7 @@ flowchart LR
 
 - [首版范围](v1-scope.md)
 - [仓库目录](repository-layout.md)
+- [写作规范](writing-guide.md)
 - [用户目录](information-architecture.md)
 - [内容契约 v3](content-contract.md)
 - [编辑流程](editing.md)

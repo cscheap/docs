@@ -3,6 +3,9 @@ title: "Batch price queries"
 description: "Send 1–1000 names in market_hash_names."
 ---
 
+Before you start, complete [your first request](/docs/get-started/first-request). The commands below use the `CSCHEAP_API_KEY` environment variable set there. Check [request costs](/docs/billing/request-costs) before running repeated requests.
+
+
 ## Submit a batch
 
 Send 1–1000 names in `market_hash_names`. One batch has one `app_id`, one side selection and one optional `currency`, which works as on the single query. Unlike the single query's CSV parameter, batch `markets` is a JSON array of market codes. Unknown fields in the request body are rejected with `422`.

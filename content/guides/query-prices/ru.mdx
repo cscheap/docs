@@ -1,8 +1,25 @@
 ---
 title: "Запрос одного предмета"
 description: "Передайте market_hash_name в GET /prices."
-sourceDigest: "sha256:254e2da21c9290bd09a375d360d95173a9f84a47220bdece46bd4b8f027ba239"
+sourceDigest: sha256:1229d987f2f324871bd1814bc0f1452c4edcd2e7e73d406509d3b559a24b68e2
 ---
+
+Сначала выполните [первый запрос](/docs/get-started/first-request). Команды ниже используют заданную там переменную `CSCHEAP_API_KEY`. Перед повторными вызовами проверьте [стоимость запросов](/docs/billing/request-costs).
+
+
+## Отправьте запрос с фильтрами
+
+```bash
+curl --get 'https://api.cs.cheap/prices' \
+  --header "Authorization: Bearer $CSCHEAP_API_KEY" \
+  --data-urlencode 'app_id=730' \
+  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)' \
+  --data-urlencode 'markets=BUFF,UUYP' \
+  --data-urlencode 'side=ask' \
+  --data-urlencode 'currency=USD'
+```
+
+Команда выбирает предложения продажи с BUFF и UUYP. Проверьте `data.markets`: записи должны соответствовать фильтрам. `currency=USD` пересчитывает суммы с комиссиями; исходная рыночная цена остаётся в своей валюте.
 
 ## Выберите фильтры
 

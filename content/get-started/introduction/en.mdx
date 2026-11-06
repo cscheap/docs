@@ -1,16 +1,29 @@
 ---
-title: "Introduction"
-description: "cs.cheap collects marketplace prices, normalizes item names and exposes quotes through an API."
+title: "Start using cs.cheap"
+description: "Get marketplace prices for your application, starting with one item."
 ---
 
-## What cs.cheap provides
+cs.cheap lets your application read item prices from multiple marketplaces through one API. Start by querying a CS2 item, then choose batch requests or an export as your collection grows.
 
-cs.cheap collects marketplace prices, normalizes item names and exposes quotes through an API. A marketplace quote records a source, currency, market side and freshness. Some items also have a daily CSCP valuation.
+## Get your first price
 
-Start with [your first request](/docs/get-started/first-request), then learn to [read price data](/docs/get-started/read-price-data). Use the [API overview](/docs/api/overview) to choose single-item, batch or full-market export access.
+Follow [your first request](/docs/get-started/first-request): sign in, copy your API key and run one command. You will learn how to recognize a successful response and fix common errors on the same page. You need a terminal with curl and credits or an active subscription.
 
-## Your account
+Then [read the result](/docs/get-started/read-price-data) to identify the market, amount, currency and update time. You can leave the detailed concepts until you need them.
 
-Sign in at [cs.cheap](https://cs.cheap/en). Add and verify a real email address before using account features. Settings contains your API key; Billing contains purchases, wallet balance and subscription periods. [Credits and subscriptions](/docs/billing/credits) control API usage.
+## Choose your next task
 
-Prices are observations, not guaranteed executable offers. Compare currencies and timestamps before comparing amounts. Documentation describes the recorded project revisions; a code revision alone does not prove which revision a deployment is running.
+| I want to… | Read |
+| --- | --- |
+| Query one item or filter markets | [Query one item](/docs/guides/query-prices) |
+| Track a list of items | [Batch price queries](/docs/guides/batch-prices) |
+| Download prices for a whole game | [Export prices](/docs/guides/export-prices) |
+| Refresh data regularly | [Polling and retries](/docs/guides/polling-and-retries) |
+| Understand what a request costs | [Request costs](/docs/billing/request-costs) |
+| Fix missing or old prices | [Missing or stale data](/docs/support/missing-or-stale-data) |
+
+## Look up details when you need them
+
+[API reference](/docs/api/overview) covers request parameters and response fields. The appendix explains [currencies](/docs/concepts/currencies), [freshness](/docs/concepts/freshness), [marketplace fees](/docs/concepts/marketplace-fees) and the [CSCP estimate](/docs/concepts/valuation).
+
+Prices describe observed market data. Check their age and availability before using them to make a purchase decision.

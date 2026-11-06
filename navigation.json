@@ -15,42 +15,53 @@
     },
     {
       "title": {
-        "en": "Concepts",
-        "zh-CN": "核心概念",
-        "ru": "Понятия"
-      },
-      "pages": [
-        "concepts/items",
-        "concepts/markets-and-sources",
-        "concepts/prices",
-        "concepts/freshness",
-        "concepts/valuation",
-        "concepts/normalization",
-        "concepts/currencies",
-        "concepts/marketplace-fees",
-        "concepts/cost-calculation",
-        "concepts/glossary"
-      ]
-    },
-    {
-      "title": {
-        "en": "Guides",
-        "zh-CN": "操作指南",
-        "ru": "Руководства"
+        "en": "Common tasks",
+        "zh-CN": "常用操作",
+        "ru": "Основные задачи"
       },
       "pages": [
         "guides/query-prices",
         "guides/batch-prices",
         "guides/export-prices",
-        "guides/polling-and-retries",
-        "guides/customize-fees"
+        "guides/polling-and-retries"
       ]
     },
     {
       "title": {
-        "en": "API",
-        "zh-CN": "API",
-        "ru": "API"
+        "en": "Account and billing",
+        "zh-CN": "账号与费用",
+        "ru": "Аккаунт и оплата"
+      },
+      "pages": [
+        "dashboard/account",
+        "dashboard/api-keys",
+        "dashboard/billing",
+        "billing/credits",
+        "billing/request-costs",
+        "billing/plans",
+        "billing/balance-and-usage",
+        "dashboard/settings"
+      ]
+    },
+    {
+      "title": {
+        "en": "Troubleshooting",
+        "zh-CN": "问题排查",
+        "ru": "Решение проблем"
+      },
+      "pages": [
+        "support/authentication",
+        "support/missing-or-stale-data",
+        "support/billing",
+        "support/service-status",
+        "support/contact"
+      ]
+    },
+    {
+      "title": {
+        "en": "API reference",
+        "zh-CN": "API 参考",
+        "ru": "Справочник API"
       },
       "pages": [
         "api/overview",
@@ -59,12 +70,30 @@
         "api/errors",
         "api/rate-limits",
         "api/versioning",
+        "api/reference/prices/batch-prices",
+        "api/reference/prices/export-prices",
+        "api/reference/prices/get-price",
         "api/reference/account/get-account",
         "api/reference/currencies/get-currency",
         "api/reference/currencies/list-currencies",
         "api/reference/markets/get-fees",
         "api/reference/markets/get-market",
         "api/reference/markets/list-markets",
+        "api/reference/platform/get-config",
+        "api/reference/platform/get-health",
+        "api/reference/platform/get-status",
+        "api/reference/platform/list-endpoints"
+      ]
+    },
+    {
+      "title": {
+        "en": "Advanced: fees",
+        "zh-CN": "进阶：自定义费率",
+        "ru": "Дополнительно: комиссии"
+      },
+      "pages": [
+        "dashboard/market-fees",
+        "guides/customize-fees",
         "api/reference/fees/get-fee-workspace",
         "api/reference/calculation-chains/search-chains",
         "api/reference/calculation-chains/list-chains",
@@ -106,55 +135,26 @@
         "api/reference/my-currencies/get-my-currency",
         "api/reference/my-currencies/create-my-currency",
         "api/reference/my-currencies/update-my-currency",
-        "api/reference/my-currencies/delete-my-currency",
-        "api/reference/platform/get-config",
-        "api/reference/platform/get-health",
-        "api/reference/platform/get-status",
-        "api/reference/platform/list-endpoints",
-        "api/reference/prices/batch-prices",
-        "api/reference/prices/export-prices",
-        "api/reference/prices/get-price"
+        "api/reference/my-currencies/delete-my-currency"
       ]
     },
     {
       "title": {
-        "en": "Billing",
-        "zh-CN": "计费",
-        "ru": "Оплата"
+        "en": "Appendix: concepts",
+        "zh-CN": "附录：概念与原理",
+        "ru": "Приложение: понятия"
       },
       "pages": [
-        "billing/credits",
-        "billing/request-costs",
-        "billing/plans",
-        "billing/balance-and-usage"
-      ]
-    },
-    {
-      "title": {
-        "en": "Dashboard",
-        "zh-CN": "控制台",
-        "ru": "Кабинет"
-      },
-      "pages": [
-        "dashboard/account",
-        "dashboard/api-keys",
-        "dashboard/billing",
-        "dashboard/market-fees",
-        "dashboard/settings"
-      ]
-    },
-    {
-      "title": {
-        "en": "Support",
-        "zh-CN": "支持",
-        "ru": "Поддержка"
-      },
-      "pages": [
-        "support/authentication",
-        "support/missing-or-stale-data",
-        "support/billing",
-        "support/service-status",
-        "support/contact"
+        "concepts/items",
+        "concepts/markets-and-sources",
+        "concepts/prices",
+        "concepts/freshness",
+        "concepts/valuation",
+        "concepts/normalization",
+        "concepts/currencies",
+        "concepts/marketplace-fees",
+        "concepts/cost-calculation",
+        "concepts/glossary"
       ]
     }
   ]

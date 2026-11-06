@@ -1,17 +1,54 @@
 ---
-title: "读取价格数据"
-description: "market_code 表示市场，provider_code 表示数据来源。"
-sourceDigest: "sha256:6e72fdeb9a8481d17abb2f41abc4d770116a0637db67b5b7c7786e20ed4de828"
+title: "读懂查询结果"
+description: "比较报价前，先找到金额、币种和更新时间。"
+sourceDigest: sha256:a03ce025acb430cf8779dba08f9976ee7eb693fe7953f2618881497ac98ba75d
 ---
 
-## 结合上下文读取报价
+完成[第一次请求](/docs/get-started/first-request)后，查看 `data.markets` 中的记录。每条记录对应一个市场和一种报价方向。
 
-`market_code` 表示市场，`provider_code` 表示数据来源。`side=ask` 是在售报价，`bid` 是求购报价，`mid` 是 CSCP 估值。
+## 1. 找到金额和币种
 
-`market_price_amount` 是以 `market_currency_code` 计价的十进制字符串。不同币种不能直接比较数值。`null` 表示未报告金额，不等于零。下架报价可能保留最后价格，因此还要检查 `delisted_at` 与 `quantity`。
+下面只展示一条报价的部分字段，数值为示例，不是完整响应或实时行情：
 
-## 判断数据是否适用
+```json
+{
+  "market_code": "BUFF",
+  "provider_code": "BUFF",
+  "side": "ask",
+  "market_price_amount": "100",
+  "market_currency_code": "CNY",
+  "quantity": 5,
+  "fresh_at": "2026-11-06T00:00:00Z",
+  "delisted_at": null
+}
+```
 
-根据业务允许的最大数据年龄检查 `fresh_at`。`changed_at` 是最后变化时间，不是最后成功观测时间。数量可能未知，也可能只是下限。除非 `is_all_items_same_price` 为 true，否则不能认为所有物品都按该价格出售。
+它表示：BUFF 报告了一条 100 CNY 的在售报价。`ask` 是在售报价，`bid` 是求购报价；`market_code` 表示交易市场，`provider_code` 表示数据来自哪里。
 
-对于 `CSCP`，还要检查 `valuation.valuation_date` 与置信度字段。详见[价格](/docs/concepts/prices)、[新鲜度](/docs/concepts/freshness)和[估值](/docs/concepts/valuation)。
+始终把 `market_price_amount` 和 `market_currency_code` 一起读取。金额是十进制字符串；`null` 表示不可用，不是零。
+
+## 2. 判断这条报价能否使用
+
+- 检查 `fresh_at` 是否在应用可接受的时间范围内。仅凭 `changed_at` 很旧，不能判断采集已停止。
+- 如果 `delisted_at` 有值，记录中可能仍有最后一次价格，但报价已下架。
+- `quantity=null` 表示数量未知；`is_quantity_minimum=true` 表示至少有这么多。只有 `is_all_items_same_price=true` 才能确认记录中的所有数量都使用同一个价格。
+
+示例中的数量 5，并不单独保证你能以每件 100 CNY 买到五件。
+
+## 3. 选择正确的金额进行比较
+
+即使请求 `currency=USD`，`market_price_amount` 也保留市场原币种。以下换算金额使用响应中的 `currency`：
+
+| 字段 | 含义 |
+| --- | --- |
+| `buy_amount` | 按官方充值费率计算的购买成本 |
+| `sale_amount` | 按官方出售费率计算的市场余额收入 |
+| `payout_amount` | 按官方出售及提现费率计算的到手金额 |
+
+这些金额不可用时可能为 `null`。个人费率设置不会改变它们。初次接入可以先展示原始价格、币种和 `fresh_at`，需要时再增加费用比较。
+
+`market_code=CSCP`、`side=mid` 的记录是每日估值，不是挂单。第一次请求的示例只选 `ask`，因此不包含估值。
+
+## 接下来
+
+尝试[筛选价格查询](/docs/guides/query-prices)或[批量查询](/docs/guides/batch-prices)。需要了解判断依据时，再读附录中的[价格语义](/docs/concepts/prices)、[新鲜度](/docs/concepts/freshness)、[成本计算](/docs/concepts/cost-calculation)和[估值](/docs/concepts/valuation)。

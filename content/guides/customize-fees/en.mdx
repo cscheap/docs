@@ -3,6 +3,9 @@ title: "Customize fees with the API"
 description: "Keep your own fee chains through the API: read the fee workspace, find or build a chain, preview it, bind it to a marketplace purpose and restore the official fee."
 ---
 
+Before you start, complete [your first request](/docs/get-started/first-request). The commands below use the `CSCHEAP_API_KEY` environment variable set there. Check [request costs](/docs/billing/request-costs) before running repeated requests.
+
+
 ## Before you start
 
 Saving your own fee operators, currencies, chains and bindings needs an active subscription; without one these writes return `403 subscription_required`, while reading, validating and previewing stay available. Fee operations cost no credits. Your records are private unless you share them. Your own chains change the fee workspace and previews, never the price quotes: see [marketplace fees](/docs/concepts/marketplace-fees).
@@ -16,6 +19,8 @@ Call [get the fee workspace](/docs/api/reference/fees/get-fee-workspace). It ret
 [Search chains](/docs/api/reference/calculation-chains/search-chains) lists official, shared and your own chains, most used first, each with a readable `formula`. To start from one of them, [fork it](/docs/api/reference/calculation-chains/fork-chain): the copy is yours, starts at revision 1 and references the same operators.
 
 To build from scratch, [create fee operators](/docs/api/reference/fee-operators/create-fee-operator) and, where you change currency, convert operators, then [create the chain](/docs/api/reference/calculation-chains/create-chain) with its steps in order. [Validate](/docs/api/reference/calculation-chains/validate-chain) an inline chain first to see structural issues, and [preview](/docs/api/reference/calculation-chains/preview-chain) an amount through it:
+
+The IDs and sequence numbers below are illustrative. Replace `42` with a chain you can access, and read the current workspace sequences before binding or resetting a slot. These requests change your saved settings.
 
 ```bash
 curl 'https://api.cs.cheap/calculation-chains/preview' \

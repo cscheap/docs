@@ -1,26 +1,50 @@
 ---
 title: "Your first request"
-description: "The API base URL is https://api.cs.cheap; the current route has no /v1 prefix."
+description: "Copy your API key, query a CS2 item and check the response."
 ---
 
-## Prepare your account
+Get the sell-listing prices of one CS2 item. You need a terminal with curl; no SDK is required.
 
-1. Sign in, then add and verify a real email in Settings.
-2. Copy your active key from the dashboard overview or the API key section in Settings. The first key is issued automatically when an eligible account opens either page.
-3. Check your credits or active subscription in Billing. This price request normally costs one credit without an active subscription.
+## 1. Copy your API key
 
-## Request a price
+1. Sign in at [cs.cheap](https://cs.cheap/en) and open the dashboard.
+2. In Settings, add a real email address if needed and verify it using the email link.
+3. Open the overview or the API key section in Settings, reveal the key and copy it. The first key is issued automatically for an eligible account.
+4. Check Billing for credits or an active subscription. Without an active subscription, a successful single-item request normally costs one credit. A wallet top-up alone does not buy credits; see [request costs](/docs/billing/request-costs).
+
+## 2. Send the request
+
+Run this in Bash or a compatible shell on your computer or server. Replace `replace-with-your-key` with the key you copied. Keep the key out of browser code and public repositories.
 
 ```bash
 export CSCHEAP_API_KEY='replace-with-your-key'
 curl --get 'https://api.cs.cheap/prices' \
   --header "Authorization: Bearer $CSCHEAP_API_KEY" \
   --data-urlencode 'app_id=730' \
-  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)'
+  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)' \
+  --data-urlencode 'side=ask' \
+  --write-out '\nHTTP %{http_code}\n'
 ```
 
-The API base URL is `https://api.cs.cheap`; the current route has no `/v1` prefix. Run the example on your server or local terminal. Store the key in a secret manager for deployed applications.
+`app_id=730` selects CS2. The exact English item name includes its wear condition. `side=ask` selects sell listings. The base URL is `https://api.cs.cheap`, with no `/v1` prefix.
 
-## Check the result
+## 3. Check the response
 
-A successful JSON response has `data` and `meta.request_id`. Quotes are in `data.markets`. For `401`, check the key; for `402`, check credits; for `429`, wait for `Retry-After`. See [errors](/docs/api/errors).
+Look for `HTTP 200` at the end. The JSON contains `data.markets`, an array of quotes, and `meta.request_id`, which identifies your request. The final HTTP line is added by curl, not part of the JSON.
+
+Open [read price data](/docs/get-started/read-price-data) to find the amount and currency in each quote. Values and available markets depend on the data at request time.
+
+| Result | What to do |
+| --- | --- |
+| `200`, empty `markets` | Remove the `side` filter and try again; the item may have no sell-listing quotes. |
+| `401` | Copy the current key again. A newly issued key can take time to reach the API. |
+| `402` | Check credits and the current subscription period in Billing. |
+| `404` | Check the exact item name and game; this item has no price rows. |
+| `422` | Check the parameter names and values against the command above. |
+| `429` | Wait for the duration in the `Retry-After` response header. |
+
+For other failures, see [API errors](/docs/api/errors). Keep `meta.request_id` when asking for help; never share your key.
+
+## Next step
+
+[Read the result](/docs/get-started/read-price-data), then [query several items](/docs/guides/batch-prices).

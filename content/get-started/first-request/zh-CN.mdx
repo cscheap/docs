@@ -1,27 +1,51 @@
 ---
-title: "首次请求"
-description: "API 基础地址为 https://api.cs.cheap，当前路由没有 /v1 前缀。"
-sourceDigest: "sha256:c3fabbd85681fa8d2961870634b9659ed40fd61ea75b160683e82f348352b6ac"
+title: "发起第一次请求"
+description: "复制 API Key，查询一件 CS2 饰品，并确认请求成功。"
+sourceDigest: sha256:17b17818192f82208f60a13f4c69eabba9ba3fd12cfe719dadf08a50e0449a44
 ---
 
-## 准备账号
+这篇教程会带你查到一件 CS2 饰品的在售报价。准备一个安装了 curl 的终端即可，无需安装 SDK。
 
-1. 登录，在设置中绑定并验证真实邮箱。
-2. 在控制台概览或设置的 API 密钥区域复制当前密钥。符合条件的账号首次打开其中任一页面时会自动获得密钥。
-3. 在账单页检查点数或有效订阅。没有有效订阅时，这次价格请求通常消耗 1 点。
+## 1. 复制 API Key
 
-## 请求价格
+1. 在 [cs.cheap](https://cs.cheap/zh-CN) 登录并打开控制台。
+2. 在设置中补充真实邮箱（如尚未填写），通过邮件中的链接完成验证。
+3. 打开概览或设置中的 API Key 区域，显示并复制密钥。符合条件的账号会自动获得第一把密钥。
+4. 在账单中确认有 credits 或有效订阅。没有有效订阅时，成功查询一件饰品通常消耗 1 credit。仅充值钱包不会自动购买 credits，详见[请求费用](/docs/billing/request-costs)。
+
+## 2. 发送请求
+
+在本机或服务器的 Bash 或兼容终端中运行下面的命令，把 `replace-with-your-key` 换成刚才复制的密钥。不要把密钥放进浏览器代码或公开仓库。
 
 ```bash
 export CSCHEAP_API_KEY='replace-with-your-key'
 curl --get 'https://api.cs.cheap/prices' \
   --header "Authorization: Bearer $CSCHEAP_API_KEY" \
   --data-urlencode 'app_id=730' \
-  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)'
+  --data-urlencode 'market_hash_name=AK-47 | Redline (Field-Tested)' \
+  --data-urlencode 'side=ask' \
+  --write-out '\nHTTP %{http_code}\n'
 ```
 
-API 基础地址为 `https://api.cs.cheap`，当前路由没有 `/v1` 前缀。请在自己的服务器或本地终端运行示例，部署应用时通过密钥管理服务提供凭证。
+`app_id=730` 表示 CS2；英文饰品名包含磨损等级，需要完整填写；`side=ask` 表示在售报价。API 地址为 `https://api.cs.cheap`，没有 `/v1` 前缀。
 
-## 检查结果
+## 3. 确认结果
 
-成功 JSON 响应包含 `data` 与 `meta.request_id`，报价位于 `data.markets`。遇到 `401` 检查密钥，`402` 检查点数，`429` 按 `Retry-After` 等待。详见[错误处理](/docs/api/errors)。
+先看末尾是否为 `HTTP 200`。JSON 中的 `data.markets` 是报价列表，`meta.request_id` 是本次请求的标识。最后一行 HTTP 状态由 curl 添加，不属于 JSON。
+
+按照[读懂查询结果](/docs/get-started/read-price-data)找到每条报价的金额和币种。实际金额和可用市场取决于请求时的数据。
+
+| 结果 | 下一步 |
+| --- | --- |
+| `200`，但 `markets` 为空 | 去掉 `side` 筛选后重试，该饰品可能没有在售报价。 |
+| `401` | 重新复制当前密钥。新密钥同步到 API 需要一点时间。 |
+| `402` | 在账单中检查 credits 和当前订阅周期。 |
+| `404` | 核对完整饰品名和游戏；该饰品没有价格记录。 |
+| `422` | 对照上面的命令检查参数名和值。 |
+| `429` | 按响应头 `Retry-After` 指定的时间等待。 |
+
+其他情况见 [API 错误](/docs/api/errors)。求助时保留 `meta.request_id`，不要发送密钥。
+
+## 接下来
+
+[读懂查询结果](/docs/get-started/read-price-data)，再尝试[批量查询](/docs/guides/batch-prices)。
